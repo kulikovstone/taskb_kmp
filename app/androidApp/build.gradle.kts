@@ -1,3 +1,4 @@
+import com.mkulikov.buildlogic.TaskBVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -27,8 +28,8 @@ android {
         applicationId = "com.mkulikov.taskb"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = providers.gradleProperty("appVersion").get()
+        versionCode = rootProject.extensions.getByType<TaskBVersion>().androidVersionCode
+        versionName = project.version.toString()
     }
     packaging {
         resources {

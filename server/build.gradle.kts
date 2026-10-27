@@ -4,7 +4,6 @@ plugins {
 }
 
 group = "com.mkulikov.taskb"
-version = "1.0.0"
 application {
     mainClass = "com.mkulikov.taskb.ApplicationKt"
 }

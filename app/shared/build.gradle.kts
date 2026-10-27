@@ -27,7 +27,7 @@ abstract class GenerateAppVersion : DefaultTask() {
 }
 
 val generateAppVersion = tasks.register<GenerateAppVersion>("generateAppVersion") {
-    applicationVersion.set(providers.gradleProperty("appVersion"))
+    applicationVersion.set(project.version.toString())
     outputDirectory.set(layout.buildDirectory.dir("generated/appVersion/kotlin"))
 }
 

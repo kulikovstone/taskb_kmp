@@ -81,10 +81,12 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "TaskB"
-            packageVersion = providers.gradleProperty("appVersion").get()
+            packageVersion = project.version.toString()
             modules("java.instrument", "jdk.unsupported")
 
             windows {
+                // Preserve the old mapping: version 1.38 becomes MSI version 1.0.38.
+                packageVersion = project.version.toString().replace(".", ".0.")
                 iconFile.set(project.file("packaging/icons/taskb.ico"))
             }
             macOS {
