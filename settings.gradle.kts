@@ -1,6 +1,8 @@
 rootProject.name = "taskb_kmp"
 
 pluginManagement {
+    includeBuild("build-logic")
+
     repositories {
         google {
             mavenContent {
@@ -36,4 +38,16 @@ include(":app:desktopApp")
 include(":app:shared")
 include(":app:webApp")
 include(":core")
+include(":core:database")
+include(":core:mvi")
+include(":core:navigation")
+include(":feature:hello")
+include(":feature:hello:api")
+include(":feature:home")
+include(":feature:home:api")
+include(":feature:settings")
+include(":feature:settings:api")
+include(":feature:task")
+include(":feature:task:api")
 include(":server")
+include(":ui")
