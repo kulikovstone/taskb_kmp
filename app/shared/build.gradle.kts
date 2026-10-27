@@ -44,12 +44,10 @@ kotlin {
     jvm()
     js {
         browser()
-        binaries.executable()
     }
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
-        binaries.executable()
     }
     android {
         namespace = "com.mkulikov.taskb.app.shared"
@@ -64,11 +62,6 @@ kotlin {
         withHostTest {
             isIncludeAndroidResources = true
         }
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }.configure {
-            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        }
     }
     sourceSets {
         commonMain {
@@ -79,7 +72,6 @@ kotlin {
             implementation(libs.compose.uiTooling)
         }
         commonMain.dependencies {
-            api(project(":core"))
             implementation(project(":core:database"))
             implementation(project(":core:mvi"))
             implementation(project(":core:navigation"))
@@ -95,13 +87,9 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
             implementation(libs.compose.material)
             implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -110,12 +98,6 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.compose.ui.test)
             implementation(project(":feature:task:api"))
-        }
-        jsMain.dependencies {
-            implementation(libs.wrappers.browser)
-        }
-        getByName("androidDeviceTest").dependencies {
-            implementation(libs.androidx.testRunner)
         }
     }
 }

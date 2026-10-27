@@ -10,16 +10,13 @@
 * [/app/shared](./app/shared/src) содержит общий код приложений на Compose Multiplatform.
   Внутри расположены следующие каталоги:
     - [commonMain](./app/shared/src/commonMain/kotlin) — код, общий для всех платформ.
-    - Остальные каталоги содержат Kotlin-код для платформы, указанной в названии каталога.
-      Например, вызовы Apple CoreCrypto для iOS следует размещать в
-      [iosMain](./app/shared/src/iosMain/kotlin), а код для настольного приложения (JVM) — в
-      [jvmMain](./app/shared/src/jvmMain/kotlin).
+    - Остальные каталоги содержат точки входа для конкретных платформ: Android, Desktop,
+      iOS и Web.
 
-* [/core](./core/src) содержит код, общий для клиентских приложений и сервера.
-  Основной каталог — [commonMain](./core/src/commonMain/kotlin).
-  При необходимости здесь также можно добавлять каталоги с кодом для отдельных платформ.
+* [/core](./core) содержит модули общей инфраструктуры: MVI, навигацию и базу данных.
 
-* [/server](./server/src/main/kotlin) содержит серверное приложение на Ktor.
+* [/server](./server/src/main/kotlin) содержит каркас серверного приложения на Ktor.
+  Прикладные маршруты пока не реализованы.
 
 ### Модули приложения
 
@@ -37,7 +34,8 @@
 | `:feature:task` / `:feature:task:api` | Задачи, группы и редакторы с отдельными публичными контрактами. |
 
 `:app:shared` объединяет модули приложения для платформенных точек входа.
-Существующий модуль `:core` остаётся общим с `:server` и не зависит от клиентских фич.
+Каталог `core` объединяет самостоятельные модули `:core:mvi`, `:core:navigation`
+и `:core:database`; отдельной библиотеки `:core` нет.
 Зависимости между модулями повторяют структуру настольного проекта: фичи обращаются к другим
 фичам через их модули `api`, а `:core:database` зависит от API-модулей задач и настроек.
 
@@ -91,7 +89,7 @@ Room KSP генерирует реализацию базы и её констр
 Desktop и Android передают фабрику базы общему приложению. Koin создаёт базу при первом обращении
 и закрывает её при закрытии контейнера. Жизненным циклом контейнера управляет Compose.
 
-Для iOS и Web оставлен стартовый интерфейс шаблона без инициализации базы и DI-контейнера.
+Для iOS и Web оставлен минимальный экран-заглушка TaskB без инициализации базы и DI-контейнера.
 Общие исходники и объявления targets сохраняются, а платформенное хранение и запуск
 инфраструктуры будут добавлены, когда начнётся разработка этих версий.
 
@@ -99,8 +97,7 @@ Desktop и Android передают фабрику базы общему при�
 
 Версия рассчитывается автоматически по тем же правилам, что в прежнем Desktop-проекте.
 Файл [version-major.txt](./version-major.txt) задаёт базовую версию из двух целых чисел,
-например `1.38` или `2.0`. В новом репозитории начальная база — `1.38`, текущая версия
-прежнего проекта на момент переноса.
+например `1.38` или `2.0`.
 
 Ко второй части базовой версии прибавляется число коммитов основной линии истории
 (`--first-parent`) после коммита, задавшего эту базу. Например, `1.38` становится `1.39`
@@ -193,13 +190,8 @@ configuration cache и наследование версии модулями:
 
 Используйте кнопку запуска рядом с кодом теста в редакторе IDE или задачи Gradle:
 
-- Тесты Android: `./gradlew :app:shared:testAndroidHostTest`
+- Общие тесты фич на JVM Android: `./gradlew :feature:hello:testAndroidHostTest :feature:task:testAndroidHostTest`
 - Тесты настольного приложения: `./gradlew :app:shared:jvmTest`
-- Тесты сервера: `./gradlew :server:test`
-- Тесты веб-приложения:
-    - Wasm: `./gradlew :app:shared:wasmJsTest`
-    - JS: `./gradlew :app:shared:jsTest`
-- Тесты iOS: `./gradlew :app:shared:iosSimulatorArm64Test`
 
 Проверки перенесённой инфраструктуры и фич на JVM:
 
@@ -220,13 +212,3 @@ UI-тесты Desktop проходят сценарии навигации и CR
 ```bash
 ./gradlew :feature:hello:testAndroidHostTest :feature:task:testAndroidHostTest
 ```
-
----
-
-Подробнее о [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://kotlinlang.org/compose-multiplatform/),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
-
-Отзывы о Compose/Web и Kotlin/Wasm можно оставить в открытом Slack-канале
-[#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-Об обнаруженных проблемах можно сообщить в [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).

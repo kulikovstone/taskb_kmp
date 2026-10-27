@@ -1,20 +1,9 @@
 package com.mkulikov.taskb
 
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
 
 fun main() {
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
+    embeddedServer(Netty, port = 8080, host = "0.0.0.0") {}
         .start(wait = true)
-}
-
-fun Application.module() {
-    routing {
-        get("/") {
-            call.respondText(sayHello("Ktor"))
-        }
-    }
 }
