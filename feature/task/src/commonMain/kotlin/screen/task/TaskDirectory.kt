@@ -1,7 +1,6 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,7 +13,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -26,6 +24,7 @@ import com.mkulikov.taskb.feature.task.component.GroupLoading
 import com.mkulikov.taskb.feature.task.component.taskDateLabel
 import com.mkulikov.taskb.feature.task.model.Group
 import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.ui.component.TaskBSortHeader
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -67,14 +66,14 @@ internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wid
 
 @Composable
 private fun TaskColumnHeading(label: String, sort: TaskSort, state: TaskState, onIntent: (TaskIntent) -> Unit, modifier: Modifier, end: Boolean = false) {
-    Row(modifier.fillMaxHeight().clickable(interactionSource = null, indication = null, role = Role.Button) {
-        onIntent(TaskIntent.Sort(sort))
-    }, verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (end) Arrangement.End else Arrangement.Start) {
-        Text(label, color = TaskBTheme.colors.secondary, style = TaskBTheme.typography.label)
-        if (state.sort == sort) Icon(TaskBIcons.Sort, null, tint = TaskBTheme.colors.success,
-            modifier = Modifier.padding(start = 4.dp).size(16.dp).rotate(if (state.reverseSort) 180f else 0f))
-    }
+    TaskBSortHeader(
+        label = label,
+        isActive = state.sort == sort,
+        reverseSort = state.reverseSort,
+        onClick = { onIntent(TaskIntent.Sort(sort)) },
+        modifier = modifier.fillMaxHeight(),
+        horizontalArrangement = if (end) Arrangement.End else Arrangement.Start,
+    )
 }
 
 @Composable

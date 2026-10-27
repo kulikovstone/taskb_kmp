@@ -1,12 +1,12 @@
 package com.mkulikov.taskb.feature.task.screen.groups
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,15 +25,13 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.component.GroupLoadError
 import com.mkulikov.taskb.feature.task.component.GroupLoading
 import com.mkulikov.taskb.feature.task.model.Group
+import com.mkulikov.taskb.ui.component.TaskBSortHeader
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
@@ -116,28 +114,17 @@ private fun SortHeader(
     modifier: Modifier,
     centered: Boolean = false,
 ) {
-    val colors = TaskBTheme.colors
     Box(
         modifier = modifier,
         contentAlignment = if (centered) Alignment.Center else Alignment.CenterStart,
     ) {
-        Row(
-            modifier = Modifier.clickable(interactionSource = null, indication = null, role = Role.Button) {
-                onIntent(GroupsIntent.Sort(sort))
-            }.semantics { contentDescription = "Sort by $label" }
-                .padding(GroupSortHeaderPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(label, style = TaskBTheme.typography.label, color = colors.secondary, maxLines = 1)
-            if (state.sort == sort) {
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    TaskBIcons.Sort, contentDescription = null,
-                    tint = if (state.reverseSort) colors.danger else colors.success,
-                    modifier = Modifier.size(14.dp).rotate(if (state.reverseSort) 180f else 0f),
-                )
-            }
-        }
+        TaskBSortHeader(
+            label = label,
+            isActive = state.sort == sort,
+            reverseSort = state.reverseSort,
+            onClick = { onIntent(GroupsIntent.Sort(sort)) },
+            contentPadding = PaddingValues(GroupSortHeaderPadding),
+        )
     }
 }
 
