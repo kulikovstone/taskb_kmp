@@ -111,9 +111,11 @@ private fun TaskRow(task: Task, group: Group?, state: TaskState, wide: Boolean, 
 @Composable
 private fun TaskGroupLabel(group: Group?, modifier: Modifier, small: Boolean) {
     Row(modifier.heightIn(min = if (small) 18.dp else 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (small) 4.dp else 8.dp)) {
-        Icon(TaskBIcons.FolderFilled, null, tint = group?.color?.color ?: TaskBTheme.colors.muted, modifier = Modifier.size(if (small) 14.dp else 18.dp))
-        Text(group?.name ?: "No group", style = if (small) TaskBTheme.typography.small else TaskBTheme.typography.body,
-            color = if (small) TaskBTheme.colors.muted else TaskBTheme.colors.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (group != null) {
+            Icon(TaskBIcons.FolderFilled, null, tint = group.color.color, modifier = Modifier.size(if (small) 14.dp else 18.dp))
+            Text(group.name, style = if (small) TaskBTheme.typography.small else TaskBTheme.typography.body,
+                color = if (small) TaskBTheme.colors.muted else TaskBTheme.colors.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 
