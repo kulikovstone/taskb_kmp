@@ -115,6 +115,47 @@ Desktop и Android передают фабрику базы общему при�
     - JS (медленнее, поддерживает старые браузеры): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
 - iOS-приложение: откройте каталог [/app/iosApp](./app/iosApp) в Xcode и запустите приложение оттуда.
 
+### Сборка Desktop для распространения
+
+Настройки находятся в [app/desktopApp/build.gradle.kts](./app/desktopApp/build.gradle.kts).
+Из прежнего Desktop-проекта перенесены имя пакета `TaskB`, иконки для Linux, Windows и macOS,
+настройка JDK 21 и [compose-desktop.pro](./app/desktopApp/compose-desktop.pro) с правилами
+для Room и SQLite. Минификация ProGuard в релизной сборке отключена, как в прежнем проекте.
+Версия пакетов берётся из общего `appVersion` в `gradle.properties`.
+
+Готовое приложение со встроенной Java, без установщика:
+
+```bash
+./gradlew :app:desktopApp:createDistributable
+```
+
+На Linux результат находится в `app/desktopApp/build/compose/binaries/main/app/TaskB`.
+Запуск: `app/desktopApp/build/compose/binaries/main/app/TaskB/bin/TaskB`.
+Релизный вариант собирается задачей `:app:desktopApp:createReleaseDistributable` в
+`app/desktopApp/build/compose/binaries/main-release/app/TaskB`.
+
+Установщики собираются на соответствующей ОС:
+
+| Система | Команда | Каталог результата |
+| --- | --- | --- |
+| Linux, RPM | `./gradlew :app:desktopApp:packageRpm` | `app/desktopApp/build/compose/binaries/main/rpm` |
+| Linux, DEB | `./gradlew :app:desktopApp:packageDeb` | `app/desktopApp/build/compose/binaries/main/deb` |
+| Windows, MSI | `./gradlew :app:desktopApp:packageMsi` | `app/desktopApp/build/compose/binaries/main/msi` |
+| macOS, DMG | `./gradlew :app:desktopApp:packageDmg` | `app/desktopApp/build/compose/binaries/main/dmg` |
+
+Для RPM нужен `rpmbuild`, для DEB — `dpkg-deb`. Подробнее об инструментах упаковки — в
+[документации Compose Multiplatform](https://kotlinlang.org/docs/multiplatform/compose-native-distribution.html).
+
+Чтобы собрать приложение и добавить ярлык в меню приложений Linux:
+
+```bash
+./gradlew :app:desktopApp:installLinuxDesktopEntry
+```
+
+Задача записывает `applications/com.mkulikov.taskb.desktop` в `$XDG_DATA_HOME`, а если
+переменная не задана — в `~/.local/share`. Ярлык указывает на приложение в каталоге `build`;
+после очистки сборки выполните задачу повторно.
+
 ### Запуск тестов
 
 Используйте кнопку запуска рядом с кодом теста в редакторе IDE или задачи Gradle:
