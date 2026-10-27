@@ -8,6 +8,29 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+abstract class GenerateAppVersion : DefaultTask() {
+    @get:Input
+    abstract val applicationVersion: Property<String>
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val source = outputDirectory.get().file("com/mkulikov/taskb/AppVersion.kt").asFile
+        source.parentFile.mkdirs()
+        source.writeText(
+            "package com.mkulikov.taskb\n\n" +
+                "internal object AppVersion { const val value = \"${applicationVersion.get()}\" }\n"
+        )
+    }
+}
+
+val generateAppVersion = tasks.register<GenerateAppVersion>("generateAppVersion") {
+    applicationVersion.set(providers.gradleProperty("appVersion"))
+    outputDirectory.set(layout.buildDirectory.dir("generated/appVersion/kotlin"))
+}
+
 kotlin {
     listOf(
         iosArm64(),
@@ -48,6 +71,9 @@ kotlin {
         }
     }
     sourceSets {
+        commonMain {
+            kotlin.srcDir(generateAppVersion)
+        }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
@@ -70,6 +96,7 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.material)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
@@ -78,6 +105,11 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        jvmTest.dependencies {
+            implementation(compose.desktop.currentOs)
+            implementation(libs.compose.ui.test)
+            implementation(project(":feature:task:api"))
         }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)

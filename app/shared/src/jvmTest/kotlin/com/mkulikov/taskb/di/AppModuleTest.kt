@@ -3,6 +3,7 @@ package com.mkulikov.taskb.di
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
 import com.mkulikov.taskb.core.navigation.IAppNavigator
+import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
@@ -31,6 +32,7 @@ class AppModuleTest {
                     val settings = application.koin.get<IAppSettings>()
                     val navigator = application.koin.get<IAppNavigator>()
                     assertSame(navigator, application.koin.get<IAppNavigator>())
+                    assertEquals(3, application.koin.getAll<INavEntry>().size)
                     assertEquals(launch, opens)
                     if (launch == 0) {
                         assertFalse(settings.hasCompletedWelcome())

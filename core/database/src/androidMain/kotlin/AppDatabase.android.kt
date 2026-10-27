@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.core.database
 
 import android.content.Context
+import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 
 fun AppDatabase.Companion.open(context: Context): AppDatabase {
@@ -8,5 +9,9 @@ fun AppDatabase.Companion.open(context: Context): AppDatabase {
     check(file.parentFile?.let { it.isDirectory || it.mkdirs() } == true) {
         "Cannot create the database directory"
     }
-    return open(file.absolutePath, BundledSQLiteDriver())
+    val builder = Room.databaseBuilder<AppDatabase>(
+        name = file.absolutePath,
+        factory = AppDatabaseConstructor::initialize,
+    )
+    return open(builder, BundledSQLiteDriver())
 }

@@ -12,7 +12,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.compose.material)
-            implementation(libs.compose.materialIcons)
+            implementation(libs.kotlinx.datetime)
 
             implementation(project(":core:database"))
             implementation(project(":core:mvi"))

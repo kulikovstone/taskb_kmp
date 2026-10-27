@@ -22,7 +22,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.mkulikov.taskb"
-            packageVersion = "1.0.0"
+            packageVersion = providers.gradleProperty("appVersion").get()
         }
     }
 }

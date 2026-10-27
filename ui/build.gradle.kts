@@ -5,6 +5,7 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            implementation(libs.compose.uiToolingPreview)
             api(libs.compose.runtime)
             api(libs.compose.ui)
             api(libs.compose.foundation)
