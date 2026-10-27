@@ -17,11 +17,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.mkulikov.taskb_kmp.MainKt"
+        mainClass = "com.mkulikov.taskb.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.mkulikov.taskb_kmp"
+            packageName = "com.mkulikov.taskb"
             packageVersion = "1.0.0"
         }
     }

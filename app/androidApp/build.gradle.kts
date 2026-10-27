@@ -20,11 +20,11 @@ dependencies {
 }
 
 android {
-    namespace = "com.mkulikov.taskb_kmp"
+    namespace = "com.mkulikov.taskb"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.mkulikov.taskb_kmp"
+        applicationId = "com.mkulikov.taskb"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

@@ -29,7 +29,7 @@ kotlin {
         binaries.executable()
     }
     android {
-        namespace = "com.mkulikov.taskb_kmp.app.shared"
+        namespace = "com.mkulikov.taskb.app.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
         compilerOptions {

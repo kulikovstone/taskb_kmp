@@ -18,7 +18,7 @@ kotlin {
         browser()
     }
     android {
-        namespace = "com.mkulikov.taskb_kmp.core"
+        namespace = "com.mkulikov.taskb.core"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
         compilerOptions {

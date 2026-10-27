@@ -34,7 +34,7 @@ kotlin {
         browser()
     }
     android {
-        namespace = "com.mkulikov.taskb_kmp." + project.path.removePrefix(":").replace(':', '.')
+        namespace = "com.mkulikov.taskb." + project.path.removePrefix(":").replace(':', '.')
         compileSdk = libs.findVersion("android-compileSdk").get().requiredVersion.toInt()
         minSdk = libs.findVersion("android-minSdk").get().requiredVersion.toInt()
         compilerOptions {

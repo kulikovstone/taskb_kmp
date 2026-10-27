@@ -3,10 +3,10 @@ plugins {
     alias(libs.plugins.ktor)
 }
 
-group = "com.mkulikov.taskb_kmp"
+group = "com.mkulikov.taskb"
 version = "1.0.0"
 application {
-    mainClass = "com.mkulikov.taskb_kmp.ApplicationKt"
+    mainClass = "com.mkulikov.taskb.ApplicationKt"
 }
 
 dependencies {
