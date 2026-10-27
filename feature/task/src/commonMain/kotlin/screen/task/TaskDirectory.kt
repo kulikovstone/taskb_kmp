@@ -67,7 +67,9 @@ internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wid
 
 @Composable
 private fun TaskColumnHeading(label: String, sort: TaskSort, state: TaskState, onIntent: (TaskIntent) -> Unit, modifier: Modifier, end: Boolean = false) {
-    Row(modifier.fillMaxHeight().clickable { onIntent(TaskIntent.Sort(sort)) }, verticalAlignment = Alignment.CenterVertically,
+    Row(modifier.fillMaxHeight().clickable(interactionSource = null, indication = null, role = Role.Button) {
+        onIntent(TaskIntent.Sort(sort))
+    }, verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (end) Arrangement.End else Arrangement.Start) {
         Text(label, color = TaskBTheme.colors.secondary, style = TaskBTheme.typography.label)
         if (state.sort == sort) Icon(TaskBIcons.Sort, null, tint = TaskBTheme.colors.success,
