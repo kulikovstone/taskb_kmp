@@ -67,10 +67,6 @@ kotlin {
         commonMain {
             kotlin.srcDir(generateAppVersion)
         }
-        androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.compose.uiTooling)
-        }
         commonMain.dependencies {
             implementation(project(":core:database"))
             implementation(project(":core:mvi"))

@@ -5,7 +5,6 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.koin.core)
             implementation(libs.compose.material)
 

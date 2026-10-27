@@ -63,7 +63,8 @@
   iOS Simulator ARM64, браузерные JS и Wasm, а также `kotlin-test` в `commonTest` и тесты
   Android, выполняемые на JVM. Байт-код библиотек для Android и JVM рассчитан на Java 11,
   как и в Android-приложении.
-* `taskb.compose.library` дополнительно включает Compose, компилятор Compose и ресурсы Android.
+* `taskb.compose.library` дополнительно включает Compose, компилятор Compose, ресурсы Android
+  и зависимости для Compose Preview: аннотацию в `commonMain` и tooling в `androidRuntimeClasspath`.
 
 Версии плагинов и Android SDK берутся из `gradle/libs.versions.toml`.
 Общий код каждого модуля следует размещать в `src/commonMain/kotlin`, а тесты — в
