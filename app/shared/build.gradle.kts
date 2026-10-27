@@ -55,6 +55,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":core"))
             implementation(project(":core:database"))
+            implementation(project(":core:mvi"))
             implementation(project(":core:navigation"))
             implementation(project(":feature:hello"))
             implementation(project(":feature:hello:api"))
@@ -64,6 +65,8 @@ kotlin {
             implementation(project(":feature:settings:api"))
             implementation(project(":feature:task"))
             implementation(project(":ui"))
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

@@ -13,15 +13,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.mkulikov.taskb.core.database.AppDatabase
+import com.mkulikov.taskb.di.AppDependencyGraph
+import org.koin.compose.KoinIsolatedContext
 import org.jetbrains.compose.resources.painterResource
 
 import taskb_kmp.app.shared.generated.resources.Res
 import taskb_kmp.app.shared.generated.resources.compose_multiplatform
 
 @Composable
-@Preview
-fun App() {
+expect fun App()
+
+@Composable
+internal fun App(databaseFactory: () -> AppDatabase) {
+    val graph = remember(databaseFactory) { AppDependencyGraph(databaseFactory) }
+    KoinIsolatedContext(context = graph.application) {
+        AppContent()
+    }
+}
+
+@Composable
+internal fun AppContent() {
     MaterialTheme {
         var showContent by remember { mutableStateOf(false) }
         Column(
