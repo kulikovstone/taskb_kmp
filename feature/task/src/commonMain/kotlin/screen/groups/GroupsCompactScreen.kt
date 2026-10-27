@@ -11,7 +11,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.component.GroupTextField
+import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -25,7 +25,7 @@ internal fun GroupsCompactScreen(state: GroupsState, onIntent: (GroupsIntent) ->
             }
         }
         Column(Modifier.weight(1f).padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
-            GroupTextField(state.query, { onIntent(GroupsIntent.Search(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
+            TaskBTextField(state.query, { onIntent(GroupsIntent.Search(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(16.dp))
             GroupsFilters(state, onIntent)
             Spacer(Modifier.height(16.dp))

@@ -15,7 +15,7 @@ import com.mkulikov.taskb.feature.task.component.GroupColorPicker
 import com.mkulikov.taskb.feature.task.component.GroupLoadError
 import com.mkulikov.taskb.feature.task.component.GroupLoading
 import com.mkulikov.taskb.feature.task.component.GroupStatistics
-import com.mkulikov.taskb.feature.task.component.GroupTextField
+import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
@@ -38,7 +38,7 @@ internal fun GroupEditorForm(
             }
             Text("Group name", modifier = Modifier.height(18.dp), style = TaskBTheme.typography.label, color = colors.text)
             Spacer(Modifier.height(8.dp))
-            GroupTextField(
+            TaskBTextField(
                 value = state.name, onValueChange = { onIntent(GroupEditorIntent.NameChanged(it)) }, description = "Group name",
                 placeholder = "Enter group name", enabled = enabled, modifier = Modifier.fillMaxWidth(),
                 autoFocus = autoFocusName,

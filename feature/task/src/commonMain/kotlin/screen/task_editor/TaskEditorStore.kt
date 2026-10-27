@@ -44,7 +44,6 @@ internal class TaskEditorStore(
             else -> {
                 if (current.isBusy || current.loadError != null || current.dialog != null) return
                 when (intent) {
-                    is TaskEditorIntent.NameChanged -> reduce(TaskEditorMessage.Name(intent.name))
                     is TaskEditorIntent.GroupChanged -> reduce(TaskEditorMessage.Group(intent.id))
                     is TaskEditorIntent.ShiftDate -> current.dueDate?.let {
                         reduce(TaskEditorMessage.Date(it.plus(intent.days, DateTimeUnit.DAY).plus(intent.months, DateTimeUnit.MONTH)))

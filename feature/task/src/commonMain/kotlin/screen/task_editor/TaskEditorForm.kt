@@ -22,7 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.component.GroupButton
-import com.mkulikov.taskb.feature.task.component.GroupTextField
+import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.feature.task.component.taskDateLabel
 import com.mkulikov.taskb.feature.task.model.Group
 import com.mkulikov.taskb.ui.icon.TaskBIcons
@@ -38,7 +38,7 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
     Column(modifier.verticalScroll(rememberScrollState()).padding(horizontal = if (wide) 0.dp else 24.dp, vertical = 24.dp)) {
         Text("Task name", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
         Spacer(Modifier.height(8.dp))
-        GroupTextField(state.name, { onIntent(TaskEditorIntent.NameChanged(it)) }, "Task name", placeholder = "Enter task name", enabled = enabled,
+        TaskBTextField(state.name, "Task name", placeholder = "Enter task name", enabled = enabled,
             autoFocus = true, onDone = { if (state.canSave) onIntent(TaskEditorIntent.Save) }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(24.dp))
         Text("Date", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))

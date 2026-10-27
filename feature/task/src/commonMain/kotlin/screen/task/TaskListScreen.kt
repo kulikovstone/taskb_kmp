@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.component.GroupButton
-import com.mkulikov.taskb.feature.task.component.GroupTextField
+import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorIntent
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorState
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorWidePanel
@@ -51,10 +51,10 @@ internal fun TaskListScreen(
         } else TaskBTopAppBar("Tasks", onBack, titleSpacing = 4.dp, actions = actions)
         Column(Modifier.weight(1f).padding(start = if (wide) 32.dp else 24.dp, end = if (wide) 32.dp else 24.dp, top = if (wide) 16.dp else 24.dp)) {
             if (wide) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                GroupTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.width(300.dp))
+                TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.width(300.dp))
                 ActiveTaskFilters(state, onIntent, Modifier.weight(1f))
             } else {
-                GroupTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.fillMaxWidth())
+                TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.fillMaxWidth())
                 if (state.filter != null || state.groupFilter != TaskGroupFilter.All) {
                     Spacer(Modifier.height(16.dp))
                     ActiveTaskFilters(state, onIntent)

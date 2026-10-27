@@ -1,12 +1,14 @@
 package com.mkulikov.taskb.feature.task.screen.task_editor
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.task.model.Task
 import kotlinx.datetime.LocalDate
 
 internal data class TaskEditorState(
     val isNew: Boolean = true,
     val original: Task? = null,
-    val name: String = "",
+    // Keep text, selection and IME composition synchronous, outside the Store's intent queue.
+    val name: TextFieldState = TextFieldState(),
     val dueDate: LocalDate? = null,
     val groupId: Int? = null,
     val isLoading: Boolean = false,
@@ -16,7 +18,7 @@ internal data class TaskEditorState(
     val dialog: TaskEditorDialog? = null,
 ) {
     val isBusy get() = isLoading || isSaving
-    val normalizedName get() = name.trim()
+    val normalizedName get() = name.text.toString().trim()
     val canSave get() = !isBusy && loadError == null && dialog == null && normalizedName.isNotEmpty() &&
         (isNew || original?.let { it.name != normalizedName || it.dueDate != dueDate || it.groupId != groupId } == true)
 }

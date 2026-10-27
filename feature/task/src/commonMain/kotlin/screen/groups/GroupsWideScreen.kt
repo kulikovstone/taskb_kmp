@@ -19,7 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.component.GroupButton
-import com.mkulikov.taskb.feature.task.component.GroupTextField
+import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.feature.task.screen.group_editor.GroupEditorIntent
 import com.mkulikov.taskb.feature.task.screen.group_editor.GroupEditorState
 import com.mkulikov.taskb.feature.task.screen.group_editor.GroupEditorWidePanel
@@ -45,7 +45,7 @@ internal fun GroupsWideScreen(
         }
         Column(Modifier.weight(1f).padding(start = 32.dp, end = 32.dp, top = 16.dp)) {
             Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                GroupTextField(state.query, { onIntent(GroupsIntent.Search(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.width(300.dp))
+                TaskBTextField(state.query, { onIntent(GroupsIntent.Search(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.width(300.dp))
                 GroupsFilters(state, onIntent)
             }
             Spacer(Modifier.height(24.dp))

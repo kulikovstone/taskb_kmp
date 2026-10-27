@@ -20,7 +20,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.component.GroupTextField
+import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorIntent
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
@@ -57,7 +57,7 @@ private fun TaskSelectionContent(state: TaskState, editorGroup: Int?, onIntent: 
     val filters = state.selection == TaskSelection.Filters
     Column(modifier) {
         if (!filters) {
-            GroupTextField(state.groupQuery, { onIntent(TaskIntent.SearchGroups(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
+            TaskBTextField(state.groupQuery, { onIntent(TaskIntent.SearchGroups(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(16.dp))
         }
         val scroll = rememberLazyListState()

@@ -3,7 +3,6 @@ package com.mkulikov.taskb.feature.task.screen.task_editor
 import kotlinx.datetime.LocalDate
 
 internal sealed interface TaskEditorIntent {
-    data class NameChanged(val name: String) : TaskEditorIntent
     data class DateChanged(val date: LocalDate?) : TaskEditorIntent
     data class GroupChanged(val id: Int?) : TaskEditorIntent
     data class ShiftDate(val days: Long = 0, val months: Long = 0) : TaskEditorIntent
