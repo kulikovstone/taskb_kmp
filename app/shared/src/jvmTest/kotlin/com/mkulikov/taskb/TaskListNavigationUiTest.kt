@@ -222,8 +222,8 @@ class TaskListNavigationUiTest {
                 TaskEntity(name = "Read a chapter", dueDate = today.plusDays(1).toEpochDay(), groupId = groupIds["Reading"]),
                 TaskEntity(name = "Practice Kotlin coroutines", dueDate = today.plusDays(2).toEpochDay(), groupId = groupIds["Learning"]),
                 TaskEntity(name = "Plan the next week", groupId = groupIds["Personal"]),
-                TaskEntity(name = "Send the project update", groupId = groupIds["Work"], completed = true),
-                TaskEntity(name = "Go for an evening walk", groupId = groupIds["Health"], completed = true)).forEach { db.taskDao().insert(it) }
+                TaskEntity(name = "Send the project update", groupId = groupIds["Work"], completedAt = 1_798_000_000_000L),
+                TaskEntity(name = "Go for an evening walk", groupId = groupIds["Health"], completedAt = 1_798_000_000_000L)).forEach { db.taskDao().insert(it) }
         }
     }
     private fun SkikoComposeUiTest.setApp(app: KoinApplication, dark: Boolean = false, width: State<Dp>? = null) {

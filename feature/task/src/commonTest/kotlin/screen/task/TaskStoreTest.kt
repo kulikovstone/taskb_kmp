@@ -16,6 +16,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskStoreTest {
@@ -23,7 +24,7 @@ class TaskStoreTest {
     private val tasks = listOf(
         Task(1, "Overdue", today.minus(1, DateTimeUnit.DAY), 1), Task(2, "Today", today, 1),
         Task(3, "Tomorrow", today.plus(1, DateTimeUnit.DAY)), Task(4, "Later", today.plus(2, DateTimeUnit.DAY)),
-        Task(5, "Someday"), Task(6, "Completed", today, 1, true),
+        Task(5, "Someday"), Task(6, "Completed", today, 1, completedAt = Instant.parse("2026-10-25T10:00:00Z")),
     )
 
     @Test

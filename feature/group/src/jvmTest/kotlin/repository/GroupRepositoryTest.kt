@@ -71,7 +71,7 @@ class GroupRepositoryTest {
                 val tasks = database.taskDao()
                 val taskId = tasks.insert(TaskEntity(name = "Task", groupId = group.id)).toInt()
                 assertEquals(GroupTaskSummary(1, 0), withTimeout(5_000) { updates.receive() }.single().tasks)
-                tasks.setCompleted(taskId, true)
+                tasks.setCompletedAt(taskId, 1_798_000_000_000L)
                 assertEquals(GroupTaskSummary(0, 1), withTimeout(5_000) { updates.receive() }.single().tasks)
                 assertEquals(GroupTaskSummary(0, 1), repository.getById(group.id)?.tasks)
 
@@ -80,7 +80,7 @@ class GroupRepositoryTest {
                 val task = assertNotNull(tasks.getById(taskId))
                 assertNull(task.groupId)
                 assertEquals("Task", task.name)
-                assertEquals(true, task.completed)
+                assertEquals(1_798_000_000_000L, task.completedAt)
             } finally { observer.cancelAndJoin() }
         } finally { database.close() }
     }

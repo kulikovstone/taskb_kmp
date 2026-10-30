@@ -5,6 +5,7 @@ import androidx.room3.ForeignKey
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
+import kotlin.time.Clock
 
 @Entity(
     tableName = "tasks",
@@ -19,5 +20,8 @@ data class TaskEntity(
     val name: String,
     val dueDate: Long? = null,
     val groupId: Int? = null,
-    val completed: Boolean = false,
+    /** Creation time in milliseconds since the Unix epoch. */
+    val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
+    /** Completion time in milliseconds since the Unix epoch, or null for an incomplete task. */
+    val completedAt: Long? = null,
 )

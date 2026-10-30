@@ -31,8 +31,8 @@ internal data class TaskState(
                 is TaskGroupFilter.Selected -> task.groupId == group.id
             } && when (filter) {
                 null -> true
-                TaskFilter.Completed -> task.completed
-                else -> !task.completed && when (filter) {
+                TaskFilter.Completed -> task.isCompleted
+                else -> !task.isCompleted && when (filter) {
                     TaskFilter.Scheduled -> task.dueDate != null
                     TaskFilter.Overdue -> task.dueDate?.let { it < today } == true
                     TaskFilter.Today -> task.dueDate == today
@@ -48,7 +48,7 @@ internal data class TaskState(
             TaskSort.Group -> compareBy<Task> { task -> groups.find { it.id == task.groupId }?.name?.lowercase() ?: "" }.then(names)
             TaskSort.Date -> compareBy<Task> { it.dueDate == null }.thenBy { it.dueDate }.thenBy { it.id }
         }.let { if (reverseSort) it.reversed() else it }
-        return matching.sortedWith(compareBy<Task> { it.completed }.then(order))
+        return matching.sortedWith(compareBy<Task> { it.isCompleted }.then(order))
     }
     val summary: String get() = if (query.isBlank() && filter == null && groupFilter == TaskGroupFilter.All) {
         "${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}"

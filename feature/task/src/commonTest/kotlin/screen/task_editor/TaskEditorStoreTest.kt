@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskEditorStoreTest {
@@ -38,13 +39,17 @@ class TaskEditorStoreTest {
             assertEquals(" Task ", store.state.value.name.text.toString())
             gate.complete(Unit)
             runCurrent()
-            assertEquals(Task(name = "Task", dueDate = LocalDate(2026, 2, 28), groupId = 7), repo.lastWrite)
+            val task = assertNotNull(repo.lastWrite)
+            assertEquals("Task", task.name)
+            assertEquals(LocalDate(2026, 2, 28), task.dueDate)
+            assertEquals(7, task.groupId)
+            assertNull(task.completedAt)
             assertTrue(store.state.value.isFinished)
         }
     }
     @Test
     fun `failed saving preserves draft and deletion needs confirmation`() = runTest {
-        val repo = FakeTaskRepository().apply { values.value = listOf(Task(7, "Original", completed = true)) }
+        val repo = FakeTaskRepository().apply { values.value = listOf(Task(7, "Original", completedAt = Instant.parse("2026-10-25T10:00:00Z"))) }
         TaskEditorStore(repo, groups(), 7, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
             runCurrent()
             assertFalse(store.state.value.canSave)

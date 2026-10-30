@@ -83,14 +83,14 @@ private fun TaskRow(task: Task, group: Group?, state: TaskState, wide: Boolean, 
         Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = { onOpenTask(task.id) })
             .then(if (wide) Modifier.height(63.dp).padding(horizontal = 20.dp) else Modifier.padding(vertical = 16.dp)),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(44.dp).toggleable(task.completed, enabled = task.id !in state.pendingCompletion, role = Role.Checkbox,
+            Box(Modifier.size(44.dp).toggleable(task.isCompleted, enabled = task.id !in state.pendingCompletion, role = Role.Checkbox,
                 onValueChange = { onIntent(TaskIntent.ToggleCompleted(task.id)) })
-                .semantics { contentDescription = if (task.completed) "Mark ${task.name} incomplete" else "Complete ${task.name}" }, contentAlignment = Alignment.Center) {
-                Icon(if (task.completed) TaskBIcons.Checked else TaskBIcons.Unchecked, null, tint = if (task.completed) colors.accent else colors.muted, modifier = Modifier.size(24.dp))
+                .semantics { contentDescription = if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}" }, contentAlignment = Alignment.Center) {
+                Icon(if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked, null, tint = if (task.isCompleted) colors.accent else colors.muted, modifier = Modifier.size(24.dp))
             }
             val title: @Composable () -> Unit = {
-                Text(task.name, color = if (task.completed) colors.muted else colors.text, style = TaskBTheme.typography.body,
-                    textDecoration = if (task.completed) TextDecoration.LineThrough else null, maxLines = if (wide) 1 else 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.heightIn(min = 22.dp))
+                Text(task.name, color = if (task.isCompleted) colors.muted else colors.text, style = TaskBTheme.typography.body,
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null, maxLines = if (wide) 1 else 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.heightIn(min = 22.dp))
             }
             if (wide) {
                 Box(Modifier.weight(1f)) { title() }
@@ -121,7 +121,7 @@ private fun TaskGroupLabel(group: Group?, modifier: Modifier, small: Boolean) {
 
 @Composable
 private fun TaskDueDate(task: Task, state: TaskState, wide: Boolean) {
-    if (!task.completed) task.dueDate?.let { date ->
+    if (!task.isCompleted) task.dueDate?.let { date ->
         Text(taskDateLabel(date, state.today), style = if (wide) TaskBTheme.typography.body else TaskBTheme.typography.small,
             color = if (date < state.today) TaskBTheme.colors.danger else TaskBTheme.colors.muted, maxLines = 1)
     }

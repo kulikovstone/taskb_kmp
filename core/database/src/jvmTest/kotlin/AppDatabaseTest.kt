@@ -16,7 +16,9 @@ import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 class AppDatabaseTest {
     private lateinit var temporaryDirectory: Path
@@ -42,7 +44,7 @@ class AppDatabaseTest {
 
         AppDatabase.open(file).useDatabase { database ->
             assertEquals("saved", database.settingsDao().getValue("example"))
-            assertEquals(3L, database.queryLong("PRAGMA user_version"))
+            assertEquals(4L, database.queryLong("PRAGMA user_version"))
         }
     }
 
@@ -66,7 +68,74 @@ class AppDatabaseTest {
         AppDatabase.open(file).useDatabase { database ->
             assertEquals(GroupEntity(7, "Work", 123), database.groupDao().getById(7))
             assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(3L, database.queryLong("PRAGMA user_version"))
+            assertEquals(4L, database.queryLong("PRAGMA user_version"))
+            assertEquals(0L, database.queryLong("SELECT COUNT(*) FROM tasks"))
+            assertEquals(0, database.groupDao().getWithTaskCounts(7)?.planned)
+        }
+    }
+
+    @Test
+    fun `version three migration retains tasks relationships and completion with stable timestamps`() = runBlocking {
+        val file = temporaryDirectory.resolve("version-three.db")
+        BundledSQLiteDriver().open(file.toString()).use { connection ->
+            connection.execSQL("CREATE TABLE application_settings (`key` TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
+            connection.execSQL("CREATE TABLE `groups` (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL COLLATE NOCASE, color INTEGER NOT NULL)")
+            connection.execSQL("CREATE UNIQUE INDEX index_groups_name ON `groups` (name)")
+            connection.execSQL("""
+                CREATE TABLE tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL,
+                    dueDate INTEGER, groupId INTEGER, completed INTEGER NOT NULL,
+                    FOREIGN KEY(groupId) REFERENCES `groups`(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+            """.trimIndent())
+            connection.execSQL("CREATE INDEX index_tasks_groupId ON tasks (groupId)")
+            connection.execSQL("INSERT INTO application_settings VALUES ('welcomeCompleted', 'true')")
+            connection.execSQL("INSERT INTO `groups` VALUES (7, 'Work', 123), (8, 'Empty', 456)")
+            connection.execSQL("INSERT INTO tasks VALUES (10, 'Planned', 20400, 7, 0), (20, 'Done', NULL, 7, 1), (30, 'Ungrouped', NULL, NULL, 0)")
+            connection.execSQL("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+            connection.execSQL("INSERT INTO room_master_table VALUES (42, '121e080f0db91c7c40cea2361ca47274')")
+            connection.execSQL("PRAGMA user_version = 3")
+        }
+
+        val beforeMigration = Clock.System.now().toEpochMilliseconds()
+        var migratedAt = 0L
+        AppDatabase.open(file).useDatabase { database ->
+            val planned = assertNotNull(database.taskDao().getById(10))
+            val completed = assertNotNull(database.taskDao().getById(20))
+            val ungrouped = assertNotNull(database.taskDao().getById(30))
+            assertTrue(planned.createdAt in beforeMigration..Clock.System.now().toEpochMilliseconds())
+            migratedAt = planned.createdAt
+            assertEquals("Planned", planned.name)
+            assertEquals(20400L, planned.dueDate)
+            assertEquals(7, planned.groupId)
+            assertNull(planned.completedAt)
+            assertEquals("Done", completed.name)
+            assertEquals(migratedAt, completed.createdAt)
+            assertEquals(migratedAt, completed.completedAt)
+            assertNull(completed.dueDate)
+            assertEquals(7, completed.groupId)
+            assertEquals("Ungrouped", ungrouped.name)
+            assertNull(ungrouped.groupId)
+            assertNull(ungrouped.completedAt)
+            assertEquals(migratedAt, ungrouped.createdAt)
+            val counts = assertNotNull(database.groupDao().getWithTaskCounts(7))
+            assertEquals(1, counts.planned)
+            assertEquals(1, counts.completed)
+            val empty = assertNotNull(database.groupDao().getWithTaskCounts(8))
+            assertEquals(0, empty.planned)
+            assertEquals(0, empty.completed)
+            assertEquals(GroupEntity(7, "Work", 123), database.groupDao().getById(7))
+            assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
+            assertEquals(4L, database.queryLong("PRAGMA user_version"))
+        }
+
+        AppDatabase.open(file).useDatabase { database ->
+            assertEquals(migratedAt, database.taskDao().getById(10)?.createdAt)
+            assertEquals(migratedAt, database.taskDao().getById(20)?.completedAt)
+            database.groupDao().deleteById(7)
+            assertNull(assertNotNull(database.taskDao().getById(10)).groupId)
+            assertNull(assertNotNull(database.taskDao().getById(20)).groupId)
+            assertEquals(3L, database.queryLong("SELECT COUNT(*) FROM tasks"))
         }
     }
 
@@ -117,7 +186,7 @@ class AppDatabaseTest {
         driver.open(file.toString()).use { connection ->
             connection.execSQL("CREATE TABLE future_data (value TEXT NOT NULL)")
             connection.execSQL("INSERT INTO future_data VALUES ('preserved')")
-            connection.execSQL("PRAGMA user_version = 4")
+            connection.execSQL("PRAGMA user_version = 5")
         }
 
         AppDatabase.open(file).useDatabase { database ->
@@ -133,7 +202,7 @@ class AppDatabaseTest {
             }
             connection.prepare("PRAGMA user_version").use {
                 assertTrue(it.step())
-                assertEquals(4L, it.getLong(0))
+                assertEquals(5L, it.getLong(0))
             }
         }
     }
@@ -148,7 +217,7 @@ class AppDatabaseTest {
         }
         AppDatabase.open(file).useDatabase { database ->
             assertNull(database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(3L, database.queryLong("PRAGMA user_version"))
+            assertEquals(4L, database.queryLong("PRAGMA user_version"))
             assertEquals(0L, database.queryLong("SELECT COUNT(*) FROM `groups`"))
         }
     }

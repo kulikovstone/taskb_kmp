@@ -5,6 +5,7 @@ import com.mkulikov.taskb.feature.task.repository.ITaskRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlin.time.Clock
 
 internal class FakeTaskRepository : ITaskRepository {
     val values = MutableStateFlow(emptyList<Task>())
@@ -30,13 +31,13 @@ internal class FakeTaskRepository : ITaskRepository {
         lastWrite = task
         if (task.id != 0 && values.value.none { it.id == task.id }) return false
         values.value = if (task.id == 0) values.value + task.copy(id = (values.value.maxOfOrNull { it.id } ?: 0) + 1)
-            else values.value.map { if (it.id == task.id) task else it }
+            else values.value.map { if (it.id == task.id) it.copy(name = task.name, dueDate = task.dueDate, groupId = task.groupId) else it }
         return true
     }
     override suspend fun setCompleted(id: Int, completed: Boolean) {
         onWrite()
         if (fail) error("Write failed")
-        values.value = values.value.map { if (it.id == id) it.copy(completed = completed) else it }
+        values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) it.completedAt ?: Clock.System.now() else null) else it }
     }
     override suspend fun delete(id: Int) { deletions++; onWrite(); values.value = values.value.filter { it.id != id } }
 }

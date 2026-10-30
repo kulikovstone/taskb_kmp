@@ -23,8 +23,11 @@ interface ITaskDao {
     @Query("UPDATE tasks SET name = :name, dueDate = :dueDate, groupId = :groupId WHERE id = :id")
     suspend fun updateDetails(id: Int, name: String, dueDate: Long?, groupId: Int?): Int
 
-    @Query("UPDATE tasks SET completed = :completed WHERE id = :id")
-    suspend fun setCompleted(id: Int, completed: Boolean)
+    @Query("""
+        UPDATE tasks SET completedAt = :completedAt
+        WHERE id = :id AND (completedAt IS NULL OR :completedAt IS NULL)
+    """)
+    suspend fun setCompletedAt(id: Int, completedAt: Long?)
 
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Int)

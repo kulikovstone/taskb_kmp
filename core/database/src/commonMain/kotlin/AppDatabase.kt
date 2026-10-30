@@ -5,6 +5,7 @@ import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteDriver
+import com.mkulikov.taskb.core.database.migration.Migration3To4
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
 import com.mkulikov.taskb.feature.settings.api.database.IAppSettingsDao
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
@@ -15,7 +16,7 @@ import kotlinx.coroutines.Dispatchers
 
 @Database(
     entities = [ApplicationSetting::class, GroupEntity::class, TaskEntity::class],
-    version = 3,
+    version = 4,
     autoMigrations = [AutoMigration(from = 2, to = 3)],
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
             builder
                 .setDriver(driver)
                 .setQueryCoroutineContext(Dispatchers.Default)
+                .addMigrations(Migration3To4())
                 .fallbackToDestructiveMigrationFrom(true, 1)
                 .build()
     }

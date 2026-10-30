@@ -46,7 +46,7 @@ internal class TaskStore(
                 reduce(TaskMessage.Completing(task.id))
                 launchEffect {
                     try {
-                        repository.setCompleted(task.id, !task.completed)
+                        repository.setCompleted(task.id, !task.isCompleted)
                         TaskMessage.Completed(task.id, false)
                     } catch (exception: CancellationException) { throw exception }
                     catch (_: Exception) { TaskMessage.Completed(task.id, true) }
