@@ -3,7 +3,7 @@ package com.mkulikov.taskb.feature.task.screen.task_editor
 import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.task.model.Task
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.task.time.currentDate
+import com.mkulikov.taskb.core.utils.time.currentDate
 import kotlinx.datetime.LocalDate
 
 internal data class TaskEditorState(

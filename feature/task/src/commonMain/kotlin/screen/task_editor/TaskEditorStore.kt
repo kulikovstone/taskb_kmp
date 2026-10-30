@@ -4,7 +4,7 @@ import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.feature.task.model.Task
 import com.mkulikov.taskb.feature.task.repository.ITaskRepository
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
-import com.mkulikov.taskb.feature.task.time.currentDate
+import com.mkulikov.taskb.core.utils.time.currentDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
