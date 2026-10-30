@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
-import com.mkulikov.taskb.feature.task.repository.ITaskRepository
+import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.ui.dialog.TaskBMessageDialog
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate

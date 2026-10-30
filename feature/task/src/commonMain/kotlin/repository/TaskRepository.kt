@@ -1,8 +1,9 @@
 package com.mkulikov.taskb.feature.task.repository
 
+import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.task.api.database.ITaskDao
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
-import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.feature.task.api.model.Task
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -33,6 +34,8 @@ internal class TaskRepository(
 
     override suspend fun setCompleted(id: Int, completed: Boolean) =
         dao.value.setCompletedAt(id, if (completed) clock.now().toEpochMilliseconds() else null)
+    override suspend fun reschedule(id: Int, expectedDate: LocalDate?, date: LocalDate?): Boolean =
+        dao.value.reschedule(id, expectedDate?.toEpochDays(), date?.toEpochDays()) > 0
     override suspend fun delete(id: Int) = dao.value.deleteById(id)
 
     private fun TaskEntity.toTask() = Task(

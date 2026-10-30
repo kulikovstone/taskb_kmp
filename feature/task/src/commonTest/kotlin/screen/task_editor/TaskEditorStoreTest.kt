@@ -3,7 +3,7 @@ package com.mkulikov.taskb.feature.task.screen.task_editor
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
-import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import kotlin.test.*

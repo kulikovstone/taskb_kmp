@@ -23,7 +23,7 @@ import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.feature.task.component.taskDateLabel
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.ui.component.TaskBSortHeader
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons

@@ -1,7 +1,7 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.core.utils.time.currentDate
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate

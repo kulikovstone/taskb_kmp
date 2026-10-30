@@ -1,10 +1,10 @@
-package com.mkulikov.taskb.feature.task.model
+package com.mkulikov.taskb.feature.task.api.model
 
 import kotlinx.datetime.LocalDate
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-internal data class Task(
+data class Task(
     val id: Int = 0,
     val name: String,
     val dueDate: LocalDate? = null,

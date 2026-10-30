@@ -3,7 +3,7 @@ package com.mkulikov.taskb.feature.task.repository
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
-import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.feature.task.api.model.Task
 import java.nio.file.Path
 import kotlin.test.*
 import kotlin.test.Test
@@ -19,6 +19,39 @@ class TaskRepositoryTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
     private val directory: Path get() = temporaryFolder.root.toPath()
+
+    @Test
+    fun `rescheduling changes only the date and stale undo never overwrites another date`() = runBlocking {
+        val file = directory.resolve("reschedule.db")
+        val database = AppDatabase.open(file)
+        val date = LocalDate(2026, 10, 30)
+        val newerDate = LocalDate(2026, 11, 1)
+        try {
+            val repository = TaskRepository(lazy { database.taskDao() })
+            val group = database.groupDao().insert(GroupEntity(name = "Work", color = 0)).toInt()
+            repository.save(Task(name = "Task", groupId = group))
+            val task = repository.tasks.first().single()
+            repository.setCompleted(task.id, true)
+            val completed = assertNotNull(repository.getById(task.id))
+            assertTrue(repository.reschedule(task.id, null, date))
+            assertEquals(completed.copy(dueDate = date), repository.getById(task.id))
+            assertTrue(repository.save(task.copy(name = "Renamed", dueDate = date)))
+            assertTrue(repository.reschedule(task.id, date, null))
+            val undone = assertNotNull(repository.getById(task.id))
+            assertEquals("Renamed", undone.name)
+            assertEquals(completed.completedAt, undone.completedAt)
+            assertEquals(completed.createdAt, undone.createdAt)
+            assertNull(undone.dueDate)
+            assertTrue(repository.reschedule(task.id, null, newerDate))
+            assertFalse(repository.reschedule(task.id, date, null))
+            assertEquals(newerDate, repository.getById(task.id)?.dueDate)
+            assertFalse(repository.reschedule(999, null, date))
+        } finally { database.close() }
+        val reopened = AppDatabase.open(file)
+        try {
+            assertEquals(newerDate.toEpochDays(), reopened.taskDao().observeTasks().first().single().dueDate)
+        } finally { reopened.close() }
+    }
     @Test
     fun `tasks persist with dates groups and completion and details save preserves newer completion`() = runBlocking {
         val file = directory.resolve("tasks.db")

@@ -6,6 +6,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.navigation3.runtime)
+            api(libs.kotlinx.datetime)
         }
     }
 }

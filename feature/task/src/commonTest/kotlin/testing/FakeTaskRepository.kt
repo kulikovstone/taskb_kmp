@@ -1,11 +1,12 @@
 package com.mkulikov.taskb.feature.task.testing
 
-import com.mkulikov.taskb.feature.task.model.Task
-import com.mkulikov.taskb.feature.task.repository.ITaskRepository
+import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlin.time.Clock
+import kotlinx.datetime.LocalDate
 
 internal class FakeTaskRepository : ITaskRepository {
     val values = MutableStateFlow(emptyList<Task>())
@@ -40,4 +41,11 @@ internal class FakeTaskRepository : ITaskRepository {
         values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) it.completedAt ?: Clock.System.now() else null) else it }
     }
     override suspend fun delete(id: Int) { deletions++; onWrite(); values.value = values.value.filter { it.id != id } }
+    override suspend fun reschedule(id: Int, expectedDate: LocalDate?, date: LocalDate?): Boolean {
+        onWrite()
+        if (fail) error("Write failed")
+        if (values.value.none { it.id == id && it.dueDate == expectedDate }) return false
+        values.value = values.value.map { if (it.id == id) it.copy(dueDate = date) else it }
+        return true
+    }
 }

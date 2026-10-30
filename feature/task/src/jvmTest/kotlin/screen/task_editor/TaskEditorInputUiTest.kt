@@ -18,7 +18,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.AnnotatedString
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
-import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

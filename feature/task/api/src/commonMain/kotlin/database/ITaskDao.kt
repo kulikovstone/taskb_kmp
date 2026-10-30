@@ -23,6 +23,9 @@ interface ITaskDao {
     @Query("UPDATE tasks SET name = :name, dueDate = :dueDate, groupId = :groupId WHERE id = :id")
     suspend fun updateDetails(id: Int, name: String, dueDate: Long?, groupId: Int?): Int
 
+    @Query("UPDATE tasks SET dueDate = :dueDate WHERE id = :id AND dueDate IS :expectedDate")
+    suspend fun reschedule(id: Int, expectedDate: Long?, dueDate: Long?): Int
+
     @Query("""
         UPDATE tasks SET completedAt = :completedAt
         WHERE id = :id AND (completedAt IS NULL OR :completedAt IS NULL)

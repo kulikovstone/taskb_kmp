@@ -1,7 +1,7 @@
 package com.mkulikov.taskb.feature.task.screen.task_editor
 
 import androidx.compose.foundation.text.input.TextFieldState
-import com.mkulikov.taskb.feature.task.model.Task
+import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.group.api.model.Group
 import kotlinx.datetime.LocalDate
 

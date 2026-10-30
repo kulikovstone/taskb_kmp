@@ -22,6 +22,9 @@ data class TaskBColors(
     val dangerSoft: Color,
     val success: Color,
     val scrim: Color,
+    val inverseSurface: Color,
+    val onInverseSurface: Color,
+    val inverseAccent: Color,
 )
 
 internal val LightTaskBColors = TaskBColors(
@@ -41,6 +44,9 @@ internal val LightTaskBColors = TaskBColors(
     dangerSoft = Palette.Red.s50,
     success = Palette.Green.s600,
     scrim = Palette.Black.copy(alpha = 0.32f),
+    inverseSurface = Palette.BlueGrey.s900,
+    onInverseSurface = Palette.White,
+    inverseAccent = Palette.Blue.a100,
 )
 
 internal val DarkTaskBColors = TaskBColors(
@@ -60,6 +66,9 @@ internal val DarkTaskBColors = TaskBColors(
     dangerSoft = Palette.Red.s900,
     success = Palette.Green.s300,
     scrim = Palette.Black.copy(alpha = 0.32f),
+    inverseSurface = Palette.BlueGrey.s50,
+    onInverseSurface = Palette.BlueGrey.s900,
+    inverseAccent = Palette.Blue.a700,
 )
 
 internal val LocalTaskBColors = staticCompositionLocalOf<TaskBColors> {

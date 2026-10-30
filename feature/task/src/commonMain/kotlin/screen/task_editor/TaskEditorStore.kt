@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.task.screen.task_editor
 
 import com.mkulikov.taskb.core.mvi.CoroutineStore
-import com.mkulikov.taskb.feature.task.model.Task
-import com.mkulikov.taskb.feature.task.repository.ITaskRepository
+import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.core.utils.time.currentDate
 import kotlinx.coroutines.CancellationException

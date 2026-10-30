@@ -2,15 +2,36 @@ package com.mkulikov.taskb.feature.calendar.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
+import com.mkulikov.taskb.feature.calendar.api.CalendarDayRoute
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarScreen
+import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarStore
+import com.mkulikov.taskb.feature.calendar.screen.day.CalendarDayScreen
+import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
+import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
+import org.koin.compose.getKoin
 
 internal class CalendarNavEntry : INavEntry {
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
         scope.entry<CalendarRoute> {
-            CalendarScreen(onBack = navigator::back)
+            val koin = getKoin()
+            val store = rememberNavEntryResource(CalendarStore::class) { CalendarStore(koin.get(), koin.get()) }
+            val state by store.state.collectAsState()
+            CalendarScreen(
+                state = state,
+                onIntent = store::accept,
+                onBack = navigator::back,
+                onOpenTask = { navigator.navigate(TaskEditorRoute.Edit(it)) },
+                onCreateTask = { navigator.navigate(TaskEditorRoute.Create()) },
+                onOpenDay = { navigator.navigate(CalendarDayRoute(it)) },
+            )
+        }
+        scope.entry<CalendarDayRoute> { route ->
+            CalendarDayScreen(date = route.date, onBack = navigator::back)
         }
     }
 }
