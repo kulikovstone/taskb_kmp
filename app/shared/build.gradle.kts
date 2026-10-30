@@ -71,6 +71,7 @@ kotlin {
             implementation(project(":core:database"))
             implementation(project(":core:mvi"))
             implementation(project(":core:navigation"))
+            implementation(project(":feature:calendar"))
             implementation(project(":feature:group"))
             implementation(project(":feature:hello"))
             implementation(project(":feature:hello:api"))

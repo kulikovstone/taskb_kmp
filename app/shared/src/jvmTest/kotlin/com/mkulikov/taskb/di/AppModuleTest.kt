@@ -33,7 +33,7 @@ class AppModuleTest {
                     val settings = application.koin.get<IAppSettings>()
                     val navigator = application.koin.get<IAppNavigator>()
                     assertSame(navigator, application.koin.get<IAppNavigator>())
-                    assertEquals(4, application.koin.getAll<INavEntry>().size)
+                    assertEquals(5, application.koin.getAll<INavEntry>().size)
                     val groups = application.koin.get<IGroupRepository>()
                     assertSame(groups, application.koin.get<IGroupRepository>())
                     assertEquals(launch, opens)
