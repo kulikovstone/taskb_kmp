@@ -71,6 +71,7 @@ kotlin {
             implementation(project(":core:database"))
             implementation(project(":core:mvi"))
             implementation(project(":core:navigation"))
+            implementation(project(":feature:group"))
             implementation(project(":feature:hello"))
             implementation(project(":feature:hello:api"))
             implementation(project(":feature:home"))
@@ -93,6 +94,7 @@ kotlin {
         jvmTest.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.compose.ui.test)
+            implementation(project(":feature:group:api"))
             implementation(project(":feature:task:api"))
         }
     }

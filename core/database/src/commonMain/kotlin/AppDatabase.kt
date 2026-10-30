@@ -7,8 +7,8 @@ import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteDriver
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
 import com.mkulikov.taskb.feature.settings.api.database.IAppSettingsDao
-import com.mkulikov.taskb.feature.task.api.database.GroupEntity
-import com.mkulikov.taskb.feature.task.api.database.IGroupDao
+import com.mkulikov.taskb.feature.group.api.database.GroupEntity
+import com.mkulikov.taskb.feature.group.api.database.IGroupDao
 import com.mkulikov.taskb.feature.task.api.database.ITaskDao
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
 import kotlinx.coroutines.Dispatchers

@@ -2,8 +2,7 @@ package com.mkulikov.taskb.feature.task.repository
 
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
-import com.mkulikov.taskb.feature.task.api.database.GroupEntity
-import com.mkulikov.taskb.feature.task.model.GroupTaskSummary
+import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.task.model.Task
 import java.nio.file.Path
 import kotlin.test.*
@@ -30,12 +29,9 @@ class TaskRepositoryTest {
             val task = repository.tasks.first().single()
             assertEquals("Task", task.name)
             assertEquals(date, task.dueDate)
-            val groups = GroupRepository(lazy { database.groupDao() })
-            assertEquals(GroupTaskSummary(1, 0), groups.groups.first().single().tasks)
             repository.setCompleted(task.id, true)
             assertTrue(repository.save(task.copy(name = "Renamed")))
             assertTrue(assertNotNull(repository.getById(task.id)).completed)
-            assertEquals(GroupTaskSummary(0, 1), groups.getById(group)?.tasks)
             assertFalse(repository.save(task.copy(id = 999)))
             assertFailsWith<IllegalArgumentException> { repository.save(Task(name = "  ")) }
         } finally { database.close() }

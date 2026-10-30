@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
-import com.mkulikov.taskb.feature.task.api.database.GroupEntity
+import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -66,7 +66,7 @@ class TaskListNavigationUiTest {
                 onNodeWithContentDescription("Save task").performClick()
                 waitText("1 task")
                 onNodeWithText("New task").performClick()
-                waitText("Task")
+                waitText("Edit task")
                 onNodeWithContentDescription("Save task").assertIsNotEnabled()
                 onNodeWithContentDescription("Task name").performTextReplacement("Edited task")
                 onNodeWithContentDescription("Choose date").performClick()
@@ -91,7 +91,7 @@ class TaskListNavigationUiTest {
                 waitText("1 of 1 tasks")
                 onNodeWithContentDescription("Clear task filter").performClick()
                 onNodeWithText("Edited task").performClick()
-                waitText("Task")
+                waitText("Edit task")
                 onNodeWithContentDescription("Delete task").performClick()
                 waitText("Delete task")
                 onNodeWithText("Cancel").performClick()
@@ -125,7 +125,7 @@ class TaskListNavigationUiTest {
                 onNodeWithContentDescription("Task name").assertTextEquals("Plan the next release")
                 runOnIdle { width.value = 1280.dp }
                 waitText("Create task")
-                onNodeWithContentDescription("Close task").performClick()
+                onNodeWithContentDescription("Back").performClick()
                 onNodeWithText("Prepare task screen mockups").performClick()
                 waitText("Save changes")
                 onNodeWithContentDescription("Task name").performTextReplacement("Task draft")
@@ -138,7 +138,7 @@ class TaskListNavigationUiTest {
                 onNodeWithText("Choose group").assertIsDisplayed()
                 screenshot("task-compact-groups")
                 onNodeWithText("Health").performClick()
-                waitText("Task")
+                waitText("Edit task")
                 onNodeWithContentDescription("Task name").assertTextEquals("Task draft")
                 onNodeWithContentDescription("Choose task group").assert(hasText("Health"))
                 runOnIdle { width.value = 300.dp }
@@ -149,7 +149,7 @@ class TaskListNavigationUiTest {
                 onNodeWithContentDescription("Task name").assertTextEquals("Task draft")
                 runOnIdle { width.value = 1280.dp }
                 waitForIdle()
-                onNodeWithContentDescription("Close task").performClick()
+                onNodeWithContentDescription("Back").performClick()
                 onNodeWithContentDescription("Choose task filter").performClick()
                 waitText("Filters")
                 screenshot("task-wide-filters", dialog = true)
@@ -159,6 +159,13 @@ class TaskListNavigationUiTest {
                 onNode(hasText("Health") and hasAnyAncestor(isDialog())).performClick()
                 waitText("1 of 8 tasks")
                 screenshot("task-wide-filtered")
+                onNodeWithText("New task").performClick()
+                waitText("Create task")
+                onNodeWithText("Today").assertIsSelected()
+                onNodeWithContentDescription("Choose task group").assert(hasText("Health"))
+                onNodeWithContentDescription("Search tasks").assertDoesNotExist()
+                onNodeWithContentDescription("Back").performClick()
+                waitText("1 of 8 tasks")
                 runOnIdle { width.value = 400.dp }
                 waitForIdle()
                 screenshot("task-compact-filtered")
@@ -185,7 +192,7 @@ class TaskListNavigationUiTest {
                 waitText("8 tasks")
                 onNodeWithText("Prepare task screen mockups").performClick()
                 waitText("Save changes")
-                onNodeWithContentDescription("Save task").performScrollTo().assertIsDisplayed()
+                onNodeWithContentDescription("Save task").assertIsDisplayed()
                 screenshot("task-wide-short-dark")
                 onNodeWithContentDescription("Choose task group").performScrollTo().performClick()
                 waitText("Choose group")

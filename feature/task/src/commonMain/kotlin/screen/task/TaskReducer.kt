@@ -1,6 +1,6 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
-import com.mkulikov.taskb.feature.task.model.Group
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.model.Task
 import kotlinx.datetime.LocalDate
 
@@ -13,7 +13,6 @@ internal sealed interface TaskMessage {
     data class Filter(val value: TaskFilter?) : TaskMessage
     data class GroupFilter(val value: TaskGroupFilter) : TaskMessage
     data class Sort(val value: TaskSort) : TaskMessage
-    data class Editor(val value: TaskEditorTarget?) : TaskMessage
     data class Selection(val value: TaskSelection?) : TaskMessage
     data class Completing(val id: Int) : TaskMessage
     data class Completed(val id: Int, val failed: Boolean) : TaskMessage
@@ -33,7 +32,6 @@ internal fun reduceTask(state: TaskState, message: TaskMessage): TaskState = whe
     is TaskMessage.Filter -> state.copy(filter = message.value, selection = null)
     is TaskMessage.GroupFilter -> state.copy(groupFilter = message.value, selection = null)
     is TaskMessage.Sort -> state.copy(sort = message.value, reverseSort = state.sort == message.value && !state.reverseSort)
-    is TaskMessage.Editor -> state.copy(editor = message.value)
     is TaskMessage.Selection -> state.copy(selection = message.value, groupQuery = "")
     is TaskMessage.Completing -> state.copy(pendingCompletion = state.pendingCompletion + message.id)
     is TaskMessage.Completed -> state.copy(pendingCompletion = state.pendingCompletion - message.id,

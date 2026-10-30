@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.database.AppDatabase
-import com.mkulikov.taskb.feature.task.api.database.GroupEntity
+import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -133,7 +133,7 @@ class TaskGroupsNavigationUiTest {
     }
 
     @Test
-    fun `desktop search filters and resizing preserve selection and drafts across the breakpoint`() {
+    fun `separate editor preserves its draft on resize and returns to list filters`() {
         withAppKoin(directory.resolve("resize.db")) { application ->
             seedGroups(application)
             val width = mutableStateOf(400.dp)
@@ -142,6 +142,8 @@ class TaskGroupsNavigationUiTest {
                 openGroups()
                 waitText("8 groups")
                 screenshot("task-groups-compact-list-light")
+                onNodeWithContentDescription("Search groups").performTextInput("wor")
+                waitText("1 of 8 groups")
                 onNodeWithText("Work").performClick()
                 waitText("Planned")
                 onNodeWithContentDescription("Group name").performTextReplacement("Work draft")
@@ -149,43 +151,33 @@ class TaskGroupsNavigationUiTest {
                 runOnIdle { width.value = 300.dp }
                 waitForIdle()
                 assertCompactEditorActions(isNew = false)
-                screenshot("task-groups-compact-actions-light")
                 runOnIdle { width.value = 1280.dp }
                 waitText("Save changes")
-                onNodeWithContentDescription("Group name").assertTextEquals("Work draft")
-                onNodeWithContentDescription("Green").assertIsSelected()
-                onNode(hasText("Work") and hasClickAction()).assertIsSelected()
-                screenshot("task-groups-wide-edit-light")
-                onNodeWithContentDescription("Search groups").performTextInput("hea")
-                waitText("1 of 8 groups")
-                onNodeWithContentDescription("Group name").assertTextEquals("Work draft")
-                onNodeWithContentDescription("Clear search groups").performClick()
-                waitText("8 groups")
-                onNodeWithContentDescription("Search groups").assertIsFocused()
-                onNodeWithContentDescription("Clear search groups").assertDoesNotExist()
-                onNodeWithText("Empty 8").performClick()
-                waitText("8 of 8 groups")
-                runOnIdle { width.value = 839.dp }
-                waitForIdle()
+                onNodeWithContentDescription("Search groups").assertDoesNotExist()
                 onNodeWithText("Groups").assertDoesNotExist()
                 onNodeWithContentDescription("Group name").assertTextEquals("Work draft")
-                onNodeWithContentDescription("Transparent").assertDoesNotExist()
-                val wideColorStep = onNodeWithContentDescription("Pink").fetchSemanticsNode().boundsInRoot.left -
-                    onNodeWithContentDescription("Red").fetchSemanticsNode().boundsInRoot.left
-                assertEquals(onNodeWithContentDescription("Red").fetchSemanticsNode().boundsInRoot.top,
-                    onNodeWithContentDescription("Blue grey").fetchSemanticsNode().boundsInRoot.top, 0.5f)
-                runOnIdle { width.value = 840.dp }
-                waitText("Groups")
+                onNodeWithContentDescription("Green").assertIsSelected()
+                val form = onNode(hasScrollAction() and hasAnyDescendant(hasContentDescription("Group name"))).fetchSemanticsNode().boundsInRoot
+                assertEquals(640f, form.center.x, 0.5f)
+                assertEquals(720f, form.width, 0.5f)
+                assertTrue(onNodeWithText("Planned").fetchSemanticsNode().boundsInRoot.top <
+                    onNodeWithContentDescription("Group name").fetchSemanticsNode().boundsInRoot.top)
+                screenshot("task-groups-wide-edit-light")
+                runOnIdle { width.value = 839.dp }
+                waitForIdle()
+                assertCompactEditorActions(isNew = false)
                 onNodeWithContentDescription("Group name").assertTextEquals("Work draft")
-                assertEquals(wideColorStep, onNodeWithContentDescription("Pink").fetchSemanticsNode().boundsInRoot.left -
-                    onNodeWithContentDescription("Red").fetchSemanticsNode().boundsInRoot.left, 0.5f)
-                assertTrue(onNodeWithContentDescription("Blue grey").fetchSemanticsNode().boundsInRoot.top >
-                    onNodeWithContentDescription("Red").fetchSemanticsNode().boundsInRoot.top)
-                onNodeWithContentDescription("Close group").performClick()
+                runOnIdle { width.value = 840.dp }
+                waitText("Save changes")
+                onNodeWithContentDescription("Group name").assertTextEquals("Work draft")
+                onNodeWithContentDescription("Back").performClick()
+                waitText("1 of 8 groups")
+                onNodeWithContentDescription("Search groups").assertTextEquals("wor").performClick()
+                onNodeWithContentDescription("Clear search groups").performClick()
+                onNodeWithText("Empty 8").performClick()
+                waitText("8 of 8 groups")
                 onNodeWithText("New group").performClick()
                 waitText("Create group")
-                onNodeWithContentDescription("Transparent").assertDoesNotExist()
-                onNodeWithContentDescription("Group name").assertIsFocused()
                 onNodeWithContentDescription("Group name").performTextInput("Travel draft")
                 onNodeWithContentDescription("Orange").performClick()
                 runOnIdle { width.value = 320.dp }
@@ -193,12 +185,11 @@ class TaskGroupsNavigationUiTest {
                 onNodeWithContentDescription("Group name").assertTextEquals("Travel draft")
                 onNodeWithContentDescription("Orange").assertIsSelected()
                 assertCompactEditorActions(isNew = true)
-                assertTrue(onNodeWithContentDescription("Cyan").fetchSemanticsNode().boundsInRoot.top >
-                    onNodeWithContentDescription("Red").fetchSemanticsNode().boundsInRoot.top)
                 runOnIdle { width.value = 1280.dp }
                 waitText("Create group")
                 screenshot("task-groups-wide-new-light")
-                onNodeWithContentDescription("Close group").performClick()
+                onNodeWithContentDescription("Back").performClick()
+                waitText("8 of 8 groups")
                 onNodeWithText("New group").performClick()
                 onNodeWithText("Enter group name").assertIsDisplayed()
                 onNodeWithContentDescription("Group name").assertIsFocused()
@@ -276,13 +267,13 @@ class TaskGroupsNavigationUiTest {
                         assertCompactEditorActions(isNew = false)
                     } else {
                         val delete = onNodeWithText("Delete")
-                        delete.performScrollTo().assertIsDisplayed()
+                        delete.assertIsDisplayed()
                         val deleteBounds = delete.fetchSemanticsNode().boundsInRoot
                         val saveBounds = onNodeWithContentDescription("Save group").fetchSemanticsNode().boundsInRoot
                         assertEquals(saveBounds.center.y, deleteBounds.center.y, 0.5f)
                     }
                     screenshot(if (availableWidth == 400.dp) "task-groups-compact-bottom-edge" else "task-groups-wide-bottom-edge")
-                    onNodeWithContentDescription(if (availableWidth == 400.dp) "Back" else "Close group").performClick()
+                    onNodeWithContentDescription("Back").performClick()
                     waitText("8 groups")
                 }
             }

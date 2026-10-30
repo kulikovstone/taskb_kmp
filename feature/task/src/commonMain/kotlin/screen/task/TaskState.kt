@@ -1,6 +1,6 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
-import com.mkulikov.taskb.feature.task.model.Group
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.model.Task
 import com.mkulikov.taskb.feature.task.time.currentDate
 import kotlinx.datetime.DateTimeUnit
@@ -19,7 +19,6 @@ internal data class TaskState(
     val today: LocalDate = currentDate(),
     val isLoading: Boolean = true,
     val loadError: String? = null,
-    val editor: TaskEditorTarget? = null,
     val selection: TaskSelection? = null,
     val pendingCompletion: Set<Int> = emptySet(),
     val error: String? = null,
@@ -66,8 +65,4 @@ internal sealed interface TaskGroupFilter {
     data object NoGroup : TaskGroupFilter
     data class Selected(val id: Int) : TaskGroupFilter
 }
-internal sealed interface TaskEditorTarget {
-    data object New : TaskEditorTarget
-    data class Edit(val id: Int) : TaskEditorTarget
-}
-internal enum class TaskSelection { Groups, Filters, EditorGroup }
+internal enum class TaskSelection { Groups, Filters }

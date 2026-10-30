@@ -21,10 +21,9 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.component.GroupButton
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.feature.task.component.taskDateLabel
-import com.mkulikov.taskb.feature.task.model.Group
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.DateTimeUnit
@@ -34,13 +33,27 @@ import kotlinx.datetime.plus
 @Composable
 internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: LocalDate, onIntent: (TaskEditorIntent) -> Unit, onChooseGroup: () -> Unit, wide: Boolean, modifier: Modifier) {
     val enabled = !state.isBusy && state.dialog == null
-    val group = groups.find { it.id == state.groupId }
-    Column(modifier.verticalScroll(rememberScrollState()).padding(horizontal = if (wide) 0.dp else 24.dp, vertical = 24.dp)) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(horizontal = if (wide) 0.dp else 24.dp, vertical = if (wide) 32.dp else 24.dp)) {
         Text("Task name", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
         Spacer(Modifier.height(8.dp))
         TaskBTextField(state.name, "Task name", placeholder = "Enter task name", enabled = enabled,
             autoFocus = true, onDone = { if (state.canSave) onIntent(TaskEditorIntent.Save) }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(24.dp))
+        if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Column(Modifier.weight(1f)) { TaskDateSection(state, today, onIntent) }
+            Column(Modifier.weight(1f)) { TaskGroupSection(state, groups, onIntent, onChooseGroup) }
+        } else {
+            TaskDateSection(state, today, onIntent)
+            Spacer(Modifier.height(24.dp))
+            TaskGroupSection(state, groups, onIntent, onChooseGroup)
+        }
+    }
+}
+
+@Composable
+private fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: (TaskEditorIntent) -> Unit) {
+    val enabled = !state.isBusy && state.dialog == null
+    Column(Modifier.fillMaxWidth()) {
         Text("Date", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
         Spacer(Modifier.height(8.dp))
         TaskSelectionField(state.dueDate?.let { taskDateLabel(it, today, true) } ?: "Choose date", TaskBIcons.Calendar, TaskBTheme.colors.muted,
@@ -59,20 +72,19 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
                 QuickDate("month", false, enabled, { onIntent(TaskEditorIntent.ShiftDate(months = 1)) }, Modifier.weight(1f), true)
             }
         }
-        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun TaskGroupSection(state: TaskEditorState, groups: List<Group>, onIntent: (TaskEditorIntent) -> Unit, onChooseGroup: () -> Unit) {
+    val enabled = !state.isBusy && state.dialog == null
+    val group = groups.find { it.id == state.groupId }
+    Column(Modifier.fillMaxWidth()) {
         Text("Group", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
         Spacer(Modifier.height(8.dp))
         TaskSelectionField(group?.name ?: "No group", TaskBIcons.FolderFilled, group?.color?.color ?: TaskBTheme.colors.muted,
             placeholder = group == null, description = "Choose task group", enabled = enabled, onClick = onChooseGroup,
             onClear = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(null)) } }, clearDescription = "Clear task group")
-        if (wide) {
-            Spacer(Modifier.height(48.dp))
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (!state.isNew) GroupButton("Delete", TaskBIcons.Delete, { onIntent(TaskEditorIntent.PrepareDelete) }, enabled = enabled, destructive = true)
-                GroupButton(if (state.isNew) "Create task" else "Save changes", if (state.isNew) TaskBIcons.Add else TaskBIcons.Done,
-                    { onIntent(TaskEditorIntent.Save) }, enabled = state.canSave, modifier = Modifier.semantics { contentDescription = "Save task" })
-            }
-        }
     }
 }
 

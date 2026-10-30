@@ -1,7 +1,7 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
-import com.mkulikov.taskb.feature.task.model.Group
-import com.mkulikov.taskb.feature.task.model.GroupColor
+import com.mkulikov.taskb.feature.group.api.model.Group
+import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.task.model.Task
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository

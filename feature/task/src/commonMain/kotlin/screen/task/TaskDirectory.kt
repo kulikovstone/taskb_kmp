@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
@@ -19,10 +19,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.component.GroupLoadError
-import com.mkulikov.taskb.feature.task.component.GroupLoading
+import com.mkulikov.taskb.ui.component.TaskBLoadError
+import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.feature.task.component.taskDateLabel
-import com.mkulikov.taskb.feature.task.model.Group
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.model.Task
 import com.mkulikov.taskb.ui.component.TaskBSortHeader
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
@@ -30,7 +30,7 @@ import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
-internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wide: Boolean, enabled: Boolean, modifier: Modifier = Modifier) {
+internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wide: Boolean, onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
     val colors = TaskBTheme.colors
     Column(modifier) {
         Text(state.summary, color = colors.muted, style = TaskBTheme.typography.body, modifier = Modifier.fillMaxWidth().height(28.dp).wrapContentHeight(Alignment.CenterVertically))
@@ -45,8 +45,8 @@ internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wid
             Divider(color = colors.border)
         }
         when {
-            state.isLoading -> GroupLoading(Modifier.weight(1f))
-            state.loadError != null -> GroupLoadError(state.loadError, { onIntent(TaskIntent.RetryLoad) })
+            state.isLoading -> TaskBLoading(Modifier.weight(1f))
+            state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(TaskIntent.RetryLoad) })
             state.visibleTasks.isEmpty() -> Text(if (state.tasks.isEmpty()) "No tasks yet." else "No tasks match your search or filters.",
                 color = colors.muted, style = TaskBTheme.typography.body, modifier = Modifier.padding(vertical = 24.dp))
             else -> {
@@ -54,7 +54,7 @@ internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wid
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     LazyColumn(state = scroll, modifier = Modifier.fillMaxSize()) {
                         items(state.visibleTasks, key = { it.id }) { task ->
-                            TaskRow(task, state.groups.find { it.id == task.groupId }, state, wide, enabled, onIntent)
+                            TaskRow(task, state.groups.find { it.id == task.groupId }, state, wide, onIntent, onOpenTask)
                         }
                     }
                     TaskBVerticalScrollbar(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
@@ -77,14 +77,13 @@ private fun TaskColumnHeading(label: String, sort: TaskSort, state: TaskState, o
 }
 
 @Composable
-private fun TaskRow(task: Task, group: Group?, state: TaskState, wide: Boolean, enabled: Boolean, onIntent: (TaskIntent) -> Unit) {
+private fun TaskRow(task: Task, group: Group?, state: TaskState, wide: Boolean, onIntent: (TaskIntent) -> Unit, onOpenTask: (Int) -> Unit) {
     val colors = TaskBTheme.colors
-    val selected = (state.editor as? TaskEditorTarget.Edit)?.id == task.id
-    Column(Modifier.fillMaxWidth().background(if (selected) colors.selected else colors.surface)) {
-        Row(Modifier.fillMaxWidth().selectable(selected, enabled = enabled, role = Role.Button, onClick = { onIntent(TaskIntent.OpenTask(task.id)) })
+    Column(Modifier.fillMaxWidth().background(colors.surface)) {
+        Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = { onOpenTask(task.id) })
             .then(if (wide) Modifier.height(63.dp).padding(horizontal = 20.dp) else Modifier.padding(vertical = 16.dp)),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(44.dp).toggleable(task.completed, enabled = enabled && task.id !in state.pendingCompletion, role = Role.Checkbox,
+            Box(Modifier.size(44.dp).toggleable(task.completed, enabled = task.id !in state.pendingCompletion, role = Role.Checkbox,
                 onValueChange = { onIntent(TaskIntent.ToggleCompleted(task.id)) })
                 .semantics { contentDescription = if (task.completed) "Mark ${task.name} incomplete" else "Complete ${task.name}" }, contentAlignment = Alignment.Center) {
                 Icon(if (task.completed) TaskBIcons.Checked else TaskBIcons.Unchecked, null, tint = if (task.completed) colors.accent else colors.muted, modifier = Modifier.size(24.dp))

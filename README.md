@@ -31,21 +31,32 @@
 | `:feature:hello` / `:feature:hello:api` | Реализация экрана приветствия и публичные контракты. |
 | `:feature:home` / `:feature:home:api` | Реализация главного экрана и публичные контракты. |
 | `:feature:settings` / `:feature:settings:api` | Реализация настроек приложения и публичные контракты. |
-| `:feature:task` / `:feature:task:api` | Задачи, группы и редакторы с отдельными публичными контрактами. |
+| `:feature:group` / `:feature:group:api` | Группы и их редактор, модели, DAO и публичный контракт репозитория групп. |
+| `:feature:task` / `:feature:task:api` | Задачи и их редактор с отдельными публичными контрактами. |
 
 `:app:shared` объединяет модули приложения для платформенных точек входа.
 Каталог `core` объединяет самостоятельные модули `:core:mvi`, `:core:navigation`
 и `:core:database`; отдельной библиотеки `:core` нет.
 Зависимости между модулями повторяют структуру настольного проекта: фичи обращаются к другим
-фичам через их модули `api`, а `:core:database` зависит от API-модулей задач и настроек.
+фичам через их модули `api`, а `:core:database` зависит от API-модулей групп, задач и настроек.
+Списки и редактор задач получают группы через `IGroupRepository` из `:feature:group:api`;
+реализацию репозитория и навигацию групп регистрирует `groupModule` в `:app:shared`.
 
 В общие модули перенесены MVI, навигация на Navigation 3, база данных на Room 3 и настройки
 приложения. Подключены Coroutines, Koin, Compose Material и Material Symbols.
 Экраны приветствия, главного меню, задач, групп и их редакторов находятся в `commonMain`
 вместе со Store, состояниями, Intent, reducer и репозиториями. Desktop и Android используют
 эти реализации через `:app:shared`. Интерфейс TaskB поддерживает светлую и тёмную темы,
-компактную компоновку и широкую компоновку с панелью редактора. Черновики и открытые
-селекторы сохраняются при изменении ширины окна.
+компактную и широкую компоновки с отдельными экранами создания и редактирования.
+Черновики и открытые селекторы сохраняются при изменении ширины окна и переходах
+к другим экранам поверх редактора. Публичные `TaskEditorRoute.Create(initialDate, initialGroupId)`,
+`TaskEditorRoute.Edit(taskId)` из `:feature:task:api`, а также `GroupEditorRoute.Create`
+и `GroupEditorRoute.Edit(groupId)` из `:feature:group:api` можно открывать через
+`IAppNavigator.navigate` из любой фичи. Маршрут списка `GroupsRoute` также находится
+в `:feature:group:api`.
+После сохранения, удаления или возврата редактор закрывается к вызывающему экрану;
+фильтры списков сохраняются. На широких экранах формы выровнены по центру,
+действия находятся в экшенбаре, статистика группы — над полями формы.
 
 Перенесены создание, редактирование и удаление задач и групп, поиск, сортировка,
 фильтрация, отметка выполнения, выбор группы и даты. Работа с датами использует
@@ -73,7 +84,7 @@
 
 ### База данных и внедрение зависимостей
 
-Сущности и DAO находятся в `commonMain` API-модулей задач и настроек. `:core:database`
+Сущности и DAO находятся в `commonMain` API-модулей групп, задач и настроек. `:core:database`
 содержит общую конфигурацию Room и схемы версий 1–3. Версия базы осталась равна 3:
 при обновлении с версии 2 данные сохраняются благодаря автоматической миграции,
 для версии 1 сохранено прежнее пересоздание базы. Более новые версии схемы не принимаются.
@@ -191,14 +202,15 @@ configuration cache и наследование версии модулями:
 
 Используйте кнопку запуска рядом с кодом теста в редакторе IDE или задачи Gradle:
 
-- Общие тесты фич на JVM Android: `./gradlew :feature:hello:testAndroidHostTest :feature:task:testAndroidHostTest`
+- Общие тесты фич на JVM Android: `./gradlew :feature:hello:testAndroidHostTest :feature:group:testAndroidHostTest :feature:task:testAndroidHostTest`
 - Тесты настольного приложения: `./gradlew :app:shared:jvmTest`
 
 Проверки перенесённой инфраструктуры и фич на JVM:
 
 ```bash
 ./gradlew :core:mvi:jvmTest :core:navigation:jvmTest :core:database:jvmTest \
-  :feature:settings:jvmTest :feature:hello:jvmTest :feature:task:jvmTest :app:shared:jvmTest
+  :feature:settings:jvmTest :feature:hello:jvmTest :feature:group:jvmTest \
+  :feature:task:jvmTest :app:shared:jvmTest
 ```
 
 Тесты проверяют обработку и отмену MVI-эффектов, навигационный стек, освобождение ресурсов,
@@ -211,5 +223,5 @@ UI-тесты Desktop проходят сценарии навигации и CR
 Общие тесты Store также можно выполнить на JVM Android:
 
 ```bash
-./gradlew :feature:hello:testAndroidHostTest :feature:task:testAndroidHostTest
+./gradlew :feature:hello:testAndroidHostTest :feature:group:testAndroidHostTest :feature:task:testAndroidHostTest
 ```

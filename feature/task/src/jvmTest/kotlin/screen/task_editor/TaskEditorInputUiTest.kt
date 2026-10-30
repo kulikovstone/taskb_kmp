@@ -1,9 +1,7 @@
 package com.mkulikov.taskb.feature.task.screen.task_editor
 
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
@@ -18,6 +16,7 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.AnnotatedString
+import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import com.mkulikov.taskb.feature.task.model.Task
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -35,17 +34,13 @@ class TaskEditorInputUiTest {
         val scheduler = TestCoroutineScheduler()
         val repository = FakeTaskRepository().apply { values.value = listOf(Task(7, "Original task")) }
         val wide = mutableStateOf(false)
-        TaskEditorStore(repository, 7, dispatcher = StandardTestDispatcher(scheduler)).use { store ->
-            scheduler.advanceUntilIdle()
+        TaskEditorStore(repository, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+            scheduler.runCurrent()
             runSkikoComposeUiTest {
                 setContent {
                     TaskBTheme {
                         val state = store.state.collectAsState().value
-                        if (wide.value) {
-                            TaskEditorWidePanel(state, emptyList(), LocalDate(2026, 10, 27), store::accept, {}, {}, Modifier.fillMaxSize())
-                        } else {
-                            TaskEditorCompactScreen(state, emptyList(), LocalDate(2026, 10, 27), store::accept, {}, {})
-                        }
+                        TaskEditorContent(state, store::accept, wide.value, {})
                     }
                 }
                 val name = onNodeWithContentDescription("Task name")
@@ -59,7 +54,7 @@ class TaskEditorInputUiTest {
                     name.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(7)))
                 }
                 name.performImeAction()
-                scheduler.advanceUntilIdle()
+                scheduler.runCurrent()
                 assertEquals("Updated task", repository.lastWrite?.name)
             }
         }
@@ -69,11 +64,12 @@ class TaskEditorInputUiTest {
     fun `typing and selection stay current while store processing is delayed`() {
         val scheduler = TestCoroutineScheduler()
         val repository = FakeTaskRepository()
-        TaskEditorStore(repository, dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+        TaskEditorStore(repository, FakeGroupRepository(), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+            scheduler.runCurrent()
             runSkikoComposeUiTest {
                 setContent {
                     TaskBTheme {
-                        TaskEditorCompactScreen(store.state.collectAsState().value, emptyList(), LocalDate(2026, 10, 27), store::accept, {}, {})
+                        TaskEditorContent(store.state.collectAsState().value, store::accept, false, {})
                     }
                 }
                 val name = onNodeWithContentDescription("Task name")
@@ -91,13 +87,13 @@ class TaskEditorInputUiTest {
                 name.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(12)))
 
                 // An unrelated store update must not restore an earlier input or selection.
-                store.accept(TaskEditorIntent.GroupChanged(7))
+                store.accept(TaskEditorIntent.DateChanged(LocalDate(2026, 10, 27)))
                 scheduler.runCurrent()
                 waitForIdle()
                 name.assertTextEquals("Схема связей модулей")
                 name.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(12)))
                 onNodeWithContentDescription("Save task").performClick()
-                scheduler.advanceUntilIdle()
+                scheduler.runCurrent()
                 assertEquals("Схема связей модулей", repository.lastWrite?.name)
             }
         }
@@ -107,11 +103,12 @@ class TaskEditorInputUiTest {
     fun `clear then type keeps input focused and saves the latest text`() {
         val scheduler = TestCoroutineScheduler()
         val repository = FakeTaskRepository()
-        TaskEditorStore(repository, dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+        TaskEditorStore(repository, FakeGroupRepository(), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+            scheduler.runCurrent()
             runSkikoComposeUiTest {
                 setContent {
                     TaskBTheme {
-                        TaskEditorCompactScreen(store.state.collectAsState().value, emptyList(), LocalDate(2026, 10, 27), store::accept, {}, {})
+                        TaskEditorContent(store.state.collectAsState().value, store::accept, false, {})
                     }
                 }
                 val name = onNodeWithContentDescription("Task name")
@@ -124,7 +121,7 @@ class TaskEditorInputUiTest {
                 waitForIdle()
                 name.assertTextEquals("New name")
                 onNodeWithContentDescription("Save task").performClick()
-                scheduler.advanceUntilIdle()
+                scheduler.runCurrent()
                 assertEquals("New name", repository.lastWrite?.name)
             }
         }

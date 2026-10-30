@@ -13,11 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.component.GroupButton
+import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBTextField
-import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorIntent
-import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorState
-import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorWidePanel
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -25,25 +22,23 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 @Composable
 internal fun TaskListScreen(
     state: TaskState, onIntent: (TaskIntent) -> Unit,
-    editor: TaskEditorState?, onEditorIntent: (TaskEditorIntent) -> Unit,
-    wide: Boolean, onBack: () -> Unit,
+    wide: Boolean, onBack: () -> Unit, onNewTask: () -> Unit, onOpenTask: (Int) -> Unit,
 ) {
-    val enabled = editor?.let { !it.isBusy && it.dialog == null } ?: true
     val actions: @Composable RowScope.() -> Unit = {
-        IconButton({ onIntent(TaskIntent.Choose(TaskSelection.Groups)) }, enabled = enabled) {
+        IconButton({ onIntent(TaskIntent.Choose(TaskSelection.Groups)) }) {
             Icon(TaskBIcons.Folder, "Choose group", tint = TaskBTheme.colors.accent)
         }
-        IconButton({ onIntent(TaskIntent.Choose(TaskSelection.Filters)) }, enabled = enabled) {
+        IconButton({ onIntent(TaskIntent.Choose(TaskSelection.Filters)) }) {
             Icon(TaskBIcons.Filter, "Choose task filter", tint = TaskBTheme.colors.accent)
         }
         if (wide) {
             Spacer(Modifier.width(16.dp))
-            GroupButton("New task", TaskBIcons.Add, { onIntent(TaskIntent.NewTask) }, enabled = enabled)
-        } else IconButton({ onIntent(TaskIntent.NewTask) }, enabled = enabled) { Icon(TaskBIcons.Add, "Add task", tint = TaskBTheme.colors.accent) }
+            TaskBEditorButton("New task", TaskBIcons.Add, onNewTask)
+        } else IconButton(onNewTask) { Icon(TaskBIcons.Add, "Add task", tint = TaskBTheme.colors.accent) }
     }
     Column(Modifier.fillMaxSize()) {
         if (wide) Row(Modifier.fillMaxWidth().height(96.dp).padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onBack, enabled = enabled) { Icon(TaskBIcons.Back, "Back", tint = TaskBTheme.colors.heading) }
+            IconButton(onBack) { Icon(TaskBIcons.Back, "Back", tint = TaskBTheme.colors.heading) }
             Spacer(Modifier.width(8.dp))
             Text("Tasks", style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
             Spacer(Modifier.weight(1f))
@@ -61,12 +56,7 @@ internal fun TaskListScreen(
                 }
             }
             Spacer(Modifier.height(if (wide) 24.dp else 16.dp))
-            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(40.dp)) {
-                TaskDirectory(state, onIntent, wide, enabled, Modifier.weight(1f).fillMaxHeight())
-                if (wide && editor != null) TaskEditorWidePanel(editor, state.groups, state.today, onEditorIntent,
-                    onChooseGroup = { onIntent(TaskIntent.Choose(TaskSelection.EditorGroup)) },
-                    onClose = { onIntent(TaskIntent.CloseEditor) }, modifier = Modifier.width(348.dp).fillMaxHeight())
-            }
+            TaskDirectory(state, onIntent, wide, onOpenTask, Modifier.weight(1f).fillMaxWidth())
         }
     }
 }

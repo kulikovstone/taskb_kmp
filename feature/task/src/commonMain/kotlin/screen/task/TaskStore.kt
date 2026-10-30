@@ -1,7 +1,7 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
 import com.mkulikov.taskb.core.mvi.CoroutineStore
-import com.mkulikov.taskb.feature.task.repository.IGroupRepository
+import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.task.repository.ITaskRepository
 import com.mkulikov.taskb.feature.task.time.currentDate
 import kotlinx.coroutines.CancellationException
@@ -39,10 +39,7 @@ internal class TaskStore(
             is TaskIntent.Sort -> reduce(TaskMessage.Sort(intent.sort))
             is TaskIntent.Choose -> reduce(TaskMessage.Selection(intent.selection))
             TaskIntent.CloseSelection -> reduce(TaskMessage.Selection(null))
-            TaskIntent.NewTask -> reduce(TaskMessage.Editor(TaskEditorTarget.New))
-            TaskIntent.CloseEditor -> reduce(TaskMessage.Editor(null))
             TaskIntent.DismissError -> reduce(TaskMessage.DismissError)
-            is TaskIntent.OpenTask -> if (state.value.tasks.any { it.id == intent.id }) reduce(TaskMessage.Editor(TaskEditorTarget.Edit(intent.id)))
             is TaskIntent.ToggleCompleted -> {
                 val task = state.value.tasks.find { it.id == intent.id } ?: return
                 if (task.id in state.value.pendingCompletion) return

@@ -16,6 +16,7 @@ kotlin {
             api(libs.room.runtime)
             api(libs.koin.core)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(project(":feature:group:api"))
             implementation(project(":feature:settings:api"))
             implementation(project(":feature:task:api"))
         }

@@ -7,7 +7,7 @@ import androidx.sqlite.SQLiteException
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
-import com.mkulikov.taskb.feature.task.api.database.GroupEntity
+import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.BeforeTest

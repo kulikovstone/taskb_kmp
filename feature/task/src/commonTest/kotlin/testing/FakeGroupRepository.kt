@@ -1,9 +1,9 @@
 package com.mkulikov.taskb.feature.task.testing
 
-import com.mkulikov.taskb.feature.task.model.Group
-import com.mkulikov.taskb.feature.task.model.GroupColor
-import com.mkulikov.taskb.feature.task.repository.GroupWriteResult
-import com.mkulikov.taskb.feature.task.repository.IGroupRepository
+import com.mkulikov.taskb.feature.group.api.model.Group
+import com.mkulikov.taskb.feature.group.api.model.GroupColor
+import com.mkulikov.taskb.feature.group.api.repository.GroupWriteResult
+import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
