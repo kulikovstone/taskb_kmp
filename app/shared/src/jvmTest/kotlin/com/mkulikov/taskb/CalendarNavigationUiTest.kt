@@ -23,7 +23,7 @@ class CalendarNavigationUiTest {
     val directory = TemporaryFolder()
 
     @Test
-    fun `home opens calendar task editor returns to the same month and empty days navigate with a date`() {
+    fun `calendar preserves its month and opens task creation with a date or the selected day`() {
         withAppKoin(directory.root.toPath().resolve("calendar.db")) { app ->
             val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
             val next = today.yearMonth.plusMonth()
@@ -57,6 +57,15 @@ class CalendarNavigationUiTest {
                 waitText("Updated from calendar")
                 onNodeWithText(label).assertIsDisplayed()
                 onNodeWithTag("calendar-day-${next.firstDay}", useUnmergedTree = true).performClick()
+                waitText("Create task")
+                onNodeWithContentDescription("Clear date").assertIsDisplayed()
+                onNodeWithContentDescription("Task name").performTextReplacement("Created from calendar")
+                onNodeWithContentDescription("Save task").performClick()
+                waitText("Unscheduled")
+                waitText("Created from calendar")
+                assertEquals(next.firstDay.toEpochDays(), runBlocking { db.taskDao().getById(2) }?.dueDate)
+                onNodeWithText(label).assertIsDisplayed()
+                onNodeWithTag("calendar-day-number-${next.firstDay}", useUnmergedTree = true).performClick()
                 waitText("Day view is coming soon.")
                 onNodeWithText(next.firstDay.toString()).assertIsDisplayed()
                 onNodeWithContentDescription("Back").performClick()
@@ -64,6 +73,7 @@ class CalendarNavigationUiTest {
                 onNodeWithText(label).assertIsDisplayed()
                 onNodeWithText("New task").performClick()
                 waitText("Create task")
+                onNodeWithContentDescription("Clear date").assertDoesNotExist()
                 onNodeWithContentDescription("Back").performClick()
                 waitText("Unscheduled")
                 onNodeWithContentDescription("Back").performClick()

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,6 +38,13 @@ internal val calendarTaskTitleGap = 6.dp
 internal val calendarTaskTitleInset = calendarTaskPadding + calendarTaskCheckboxSize + calendarTaskTitleGap
 
 @Composable
+internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle =
+    (if (dense) TaskBTheme.typography.button.copy(lineHeight = 17.sp)
+    else TaskBTheme.typography.body.copy(lineHeight = 18.sp)).copy(
+        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+    )
+
+@Composable
 internal fun CalendarTaskRow(
     task: Task,
     group: Group?,
@@ -50,10 +58,7 @@ internal fun CalendarTaskRow(
     val colors = TaskBTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
-    val titleStyle = (if (dense) TaskBTheme.typography.button.copy(lineHeight = 17.sp)
-        else TaskBTheme.typography.body.copy(lineHeight = 18.sp)).copy(
-        lineHeightStyle = lineHeightStyle,
-    )
+    val titleStyle = calendarTaskTitleStyle(dense)
     Column(modifier.graphicsLayer { alpha = if (dragging) 0.25f else 1f }) {
         Row(
             Modifier.fillMaxWidth()

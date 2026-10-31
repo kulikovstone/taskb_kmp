@@ -34,7 +34,7 @@ internal fun CalendarScreen(
     onIntent: (CalendarIntent) -> Unit,
     onBack: () -> Unit,
     onOpenTask: (Int) -> Unit,
-    onCreateTask: () -> Unit,
+    onCreateTask: (LocalDate?) -> Unit,
     onOpenDay: (LocalDate) -> Unit,
 ) {
     val drag = remember { CalendarDragState() }
@@ -50,13 +50,13 @@ internal fun CalendarScreen(
                 }
             } else {
                 Column(Modifier.fillMaxSize()) {
-                    CalendarTopBar(state, onIntent, onBack, onCreateTask)
+                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(null) })
                     when {
                         state.isLoading -> TaskBLoading(Modifier.weight(1f))
                         state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })
                         else -> Row(Modifier.weight(1f).fillMaxWidth()) {
                             CalendarUndatedTasks(state, drag, onIntent, onOpenTask)
-                            CalendarMonthGrid(state, drag, onIntent, onOpenTask, onOpenDay, Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp, bottom = 24.dp))
+                            CalendarMonthGrid(state, drag, onIntent, onOpenTask, { onCreateTask(it) }, onOpenDay, Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp, bottom = 24.dp))
                         }
                     }
                 }
