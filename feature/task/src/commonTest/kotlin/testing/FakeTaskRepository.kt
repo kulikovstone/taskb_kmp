@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.flow
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 
-internal class FakeTaskRepository : ITaskRepository {
+internal class FakeTaskRepository(private val clock: Clock = Clock.System) : ITaskRepository {
     val values = MutableStateFlow(emptyList<Task>())
     var fail = false
     var writes = 0
@@ -38,7 +38,7 @@ internal class FakeTaskRepository : ITaskRepository {
     override suspend fun setCompleted(id: Int, completed: Boolean) {
         onWrite()
         if (fail) error("Write failed")
-        values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) it.completedAt ?: Clock.System.now() else null) else it }
+        values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) it.completedAt ?: clock.now() else null) else it }
     }
     override suspend fun delete(id: Int) { deletions++; onWrite(); values.value = values.value.filter { it.id != id } }
     override suspend fun reschedule(id: Int, expectedDate: LocalDate?, date: LocalDate?): Boolean {

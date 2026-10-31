@@ -3,9 +3,10 @@ package com.mkulikov.taskb.feature.task.screen.task
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 internal sealed interface TaskMessage {
-    data class Loaded(val tasks: List<Task>, val groups: List<Group>) : TaskMessage
+    data class Loaded(val tasks: List<Task>, val groups: List<Group>, val now: Instant) : TaskMessage
     data object Loading : TaskMessage
     data object LoadFailed : TaskMessage
     data class Query(val value: String) : TaskMessage
@@ -15,13 +16,13 @@ internal sealed interface TaskMessage {
     data class Selection(val value: TaskSelection?) : TaskMessage
     data class Completing(val id: Int) : TaskMessage
     data class Completed(val id: Int, val failed: Boolean) : TaskMessage
-    data class Today(val value: LocalDate) : TaskMessage
+    data class Today(val value: LocalDate, val now: Instant) : TaskMessage
     data object DismissError : TaskMessage
 }
 
 internal fun reduceTask(state: TaskState, message: TaskMessage): TaskState = when (message) {
     is TaskMessage.Loaded -> state.copy(
-        tasks = message.tasks, groups = message.groups, isLoading = false, loadError = null,
+        tasks = message.tasks, groups = message.groups, now = message.now, isLoading = false, loadError = null,
         groupFilter = state.groupFilter.takeUnless { filter -> filter is TaskGroupFilter.Selected && message.groups.none { it.id == filter.id } } ?: TaskGroupFilter.All,
     )
     TaskMessage.Loading -> state.copy(isLoading = true, loadError = null)
@@ -34,6 +35,6 @@ internal fun reduceTask(state: TaskState, message: TaskMessage): TaskState = whe
     is TaskMessage.Completing -> state.copy(pendingCompletion = state.pendingCompletion + message.id)
     is TaskMessage.Completed -> state.copy(pendingCompletion = state.pendingCompletion - message.id,
         error = if (message.failed) "Couldn't update this task. Please try again." else state.error)
-    is TaskMessage.Today -> state.copy(today = message.value)
+    is TaskMessage.Today -> state.copy(today = message.value, now = message.now)
     TaskMessage.DismissError -> state.copy(error = null)
 }

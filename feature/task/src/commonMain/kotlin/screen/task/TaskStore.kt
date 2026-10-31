@@ -7,26 +7,42 @@ import com.mkulikov.taskb.core.utils.time.currentDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
+import kotlin.time.Clock
+import kotlin.time.Duration
 
+@OptIn(ExperimentalCoroutinesApi::class)
 internal class TaskStore(
     private val repository: ITaskRepository,
     private val groups: IGroupRepository,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val today: () -> LocalDate = ::currentDate,
-) : CoroutineStore<TaskIntent, TaskState, TaskMessage>(TaskState(today = today()), ::reduceTask, dispatcher) {
+    private val clock: Clock = Clock.System,
+) : CoroutineStore<TaskIntent, TaskState, TaskMessage>(TaskState(today = today(), now = clock.now()), ::reduceTask, dispatcher) {
     private var observation: Job? = null
     init {
         accept(TaskIntent.RetryLoad)
         collectEffect(flow {
             while (true) {
                 delay(60_000)
-                emit(TaskMessage.Today(today()))
+                emit(TaskMessage.Today(today(), clock.now()))
+            }
+        })
+        collectEffect(state.map { it.nextCompletionExpiry }.distinctUntilChanged().flatMapLatest { expiresAt ->
+            flow {
+                if (expiresAt != null) {
+                    delay((expiresAt - clock.now()).coerceAtLeast(Duration.ZERO))
+                    emit(TaskMessage.Today(today(), clock.now()))
+                }
             }
         })
     }
@@ -54,7 +70,7 @@ internal class TaskStore(
             TaskIntent.RetryLoad -> if (observation?.isActive != true) {
                 reduce(TaskMessage.Loading)
                 observation = collectEffect(combine(repository.tasks, groups.groups) { tasks, groups ->
-                    TaskMessage.Loaded(tasks, groups) as TaskMessage
+                    TaskMessage.Loaded(tasks, groups, clock.now()) as TaskMessage
                 }.catch {
                     if (it is CancellationException) throw it
                     emit(TaskMessage.LoadFailed)

@@ -34,6 +34,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.imageio.ImageIO
 import kotlin.test.*
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 
 @OptIn(ExperimentalTestApi::class)
 class TaskListNavigationUiTest {
@@ -117,6 +119,7 @@ class TaskListNavigationUiTest {
                 setApp(app, width = width)
                 openTasks()
                 waitText("8 tasks")
+                onNodeWithText("Expired completion").assertDoesNotExist()
                 screenshot("task-wide-list")
                 onNodeWithText("New task").performClick()
                 waitText("Create task")
@@ -181,6 +184,7 @@ class TaskListNavigationUiTest {
                 onNodeWithContentDescription("Clear group filter").performClick()
                 onNodeWithContentDescription("Clear task filter").performClick()
                 waitText("8 tasks")
+                onNodeWithText("Expired completion").assertDoesNotExist()
                 screenshot("task-compact-list")
                 onNodeWithContentDescription("Search tasks").performTextInput("nonexistent")
                 waitText("No tasks match your search or filters.")
@@ -225,14 +229,16 @@ class TaskListNavigationUiTest {
             "Shopping" to Palette.Orange.s400, "Someday" to Palette.Grey.s400, "Work" to Palette.Blue.s400).associate { (name, color) -> name to db.groupDao().insert(GroupEntity(name = name, color = color.toArgb())).toInt() }
         if (tasks) {
             val today = LocalDate.now()
+            val now = Clock.System.now()
             listOf(TaskEntity(name = "Prepare task screen mockups", dueDate = today.minusDays(1).toEpochDay(), groupId = groupIds["Work"]),
                 TaskEntity(name = "Book a dentist appointment", dueDate = today.toEpochDay(), groupId = groupIds["Health"]),
                 TaskEntity(name = "Buy groceries for the weekend", dueDate = today.toEpochDay(), groupId = groupIds["Shopping"]),
                 TaskEntity(name = "Read a chapter", dueDate = today.plusDays(1).toEpochDay(), groupId = groupIds["Reading"]),
                 TaskEntity(name = "Practice Kotlin coroutines", dueDate = today.plusDays(2).toEpochDay(), groupId = groupIds["Learning"]),
                 TaskEntity(name = "Plan the next week", groupId = groupIds["Personal"]),
-                TaskEntity(name = "Send the project update", groupId = groupIds["Work"], completedAt = 1_798_000_000_000L),
-                TaskEntity(name = "Go for an evening walk", groupId = groupIds["Health"], completedAt = 1_798_000_000_000L)).forEach { db.taskDao().insert(it) }
+                TaskEntity(name = "Send the project update", groupId = groupIds["Work"], completedAt = now.toEpochMilliseconds()),
+                TaskEntity(name = "Go for an evening walk", groupId = groupIds["Health"], completedAt = now.toEpochMilliseconds()),
+                TaskEntity(name = "Expired completion", completedAt = (now - 25.hours).toEpochMilliseconds())).forEach { db.taskDao().insert(it) }
         }
     }
     private fun SkikoComposeUiTest.setApp(app: KoinApplication, dark: Boolean = false, width: State<Dp>? = null) {

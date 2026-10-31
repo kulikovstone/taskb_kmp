@@ -47,7 +47,7 @@ internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wid
         when {
             state.isLoading -> TaskBLoading(Modifier.weight(1f))
             state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(TaskIntent.RetryLoad) })
-            state.visibleTasks.isEmpty() -> Text(if (state.tasks.isEmpty()) "No tasks yet." else "No tasks match your search or filters.",
+            state.visibleTasks.isEmpty() -> Text(if (state.taskCount == 0) "No tasks yet." else "No tasks match your search or filters.",
                 color = colors.muted, style = TaskBTheme.typography.body, modifier = Modifier.padding(vertical = 24.dp))
             else -> {
                 val scroll = rememberLazyListState()
