@@ -81,7 +81,7 @@ internal fun CalendarTaskRow(
             ) {
                 Icon(
                     if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked, null,
-                    tint = if (dense) group?.color?.color ?: colors.muted else if (task.isCompleted) colors.accent else colors.muted,
+                    tint = if (dense && group != null) group.color.color else if (task.isCompleted) colors.accent else colors.muted,
                     modifier = Modifier.size(if (dense) calendarTaskCheckboxSize else 24.dp),
                 )
             }

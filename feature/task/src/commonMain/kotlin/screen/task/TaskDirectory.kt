@@ -89,7 +89,7 @@ private fun TaskRow(task: Task, group: Group?, state: TaskState, wide: Boolean, 
                 Icon(if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked, null, tint = if (task.isCompleted) colors.accent else colors.muted, modifier = Modifier.size(24.dp))
             }
             val title: @Composable () -> Unit = {
-                Text(task.name, color = if (task.isCompleted) colors.muted else colors.text, style = TaskBTheme.typography.body,
+                Text(task.name, color = if (task.isCompleted) colors.completedText else colors.text, style = TaskBTheme.typography.body,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null, maxLines = if (wide) 1 else 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.heightIn(min = 22.dp))
             }
             if (wide) {

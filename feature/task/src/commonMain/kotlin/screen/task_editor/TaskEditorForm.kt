@@ -79,10 +79,11 @@ private fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: 
 private fun TaskGroupSection(state: TaskEditorState, groups: List<Group>, onIntent: (TaskEditorIntent) -> Unit, onChooseGroup: () -> Unit) {
     val enabled = !state.isBusy && state.dialog == null
     val group = groups.find { it.id == state.groupId }
+    val groupIcon = if (group == null) TaskBIcons.Folder else TaskBIcons.FolderFilled
     Column(Modifier.fillMaxWidth()) {
         Text("Group", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
         Spacer(Modifier.height(8.dp))
-        TaskSelectionField(group?.name ?: "No group", TaskBIcons.FolderFilled, group?.color?.color ?: TaskBTheme.colors.muted,
+        TaskSelectionField(group?.name ?: "No group", groupIcon, group?.color?.color ?: TaskBTheme.colors.muted,
             placeholder = group == null, description = "Choose task group", enabled = enabled, onClick = onChooseGroup,
             onClear = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(null)) } }, clearDescription = "Clear task group")
     }

@@ -66,7 +66,8 @@ private fun ActiveTaskFilters(state: TaskState, onIntent: (TaskIntent) -> Unit, 
     FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.groupFilter != TaskGroupFilter.All) {
             val group = state.groups.find { it.id == (state.groupFilter as? TaskGroupFilter.Selected)?.id }
-            TaskFilterChip(group?.name ?: "No group", TaskBIcons.FolderFilled, group?.color?.color ?: TaskBTheme.colors.muted,
+            val groupIcon = if (group == null) TaskBIcons.Folder else TaskBIcons.FolderFilled
+            TaskFilterChip(group?.name ?: "No group", groupIcon, group?.color?.color ?: TaskBTheme.colors.accent,
                 onChooseGroup, { onIntent(TaskIntent.FilterGroup(TaskGroupFilter.All)) }, "Clear group filter")
         }
         state.filter?.let { TaskFilterChip(it.label, TaskBIcons.Filter, TaskBTheme.colors.accent,
