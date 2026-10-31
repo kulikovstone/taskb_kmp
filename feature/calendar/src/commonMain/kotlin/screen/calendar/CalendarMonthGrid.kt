@@ -17,12 +17,17 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Constraints
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -35,74 +40,97 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
     val colors = TaskBTheme.colors
     val tasks = state.tasksByDate
     val weeks = state.days.chunked(7)
-    Column(modifier.calendarMonthGestures(onIntent).testTag("calendar-grid").clip(RoundedCornerShape(8.dp)).border(1.dp, colors.border, RoundedCornerShape(8.dp))) {
-        Row(Modifier.fillMaxWidth().height(32.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday").forEach { name ->
-                Text(name, Modifier.weight(1f).padding(start = 12.dp), color = colors.muted, style = TaskBTheme.typography.small, maxLines = 1)
+    Column(modifier.calendarMonthGestures(onIntent).testTag("calendar-grid").clip(RoundedCornerShape(8.dp)).border(1.dp, colors.border, RoundedCornerShape(8.dp)).padding(1.dp)) {
+        Box(Modifier.fillMaxWidth().height(40.dp)) {
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday").forEach { name ->
+                    Text(name, Modifier.weight(1f).padding(horizontal = 12.dp), color = colors.muted, style = TaskBTheme.typography.button, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
+            Divider(Modifier.align(Alignment.BottomCenter), color = colors.border)
         }
-        Divider(color = colors.border)
         weeks.forEachIndexed { weekIndex, week ->
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 week.forEachIndexed { dayIndex, date ->
                     key(date) {
-                        CalendarDayCell(date, tasks[date].orEmpty(), state, drag, onIntent, onOpenTask, onOpenDay, Modifier.weight(1f).fillMaxHeight())
+                        CalendarDayCell(date, tasks[date].orEmpty(), state, drag, onIntent, onOpenTask, onOpenDay,
+                            endBorder = dayIndex < 6, bottomBorder = weekIndex < weeks.lastIndex,
+                            modifier = Modifier.weight(1f).fillMaxHeight())
                     }
-                    if (dayIndex < 6) Box(Modifier.width(1.dp).fillMaxHeight().background(colors.border))
                 }
             }
-            if (weekIndex < weeks.lastIndex) Divider(color = colors.border)
         }
     }
 }
 
 @Composable
-private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit, onOpenDay: (LocalDate) -> Unit, modifier: Modifier) {
+private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit, onOpenDay: (LocalDate) -> Unit, endBorder: Boolean, bottomBorder: Boolean, modifier: Modifier) {
     val colors = TaskBTheme.colors
     val outsideMonth = date.yearMonth != state.month
+    val isToday = date == state.today
     val hovered = drag.hoveredDay == date
     DisposableEffect(drag, date) { onDispose { drag.targets.remove(date) } }
-    Column(modifier
+    Box(modifier
         .onGloballyPositioned { drag.targets[date] = it.boundsInRoot() }
         .background(when { hovered -> colors.selected; outsideMonth || date.dayOfWeek.isoDayNumber >= 6 -> colors.subtle; else -> colors.surface })
-        .clickable(role = Role.Button) { onOpenDay(date) }
+        .clickable(interactionSource = null, indication = null, role = Role.Button) { onOpenDay(date) }
         .semantics { contentDescription = "Open day $date"; selected = hovered }
-        .testTag("calendar-day-$date").clipToBounds().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth().height(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(Modifier.size(20.dp).then(if (date == state.today) Modifier.background(colors.actionFill, RoundedCornerShape(8.dp)) else Modifier), contentAlignment = Alignment.Center) {
-                    Text(date.day.toString(), color = if (date == state.today) colors.onAction else if (outsideMonth) colors.muted else colors.text, style = TaskBTheme.typography.label)
+        .testTag("calendar-day-$date").clipToBounds()) {
+        Column(Modifier.fillMaxSize().padding(end = if (endBorder) 1.dp else 0.dp, bottom = if (bottomBorder) 1.dp else 0.dp).padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(Modifier.fillMaxWidth().height(20.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box(Modifier.size(20.dp).then(if (isToday) Modifier.background(colors.actionFill, RoundedCornerShape(4.dp)) else Modifier), contentAlignment = Alignment.Center) {
+                    Text(date.day.toString(), color = if (isToday) colors.onAction else if (outsideMonth) colors.muted else colors.text, style = TaskBTheme.typography.button)
                 }
-                if (outsideMonth) Text(calendarMonthAbbreviation.format(date), color = colors.muted, style = TaskBTheme.typography.small)
+                if (outsideMonth) Text(calendarMonthAbbreviation.format(date), color = colors.muted, style = TaskBTheme.typography.button)
             }
-            CalendarDayTasks(tasks, state, drag, onIntent, onOpenTask, { onOpenDay(date) }, Modifier.weight(1f).fillMaxWidth())
+            CalendarDayTasks(tasks, state, drag, onIntent, onOpenTask, { onOpenDay(date) }, Modifier.weight(1f).fillMaxWidth().padding(horizontal = 2.dp))
+        }
+        if (endBorder) Box(Modifier.align(Alignment.CenterEnd).width(1.dp).fillMaxHeight().background(colors.border))
+        if (bottomBorder) Divider(Modifier.align(Alignment.BottomCenter), color = colors.border)
     }
 }
 
-/** Measure wrapped task names before reserving the overflow action, so no task is silently clipped. */
+/** Учитываем высоту перенесённых названий и ссылки на остальные задачи, чтобы не обрезать строки. */
 @Composable
 private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit, onOpenDay: () -> Unit, modifier: Modifier) {
     val colors = TaskBTheme.colors
-    val typography = TaskBTheme.typography
+    val moreStyle = TaskBTheme.typography.body.copy(
+        lineHeight = 18.sp,
+        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+    )
+    val textMeasurer = rememberTextMeasurer()
     SubcomposeLayout(modifier) { constraints ->
-        val gap = 2.dp.roundToPx()
-        val rows = tasks.take(5).map { task ->
-            subcompose(task.id) {
-                val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
-                CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, onOpenTask, { onIntent(CalendarIntent.ToggleCompleted(it)) },
-                    Modifier.testTag("calendar-task-${task.id}").calendarTaskDrag(task, drag, enabled) { id, target -> onIntent(CalendarIntent.MoveTask(id, target)) },
-                    dense = true, enabled = enabled, dragging = drag.task?.id == task.id)
-            }.single().measure(Constraints.fixedWidth(constraints.maxWidth))
+        val rows = buildList<Placeable> {
+            var measuredHeight = 0
+            for (task in tasks) {
+                val row = subcompose(task.id) {
+                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, onOpenTask, { onIntent(CalendarIntent.ToggleCompleted(it)) },
+                        Modifier.testTag("calendar-task-${task.id}").calendarTaskDrag(task, drag, enabled) { id, target -> onIntent(CalendarIntent.MoveTask(id, target)) },
+                        dense = true, enabled = enabled, dragging = drag.task?.id == task.id)
+                }.single().measure(Constraints.fixedWidth(constraints.maxWidth))
+                add(row)
+                measuredHeight += row.height
+                if (measuredHeight > constraints.maxHeight) break
+            }
         }
+        val moreHeight = textMeasurer.measure(
+            text = "+${tasks.size} more", style = moreStyle, maxLines = 1,
+            constraints = Constraints(maxWidth = (constraints.maxWidth - calendarTaskTitleInset.roundToPx()).coerceAtLeast(0)),
+        ).size.height
         var visible = rows.size
-        fun rowsHeight(count: Int) = rows.take(count).sumOf { it.height } + gap * (count - 1).coerceAtLeast(0)
-        while (visible > 0 && rowsHeight(visible) + (if (tasks.size > visible) 18.dp.roundToPx() + gap else 0) > constraints.maxHeight) visible--
+        var rowsHeight = rows.sumOf { it.height }
+        while (visible > 0 && rowsHeight + (if (tasks.size > visible) moreHeight else 0) > constraints.maxHeight) {
+            visible--
+            rowsHeight -= rows[visible].height
+        }
         val more = if (tasks.size > visible) subcompose("more") {
-            Text("+${tasks.size - visible} more", color = colors.accent, style = typography.small, maxLines = 1,
-                modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onOpenDay))
-        }.single().measure(Constraints(maxWidth = constraints.maxWidth, maxHeight = (constraints.maxHeight - rowsHeight(visible) - if (visible > 0) gap else 0).coerceAtLeast(0))) else null
+            Text("+${tasks.size - visible} more", color = colors.accent, style = moreStyle, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onOpenDay).padding(start = calendarTaskTitleInset))
+        }.single().measure(Constraints(maxWidth = constraints.maxWidth, maxHeight = (constraints.maxHeight - rowsHeight).coerceAtLeast(0))) else null
         layout(constraints.maxWidth, constraints.maxHeight) {
             var y = 0
-            rows.take(visible).forEach { row -> row.placeRelative(0, y); y += row.height + gap }
+            rows.take(visible).forEach { row -> row.placeRelative(0, y); y += row.height }
             more?.placeRelative(0, y)
         }
     }

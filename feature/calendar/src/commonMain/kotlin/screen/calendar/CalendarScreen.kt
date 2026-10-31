@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
@@ -82,11 +83,11 @@ internal fun CalendarScreen(
                 }
                 drag.task?.let { task ->
                     Surface(
-                        modifier = Modifier.offset { IntOffset((drag.position.x - origin.x + 12.dp.toPx()).roundToInt(), (drag.position.y - origin.y + 12.dp.toPx()).roundToInt()) }.width(180.dp),
-                        shape = RoundedCornerShape(8.dp), border = BorderStroke(0.5.dp, TaskBTheme.colors.accent),
+                        modifier = Modifier.offset { IntOffset((drag.position.x - origin.x + 12.dp.toPx()).roundToInt(), (drag.position.y - origin.y + 12.dp.toPx()).roundToInt()) }.width(220.dp),
+                        shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, TaskBTheme.colors.accent),
                         color = TaskBTheme.colors.surface, elevation = 4.dp,
                     ) {
-                        CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, {}, {}, Modifier.padding(4.dp), dense = true, enabled = false)
+                        CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, {}, {}, Modifier.padding(2.dp).heightIn(min = 32.dp), dense = true, enabled = false)
                     }
                 }
             }
@@ -97,12 +98,13 @@ internal fun CalendarScreen(
 @Composable
 private fun CalendarUndatedTasks(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit) {
     val tasks = state.undatedTasks
-    Column(Modifier.width(336.dp).fillMaxHeight().padding(24.dp)) {
-        Text("No date", style = TaskBTheme.typography.section, color = TaskBTheme.colors.heading)
+    val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
+    Column(Modifier.width(320.dp).fillMaxHeight().testTag("calendar-sidebar").padding(24.dp)) {
+        Text("Unscheduled", style = TaskBTheme.typography.section.copy(lineHeightStyle = lineHeightStyle), color = TaskBTheme.colors.heading)
         Spacer(Modifier.height(4.dp))
-        Text("${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted)
+        Text("${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}", style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle), color = TaskBTheme.colors.muted)
         Spacer(Modifier.height(16.dp))
-        if (tasks.isEmpty()) Text("No undated tasks.", color = TaskBTheme.colors.muted, style = TaskBTheme.typography.body)
+        if (tasks.isEmpty()) Text("No unscheduled tasks.", color = TaskBTheme.colors.muted, style = TaskBTheme.typography.body)
         val scroll = rememberLazyListState()
         Box(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().testTag("calendar-undated")) {
@@ -118,7 +120,7 @@ private fun CalendarUndatedTasks(state: CalendarState, drag: CalendarDragState, 
     }
 }
 
-@Preview(name = "Calendar", widthDp = 1440, heightDp = 1000)
+@Preview(name = "Calendar", widthDp = 1440, heightDp = 900)
 @Composable
 private fun CalendarScreenPreview() {
     TaskBTheme(darkTheme = false) { CalendarScreen(calendarPreviewState(), {}, {}, {}, {}, {}) }

@@ -13,6 +13,9 @@ import kotlinx.coroutines.test.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import kotlin.test.*
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -21,14 +24,58 @@ class CalendarStoreTest {
     private val created = Instant.parse("2026-10-01T10:00:00Z")
 
     @Test
-    fun `undated tasks sort newest first with stable ties and never appear in the grid`() {
-        val state = CalendarState(today, tasks = listOf(
+    fun `undated tasks put recent completions last exclude older completions and preserve creation order`() {
+        val now = Instant.parse("2026-10-30T10:00:00Z")
+        val state = CalendarState(today, now = now, tasks = listOf(
             Task(1, "Old", createdAt = Instant.fromEpochMilliseconds(1)),
-            Task(2, "New", createdAt = created), Task(3, "Newest tie", createdAt = created, completedAt = created),
-            Task(4, "Scheduled", today, createdAt = created),
+            Task(2, "New", createdAt = created), Task(3, "Completed", createdAt = created, completedAt = now - 1.hours),
+            Task(4, "Scheduled completed", today, createdAt = created, completedAt = created),
+            Task(5, "Newest tie", createdAt = created),
+            Task(6, "Expired exactly at 24 hours", createdAt = now, completedAt = now - 24.hours),
+            Task(7, "Just inside the window", createdAt = created - 1.milliseconds, completedAt = now - 24.hours + 1.milliseconds),
+            Task(8, "Older completion", createdAt = now, completedAt = now - 25.hours),
         ))
-        assertEquals(listOf(3, 2, 1), state.undatedTasks.map { it.id })
+        assertEquals(listOf(5, 2, 1, 3, 7), state.undatedTasks.map { it.id })
         assertEquals(listOf(4), state.tasksByDate.values.flatten().map { it.id })
+    }
+
+    @Test
+    fun `recent completions expire while open and reopening or completing tasks updates the deadline`() = runTest {
+        val start = Instant.parse("2026-10-30T10:00:00Z")
+        val clock = object : Clock { override fun now() = start + testScheduler.currentTime.milliseconds }
+        val task = Task(1, "Recently completed", createdAt = created, completedAt = start - 24.hours + 1_500.milliseconds)
+        val active = Task(2, "Active", createdAt = created)
+        val repository = Tasks(listOf(task, active), clock::now)
+        CalendarStore(repository, Groups(), StandardTestDispatcher(testScheduler), { today }, clock).use { store ->
+            runCurrent()
+            assertEquals(listOf(2, 1), store.state.value.undatedTasks.map { it.id })
+            advanceTimeBy(1_499)
+            runCurrent()
+            assertEquals(listOf(2, 1), store.state.value.undatedTasks.map { it.id })
+            advanceTimeBy(1)
+            runCurrent()
+            assertEquals(listOf(2), store.state.value.undatedTasks.map { it.id })
+            assertEquals(listOf(task, active), repository.values.value)
+
+            store.accept(CalendarIntent.ToggleCompleted(1))
+            runCurrent()
+            assertEquals(listOf(2, 1), store.state.value.undatedTasks.map { it.id })
+            assertNull(store.state.value.nextCompletionExpiry)
+            store.accept(CalendarIntent.ToggleCompleted(2))
+            runCurrent()
+            assertEquals(listOf(1, 2), store.state.value.undatedTasks.map { it.id })
+            assertEquals(clock.now() + 24.hours, store.state.value.nextCompletionExpiry)
+
+            repository.values.value = repository.values.value.map {
+                if (it.id == 2) it.copy(completedAt = clock.now() - 24.hours + 500.milliseconds) else it
+            }
+            runCurrent()
+            advanceTimeBy(500)
+            runCurrent()
+            assertEquals(listOf(1), store.state.value.undatedTasks.map { it.id })
+        }
+        runCurrent()
+        assertEquals(0, repository.subscriptions)
     }
 
     @Test
@@ -173,6 +220,7 @@ class CalendarStoreTest {
             runCurrent()
             assertEquals(YearMonth(2026, 12), store.state.value.month)
             assertTrue(repository.values.value.single().isCompleted)
+            assertEquals(listOf(1), store.state.value.undatedTasks.map { it.id })
             repository.fail = true
             store.accept(CalendarIntent.ToggleCompleted(1))
             runCurrent()
@@ -184,7 +232,7 @@ class CalendarStoreTest {
         assertEquals(0, groups.subscriptions)
     }
 
-    private class Tasks(tasks: List<Task>) : ITaskRepository {
+    private class Tasks(tasks: List<Task>, private val now: () -> Instant = Clock.System::now) : ITaskRepository {
         val values = MutableStateFlow(tasks)
         var fail = false
         var writes = 0
@@ -200,7 +248,7 @@ class CalendarStoreTest {
         override suspend fun delete(id: Int) { values.value = values.value.filter { it.id != id } }
         override suspend fun setCompleted(id: Int, completed: Boolean) {
             if (fail) error("Write failed")
-            values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) Instant.fromEpochMilliseconds(1) else null) else it }
+            values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) now() else null) else it }
         }
         override suspend fun reschedule(id: Int, expectedDate: LocalDate?, date: LocalDate?): Boolean {
             writes++

@@ -9,6 +9,9 @@ import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.yearMonth
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 
 internal data class CalendarState(
     val today: LocalDate,
@@ -21,9 +24,17 @@ internal data class CalendarState(
     val pendingMove: Int? = null,
     val pendingCompletion: Set<Int> = emptySet(),
     val undo: CalendarMove? = null,
+    val now: Instant = Clock.System.now(),
 ) {
-    val undatedTasks: List<Task> get() = tasks.filter { it.dueDate == null }
-        .sortedWith(compareByDescending<Task> { it.createdAt }.thenByDescending { it.id })
+    val undatedTasks: List<Task> get() = tasks.filter {
+        val completedAt = it.completedAt
+        it.dueDate == null && (completedAt == null || completedAt > now - 24.hours)
+    }.sortedWith(compareBy<Task> { it.isCompleted }.thenByDescending { it.createdAt }.thenByDescending { it.id })
+    val nextCompletionExpiry: Instant? get() = tasks.asSequence()
+        .filter { it.dueDate == null }
+        .mapNotNull { it.completedAt?.plus(24.hours) }
+        .filter { it > now }
+        .minOrNull()
     val tasksByDate: Map<LocalDate?, List<Task>> get() = tasks.filter { it.dueDate != null }
         .sortedWith(compareBy<Task> { it.isCompleted }.thenByDescending { it.createdAt }.thenByDescending { it.id })
         .groupBy { it.dueDate }

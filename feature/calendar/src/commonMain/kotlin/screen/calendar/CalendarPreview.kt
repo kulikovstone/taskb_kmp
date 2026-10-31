@@ -12,6 +12,12 @@ internal fun calendarPreviewState(): CalendarState {
         Group(4, "Reading", GroupColor.Indigo), Group(5, "Shopping", GroupColor.Orange), Group(6, "Health", GroupColor.Teal))
     val undated = listOf("Organize project notes", "Try a new recipe", "Explore Kotlin Flow", "Choose the next book", "Make a shopping list", "Clean up downloads", "Call the repair shop")
         .mapIndexed { index, name -> Task(id = index + 1, name = name, groupId = (index + 1).takeIf { it <= 5 }, createdAt = Instant.fromEpochMilliseconds(created.toEpochMilliseconds() - index)) }
+    val longUndated = Task(
+        id = 8,
+        name = "Prepare a detailed plan for the next release and review all remaining tasks",
+        groupId = 1,
+        createdAt = Instant.fromEpochMilliseconds(created.toEpochMilliseconds() + 1),
+    )
     val scheduled = listOf(
         Triple("2026-09-28", "Close September report", 1), Triple("2026-09-30", "Prepare October plan", 1),
         Triple("2026-10-01", "Review roadmap", 1), Triple("2026-10-02", "Set monthly goals", 2),
@@ -31,5 +37,11 @@ internal fun calendarPreviewState(): CalendarState {
         Triple("2026-11-01", "Weekend walk", 6),
     ).mapIndexed { index, (date, name, group) -> Task(index + 100, name, LocalDate.parse(date), group,
         createdAt = Instant.fromEpochMilliseconds(created.toEpochMilliseconds() - index), completedAt = created.takeIf { index in 2..4 }) }
-    return CalendarState(today = LocalDate(2026, 10, 29), tasks = undated + scheduled, groups = groups, isLoading = false)
+    val ungrouped = listOf(
+        Task(id = 200, name = "Renew passport", dueDate = LocalDate(2026, 10, 3), createdAt = created),
+        Task(id = 201, name = "Archive old files", dueDate = LocalDate(2026, 10, 4), createdAt = created, completedAt = created),
+    )
+    val recentlyCompleted = Task(id = 9, name = "Send the release notes", groupId = 1, createdAt = created,
+        completedAt = Instant.parse("2026-10-29T11:00:00Z"))
+    return CalendarState(today = LocalDate(2026, 10, 29), tasks = listOf(longUndated) + undated + scheduled + ungrouped + recentlyCompleted, groups = groups, isLoading = false, now = Instant.parse("2026-10-29T12:00:00Z"))
 }
