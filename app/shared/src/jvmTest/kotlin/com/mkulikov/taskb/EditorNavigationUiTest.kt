@@ -2,6 +2,8 @@ package com.mkulikov.taskb
 
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.core.database.AppDatabase
@@ -71,6 +73,51 @@ class EditorNavigationUiTest {
     }
 
     @Test
+    fun `group selection handles empty groups cancellation and live updates without losing the draft`() {
+        withAppKoin(temporaryFolder.root.toPath().resolve("group-selection.db")) { app ->
+            val navigator = app.koin.get<IAppNavigator>()
+            val database = app.koin.get<AppDatabase>()
+            val date = LocalDate(2026, 11, 4)
+            runSkikoComposeUiTest(size = Size(1280f, 900f)) {
+                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { AppRoot(HomeRoute) } } }
+                waitHome()
+                runOnIdle { navigator.navigate(TaskEditorRoute.Create(initialDate = date)) }
+                waitUntil { onAllNodes(hasContentDescription("Task name")).fetchSemanticsNodes().isNotEmpty() }
+                onNodeWithContentDescription("Task name").performTextInput("Draft with date")
+                onNodeWithContentDescription("Choose task group").performClick()
+                waitUntil { onAllNodes(hasText("No groups yet.")).fetchSemanticsNodes().isNotEmpty() }
+                onNodeWithText("No group").assertDoesNotExist()
+                onNode(isDialog()).assertDoesNotExist()
+                onNodeWithContentDescription("Search groups").performTextInput("Missing")
+                onNodeWithText("No groups match your search.").assertIsDisplayed()
+                onNodeWithContentDescription("Back").performClick()
+                onNodeWithContentDescription("Task name").assertTextEquals("Draft with date")
+                onNodeWithContentDescription("Clear task group").assertDoesNotExist()
+                onNodeWithContentDescription("Choose task group").performClick()
+                onNodeWithContentDescription("Search groups").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+                val groupId = runBlocking {
+                    database.groupDao().insert(GroupEntity(name = "New group", color = Palette.Blue.s400.toArgb())).toInt()
+                }
+                waitUntil { onAllNodes(hasText("New group")).fetchSemanticsNodes().isNotEmpty() }
+                onNodeWithText("New group").performClick()
+                onNodeWithContentDescription("Task name").assertTextEquals("Draft with date")
+                onNodeWithContentDescription("Choose task group").assert(hasText("New group"))
+                onNodeWithContentDescription("Choose task group").performClick()
+                onNodeWithText("New group").assertIsSelected()
+                onNodeWithContentDescription("Search groups").performTextInput("Missing")
+                onNodeWithContentDescription("Back").performClick()
+                onNodeWithContentDescription("Choose task group").assert(hasText("New group"))
+                onNodeWithContentDescription("Save task").performClick()
+                waitHome()
+                val task = runBlocking { database.taskDao().observeTasks().first().single() }
+                assertEquals(groupId, task.groupId)
+                assertEquals(date.toEpochDays(), task.dueDate)
+                assertEquals("Draft with date", task.name)
+            }
+        }
+    }
+
+    @Test
     fun `stacked editors keep independent drafts and popping a create screen starts a fresh draft`() {
         withAppKoin(temporaryFolder.root.toPath().resolve("editor-stack.db")) { app ->
             val navigator = app.koin.get<IAppNavigator>()
@@ -95,7 +142,9 @@ class EditorNavigationUiTest {
                 onNodeWithContentDescription("Task name").assertTextEquals("Retained task draft")
                 onNodeWithContentDescription("Choose task group").performClick()
                 onNodeWithContentDescription("Search groups").performTextInput("wor")
-                onNode(hasText("Work") and hasAnyAncestor(isDialog())).performClick()
+                onNodeWithText("No group").assertDoesNotExist()
+                onNode(isDialog()).assertDoesNotExist()
+                onNodeWithText("Work").performClick()
                 onNodeWithContentDescription("Task name").assertTextEquals("Retained task draft")
                 onNodeWithContentDescription("Back").performClick()
                 waitHome()

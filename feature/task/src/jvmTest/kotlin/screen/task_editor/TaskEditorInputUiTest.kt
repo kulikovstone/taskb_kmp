@@ -40,7 +40,7 @@ class TaskEditorInputUiTest {
                 setContent {
                     TaskBTheme {
                         val state = store.state.collectAsState().value
-                        TaskEditorContent(state, store::accept, wide.value, {})
+                        TaskEditorContent(state, store::accept, wide.value, {}, {})
                     }
                 }
                 val name = onNodeWithContentDescription("Task name")
@@ -69,7 +69,7 @@ class TaskEditorInputUiTest {
             runSkikoComposeUiTest {
                 setContent {
                     TaskBTheme {
-                        TaskEditorContent(store.state.collectAsState().value, store::accept, false, {})
+                        TaskEditorContent(store.state.collectAsState().value, store::accept, false, {}, {})
                     }
                 }
                 val name = onNodeWithContentDescription("Task name")
@@ -108,7 +108,7 @@ class TaskEditorInputUiTest {
             runSkikoComposeUiTest {
                 setContent {
                     TaskBTheme {
-                        TaskEditorContent(store.state.collectAsState().value, store::accept, false, {})
+                        TaskEditorContent(store.state.collectAsState().value, store::accept, false, {}, {})
                     }
                 }
                 val name = onNodeWithContentDescription("Task name")

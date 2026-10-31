@@ -58,6 +58,13 @@
 и `GroupEditorRoute.Edit(groupId)` из `:feature:group:api` можно открывать через
 `IAppNavigator.navigate` из любой фичи. Маршрут списка `GroupsRoute` также находится
 в `:feature:group:api`.
+Выбор группы открывается отдельным экраном `GroupSelectionRoute(resultKey, selectedGroupId,
+showNoGroup, noGroupSelected)` из `:feature:group:api`. Фильтр списка задач передаёт
+`showNoGroup = true`, редактор задачи — `false`. В редакторе группа очищается отдельной
+кнопкой. Выбор возвращает `GroupSelectionResult(groupId)` через `IAppNavigator.backWithResult`;
+`groupId = null` означает явный выбор «No group», обычный возврат не меняет выбор.
+Получатель создаётся через `createResultReceiver` и хранится в `rememberNavEntryResource`:
+результат ждёт возобновления вызывающего экрана и освобождается вместе с его записью навигации.
 Календарь доступен из главного меню в широких окнах (от 840dp). Слева отображаются
 задачи без даты, от новых к старым по времени создания; справа — месячная сетка.
 Перетаскивание мышью или длительное нажатие с переносом меняет только дату задачи;

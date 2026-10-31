@@ -11,7 +11,6 @@ internal data class TaskState(
     val tasks: List<Task> = emptyList(),
     val groups: List<Group> = emptyList(),
     val query: String = "",
-    val groupQuery: String = "",
     val groupFilter: TaskGroupFilter = TaskGroupFilter.All,
     val filter: TaskFilter? = null,
     val sort: TaskSort = TaskSort.Date,
@@ -65,4 +64,4 @@ internal sealed interface TaskGroupFilter {
     data object NoGroup : TaskGroupFilter
     data class Selected(val id: Int) : TaskGroupFilter
 }
-internal enum class TaskSelection { Groups, Filters }
+internal enum class TaskSelection { Filters }

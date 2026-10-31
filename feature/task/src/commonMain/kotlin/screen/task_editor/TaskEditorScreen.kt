@@ -19,34 +19,40 @@ import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
+import kotlinx.coroutines.flow.Flow
 import org.koin.compose.koinInject
 
 @Composable
-internal fun TaskEditorScreen(taskId: Int? = null, initialDate: LocalDate? = null, initialGroupId: Int? = null, onBack: () -> Unit) {
+internal fun TaskEditorScreen(
+    taskId: Int? = null, initialDate: LocalDate? = null, initialGroupId: Int? = null,
+    onBack: () -> Unit, groupResults: Flow<GroupSelectionResult>, onChooseGroup: (Int?) -> Unit,
+) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
     val store = rememberNavEntryResource("task-editor") { TaskEditorStore(repository, groups, taskId, initialDate, initialGroupId) }
     val state by store.state.collectAsState()
     LaunchedEffect(store, state.isFinished) { if (state.isFinished) onBack() }
+    LaunchedEffect(store, groupResults) {
+        groupResults.collect { store.accept(TaskEditorIntent.GroupChanged(it.groupId)) }
+    }
 
     Surface(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val wide = maxWidth >= 840.dp
-            if (!wide && state.isChoosingGroup) TaskEditorGroupSelection(state, store::accept, false, maxHeight)
-            else TaskEditorContent(state, store::accept, wide, onBack)
-            if (wide && state.isChoosingGroup) TaskEditorGroupSelection(state, store::accept, true, maxHeight)
+            TaskEditorContent(state, store::accept, wide, onBack, onChooseGroup = { onChooseGroup(state.groupId) })
             TaskEditorDialogs(state, state.today, store::accept, maxHeight)
         }
     }
 }
 
 @Composable
-internal fun TaskEditorContent(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, wide: Boolean, onBack: () -> Unit) {
+internal fun TaskEditorContent(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, wide: Boolean, onBack: () -> Unit, onChooseGroup: () -> Unit) {
     val title = if (state.isNew) "New task" else "Edit task"
     val canDelete = !state.isBusy && state.dialog == null && !state.isFinished && state.original != null
     Column(Modifier.fillMaxSize()) {
@@ -70,7 +76,7 @@ internal fun TaskEditorContent(state: TaskEditorState, onIntent: (TaskEditorInte
                 state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(TaskEditorIntent.RetryLoad) }, modifier)
                 state.groupsLoadError != null -> TaskBLoadError(state.groupsLoadError, { onIntent(TaskEditorIntent.RetryGroups) }, modifier)
                 else -> TaskEditorForm(state, state.groups, state.today, onIntent,
-                    { onIntent(TaskEditorIntent.ChooseGroup) }, wide, modifier)
+                    onChooseGroup, wide, modifier)
             }
         }
     }

@@ -8,4 +8,6 @@ interface IAppNavigator {
     fun popUpTo(key: NavKey, inclusive: Boolean = false)
     fun replaceAll(key: NavKey)
     fun back()
+    fun <T : Any> createResultReceiver(): INavResultReceiver<T>
+    fun <T : Any> backWithResult(key: NavResultKey<T>, result: T)
 }

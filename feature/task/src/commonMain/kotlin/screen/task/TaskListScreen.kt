@@ -22,10 +22,10 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 @Composable
 internal fun TaskListScreen(
     state: TaskState, onIntent: (TaskIntent) -> Unit,
-    wide: Boolean, onBack: () -> Unit, onNewTask: () -> Unit, onOpenTask: (Int) -> Unit,
+    wide: Boolean, onBack: () -> Unit, onChooseGroup: () -> Unit, onNewTask: () -> Unit, onOpenTask: (Int) -> Unit,
 ) {
     val actions: @Composable RowScope.() -> Unit = {
-        IconButton({ onIntent(TaskIntent.Choose(TaskSelection.Groups)) }) {
+        IconButton(onChooseGroup) {
             Icon(TaskBIcons.Folder, "Choose group", tint = TaskBTheme.colors.accent)
         }
         IconButton({ onIntent(TaskIntent.Choose(TaskSelection.Filters)) }) {
@@ -47,12 +47,12 @@ internal fun TaskListScreen(
         Column(Modifier.weight(1f).padding(start = if (wide) 32.dp else 24.dp, end = if (wide) 32.dp else 24.dp, top = if (wide) 16.dp else 24.dp)) {
             if (wide) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.width(300.dp))
-                ActiveTaskFilters(state, onIntent, Modifier.weight(1f))
+                ActiveTaskFilters(state, onIntent, onChooseGroup, Modifier.weight(1f))
             } else {
                 TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.fillMaxWidth())
                 if (state.filter != null || state.groupFilter != TaskGroupFilter.All) {
                     Spacer(Modifier.height(16.dp))
-                    ActiveTaskFilters(state, onIntent)
+                    ActiveTaskFilters(state, onIntent, onChooseGroup)
                 }
             }
             Spacer(Modifier.height(if (wide) 24.dp else 16.dp))
@@ -62,12 +62,12 @@ internal fun TaskListScreen(
 }
 
 @Composable
-private fun ActiveTaskFilters(state: TaskState, onIntent: (TaskIntent) -> Unit, modifier: Modifier = Modifier) {
+private fun ActiveTaskFilters(state: TaskState, onIntent: (TaskIntent) -> Unit, onChooseGroup: () -> Unit, modifier: Modifier = Modifier) {
     FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.groupFilter != TaskGroupFilter.All) {
             val group = state.groups.find { it.id == (state.groupFilter as? TaskGroupFilter.Selected)?.id }
             TaskFilterChip(group?.name ?: "No group", TaskBIcons.FolderFilled, group?.color?.color ?: TaskBTheme.colors.muted,
-                { onIntent(TaskIntent.Choose(TaskSelection.Groups)) }, { onIntent(TaskIntent.FilterGroup(TaskGroupFilter.All)) }, "Clear group filter")
+                onChooseGroup, { onIntent(TaskIntent.FilterGroup(TaskGroupFilter.All)) }, "Clear group filter")
         }
         state.filter?.let { TaskFilterChip(it.label, TaskBIcons.Filter, TaskBTheme.colors.accent,
             { onIntent(TaskIntent.Choose(TaskSelection.Filters)) }, { onIntent(TaskIntent.Filter(null)) }, "Clear task filter") }

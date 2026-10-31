@@ -33,7 +33,6 @@ internal class TaskStore(
     override fun handleIntent(intent: TaskIntent) {
         when (intent) {
             is TaskIntent.Search -> reduce(TaskMessage.Query(intent.query))
-            is TaskIntent.SearchGroups -> reduce(TaskMessage.GroupQuery(intent.query))
             is TaskIntent.Filter -> reduce(TaskMessage.Filter(intent.filter))
             is TaskIntent.FilterGroup -> reduce(TaskMessage.GroupFilter(intent.filter))
             is TaskIntent.Sort -> reduce(TaskMessage.Sort(intent.sort))

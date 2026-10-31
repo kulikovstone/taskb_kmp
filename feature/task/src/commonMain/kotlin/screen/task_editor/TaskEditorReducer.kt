@@ -12,8 +12,6 @@ internal sealed interface TaskEditorMessage {
     data class GroupsLoaded(val groups: List<Group>) : TaskEditorMessage
     data object GroupsLoading : TaskEditorMessage
     data object GroupsLoadFailed : TaskEditorMessage
-    data class ChoosingGroup(val value: Boolean) : TaskEditorMessage
-    data class GroupQuery(val value: String) : TaskEditorMessage
     data class Today(val value: LocalDate) : TaskEditorMessage
     data class Dialog(val value: TaskEditorDialog?) : TaskEditorMessage
     data object Loading : TaskEditorMessage
@@ -27,13 +25,11 @@ internal fun reduceTaskEditor(state: TaskEditorState, message: TaskEditorMessage
         else state.copy(isLoading = false, original = message.task, name = TextFieldState(message.task.name), dueDate = message.task.dueDate,
             groupId = message.task.groupId?.takeIf { id -> state.isLoadingGroups || state.groupsLoadError != null || state.groups.any { it.id == id } })
     is TaskEditorMessage.Date -> state.copy(dueDate = message.value, dialog = null)
-    is TaskEditorMessage.GroupSelected -> state.copy(groupId = message.value, isChoosingGroup = false, groupQuery = "")
+    is TaskEditorMessage.GroupSelected -> state.copy(groupId = message.value)
     is TaskEditorMessage.GroupsLoaded -> state.copy(groups = message.groups, isLoadingGroups = false, groupsLoadError = null,
         groupId = state.groupId?.takeIf { id -> message.groups.any { it.id == id } })
     TaskEditorMessage.GroupsLoading -> state.copy(isLoadingGroups = true, groupsLoadError = null)
     TaskEditorMessage.GroupsLoadFailed -> state.copy(isLoadingGroups = false, groupsLoadError = "Couldn't load groups. Please try again.")
-    is TaskEditorMessage.ChoosingGroup -> state.copy(isChoosingGroup = message.value, groupQuery = "")
-    is TaskEditorMessage.GroupQuery -> state.copy(groupQuery = message.value)
     is TaskEditorMessage.Today -> state.copy(today = message.value)
     is TaskEditorMessage.Dialog -> state.copy(dialog = message.value)
     TaskEditorMessage.Loading -> state.copy(isLoading = true, loadError = null)

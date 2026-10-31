@@ -6,11 +6,17 @@ import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.feature.group.api.GroupEditorRoute
 import com.mkulikov.taskb.feature.group.api.GroupsRoute
+import com.mkulikov.taskb.feature.group.api.GroupSelectionRoute
+import com.mkulikov.taskb.feature.group.screen.group_selection.GroupSelectionScreen
 import com.mkulikov.taskb.feature.group.screen.group_editor.GroupEditorScreen
 import com.mkulikov.taskb.feature.group.screen.groups.GroupsScreen
 
 internal class GroupNavEntry : INavEntry {
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
+        scope.entry<GroupSelectionRoute> { route ->
+            GroupSelectionScreen(route, onBack = navigator::back,
+                onSelected = { navigator.backWithResult(route.resultKey, it) })
+        }
         scope.entry<GroupsRoute> {
             GroupsScreen(
                 onBack = navigator::back,

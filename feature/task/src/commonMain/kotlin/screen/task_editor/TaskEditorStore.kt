@@ -51,8 +51,6 @@ internal class TaskEditorStore(
                     emit(TaskEditorMessage.GroupsLoadFailed)
                 })
             }
-            TaskEditorIntent.CloseGroupSelection -> reduce(TaskEditorMessage.ChoosingGroup(false))
-            is TaskEditorIntent.SearchGroups -> if (current.isChoosingGroup) reduce(TaskEditorMessage.GroupQuery(intent.query))
             TaskEditorIntent.RetryLoad -> {
                 if (taskId == null || current.isLoading && loadRequested || current.original != null) return
                 loadRequested = true
@@ -73,7 +71,6 @@ internal class TaskEditorStore(
                 if (current.isBusy || current.loadError != null || current.groupsLoadError != null || current.dialog != null) return
                 when (intent) {
                     is TaskEditorIntent.GroupChanged -> if (intent.id == null || current.groups.any { it.id == intent.id }) reduce(TaskEditorMessage.GroupSelected(intent.id))
-                    TaskEditorIntent.ChooseGroup -> reduce(TaskEditorMessage.ChoosingGroup(true))
                     is TaskEditorIntent.ShiftDate -> current.dueDate?.let {
                         reduce(TaskEditorMessage.Date(it.plus(intent.days, DateTimeUnit.DAY).plus(intent.months, DateTimeUnit.MONTH)))
                     }

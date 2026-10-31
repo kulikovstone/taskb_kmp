@@ -8,6 +8,7 @@ import androidx.navigation3.runtime.NavKey
 @Stable
 internal class AppNavigator : IAppNavigator {
     val backStack = mutableStateListOf<NavKey>()
+    private val resultReceivers = mutableMapOf<NavResultKey<*>, NavResultReceiver<*>>()
 
     fun setStartDestination(key: NavKey) {
         if (backStack.isEmpty()) backStack.add(key)
@@ -39,5 +40,17 @@ internal class AppNavigator : IAppNavigator {
 
     override fun back() {
         if (backStack.size > 1) backStack.removeLast()
+    }
+
+    override fun <T : Any> createResultReceiver(): INavResultReceiver<T> =
+        NavResultReceiver<T> { resultReceivers.remove(it) }.also { resultReceivers[it.key] = it }
+
+    override fun <T : Any> backWithResult(key: NavResultKey<T>, result: T) {
+        if (backStack.size <= 1) return
+        // A key is created together with its receiver and cannot be reused for another type.
+        @Suppress("UNCHECKED_CAST")
+        val receiver = resultReceivers[key] as? NavResultReceiver<T>
+        receiver?.deliver(result)
+        back()
     }
 }

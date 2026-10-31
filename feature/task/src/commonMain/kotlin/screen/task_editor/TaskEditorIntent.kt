@@ -7,9 +7,6 @@ internal sealed interface TaskEditorIntent {
     data class GroupChanged(val id: Int?) : TaskEditorIntent
     data class ShiftDate(val days: Long = 0, val months: Long = 0) : TaskEditorIntent
     data object ChooseDate : TaskEditorIntent
-    data object ChooseGroup : TaskEditorIntent
-    data object CloseGroupSelection : TaskEditorIntent
-    data class SearchGroups(val query: String) : TaskEditorIntent
     data object RetryGroups : TaskEditorIntent
     data object Save : TaskEditorIntent
     data object PrepareDelete : TaskEditorIntent
