@@ -15,6 +15,7 @@ internal class GroupNavEntry : INavEntry {
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
         scope.entry<GroupSelectionRoute> { route ->
             GroupSelectionScreen(route, onBack = navigator::back,
+                onCreateGroup = { navigator.navigate(GroupEditorRoute.Create) },
                 onSelected = { navigator.backWithResult(route.resultKey, it) })
         }
         scope.entry<GroupsRoute> {

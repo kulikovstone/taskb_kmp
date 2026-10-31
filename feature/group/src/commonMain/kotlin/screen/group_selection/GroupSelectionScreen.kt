@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -18,17 +20,23 @@ import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.GroupSelectionRoute
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.ui.component.TaskBEditorButton
+import com.mkulikov.taskb.ui.component.TaskBEditorTopAppBar
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBSelectionRow
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
+import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import org.koin.compose.koinInject
 
 @Composable
-internal fun GroupSelectionScreen(route: GroupSelectionRoute, onBack: () -> Unit, onSelected: (GroupSelectionResult) -> Unit) {
+internal fun GroupSelectionScreen(
+    route: GroupSelectionRoute, onBack: () -> Unit, onCreateGroup: () -> Unit,
+    onSelected: (GroupSelectionResult) -> Unit,
+) {
     val repository = koinInject<IGroupRepository>()
     val store = rememberNavEntryResource("group-selection") {
         GroupSelectionStore(repository, route.selectedGroupId, route.showNoGroup, route.noGroupSelected)
@@ -36,24 +44,40 @@ internal fun GroupSelectionScreen(route: GroupSelectionRoute, onBack: () -> Unit
     val state by store.state.collectAsState()
     LaunchedEffect(state.result) { state.result?.let(onSelected) }
     Surface(Modifier.fillMaxSize()) {
-        GroupSelectionContent(state, store::accept, onBack)
+        GroupSelectionContent(state, store::accept, onBack, onCreateGroup)
     }
 }
 
 @Composable
-internal fun GroupSelectionContent(state: GroupSelectionState, onIntent: (GroupSelectionIntent) -> Unit, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        TaskBTopAppBar("Choose group", onBack, titleSpacing = 4.dp)
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 768.dp).fillMaxSize().padding(24.dp)) {
-                TaskBTextField(state.query, { onIntent(GroupSelectionIntent.Search(it)) }, "Search groups",
-                    placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(16.dp))
-                val modifier = Modifier.weight(1f).fillMaxWidth()
-                when {
-                    state.isLoading -> TaskBLoading(modifier)
-                    state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(GroupSelectionIntent.RetryLoad) }, modifier)
-                    else -> GroupSelectionList(state, onIntent, modifier)
+internal fun GroupSelectionContent(
+    state: GroupSelectionState, onIntent: (GroupSelectionIntent) -> Unit,
+    onBack: () -> Unit, onCreateGroup: () -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val wide = maxWidth >= 840.dp
+        Column(Modifier.fillMaxSize()) {
+            if (wide) {
+                TaskBEditorTopAppBar("Choose group", onBack, backEnabled = true) {
+                    TaskBEditorButton("New group", TaskBIcons.Add, onCreateGroup)
+                }
+            } else {
+                TaskBTopAppBar("Choose group", onBack, titleSpacing = 4.dp) {
+                    IconButton(onClick = onCreateGroup) {
+                        Icon(TaskBIcons.Add, contentDescription = "Add group", tint = TaskBTheme.colors.accent)
+                    }
+                }
+            }
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                Column(Modifier.widthIn(max = 768.dp).fillMaxSize().padding(24.dp)) {
+                    TaskBTextField(state.query, { onIntent(GroupSelectionIntent.Search(it)) }, "Search groups",
+                        placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(16.dp))
+                    val modifier = Modifier.weight(1f).fillMaxWidth()
+                    when {
+                        state.isLoading -> TaskBLoading(modifier)
+                        state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(GroupSelectionIntent.RetryLoad) }, modifier)
+                        else -> GroupSelectionList(state, onIntent, modifier)
+                    }
                 }
             }
         }

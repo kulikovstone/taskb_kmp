@@ -98,12 +98,13 @@ class EditorNavigationUiTest {
                 val groupId = runBlocking {
                     database.groupDao().insert(GroupEntity(name = "New group", color = Palette.Blue.s400.toArgb())).toInt()
                 }
-                waitUntil { onAllNodes(hasText("New group")).fetchSemanticsNodes().isNotEmpty() }
-                onNodeWithText("New group").performClick()
+                val newGroupRow = hasText("New group") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
+                waitUntil { onAllNodes(newGroupRow).fetchSemanticsNodes().isNotEmpty() }
+                onNode(newGroupRow).performClick()
                 onNodeWithContentDescription("Task name").assertTextEquals("Draft with date")
                 onNodeWithContentDescription("Choose task group").assert(hasText("New group"))
                 onNodeWithContentDescription("Choose task group").performClick()
-                onNodeWithText("New group").assertIsSelected()
+                onNode(newGroupRow).assertIsSelected()
                 onNodeWithContentDescription("Search groups").performTextInput("Missing")
                 onNodeWithContentDescription("Back").performClick()
                 onNodeWithContentDescription("Choose task group").assert(hasText("New group"))
