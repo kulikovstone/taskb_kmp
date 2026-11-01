@@ -10,6 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -79,7 +80,8 @@ private fun ActiveTaskFilters(state: TaskState, onIntent: (TaskIntent) -> Unit, 
 
 @Composable
 private fun TaskFilterChip(label: String, icon: ImageVector, tint: Color, onChange: () -> Unit, onClear: () -> Unit, clearDescription: String) {
-    Row(Modifier.height(44.dp).background(TaskBTheme.colors.selected, RoundedCornerShape(8.dp)), verticalAlignment = Alignment.CenterVertically) {
+    val shape = RoundedCornerShape(8.dp)
+    Row(Modifier.height(44.dp).clip(shape).background(TaskBTheme.colors.selected), verticalAlignment = Alignment.CenterVertically) {
         Row(Modifier.height(44.dp).clickable(onClick = onChange).padding(start = 12.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
             Text(label, color = TaskBTheme.colors.accent, style = TaskBTheme.typography.button)

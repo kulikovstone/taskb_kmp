@@ -12,6 +12,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.ui.component.TaskBTextField
+import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.DayOfWeek
@@ -62,11 +64,11 @@ internal fun TaskRecurrenceFields(state: TaskEditorState, onIntent: (TaskEditorI
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RecurrenceFrequency.entries.forEach { frequency ->
-                        QuickDate(frequency.name, rule.frequency == frequency, enabled, {
+                        TaskBSelectionButton(frequency.name, rule.frequency == frequency, {
                             change(rule.copy(frequency = frequency, weekdays = rule.weekdays.ifEmpty { setOf(date.dayOfWeek) },
                                 dayOfMonth = if (rule.frequency == frequency) rule.dayOfMonth else date.day,
                                 month = if (rule.frequency == frequency) rule.month else date.month.ordinal + 1))
-                        }, Modifier.weight(1f))
+                        }, Modifier.weight(1f), enabled)
                     }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -80,10 +82,10 @@ internal fun TaskRecurrenceFields(state: TaskEditorState, onIntent: (TaskEditorI
                         Text("Repeat on", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (wide) 8.dp else 4.dp)) {
                             DayOfWeek.entries.forEach { day ->
-                                QuickDate(weekdayNames[day.ordinal], day in rule.weekdays, enabled, {
+                                TaskBSelectionButton(weekdayNames[day.ordinal], day in rule.weekdays, {
                                     val next = if (day in rule.weekdays) rule.weekdays - day else rule.weekdays + day
                                     if (next.isNotEmpty()) change(rule.copy(weekdays = next))
-                                }, Modifier.weight(1f))
+                                }, Modifier.weight(1f), enabled)
                             }
                         }
                     }
@@ -110,10 +112,10 @@ internal fun TaskRecurrenceFields(state: TaskEditorState, onIntent: (TaskEditorI
             val end = when { rule.endDate != null -> "On date"; rule.occurrenceCount != null -> "After"; else -> "Never" }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Never", "On date", "After").forEach { label ->
-                    QuickDate(label, end == label, enabled, {
+                    TaskBSelectionButton(label, end == label, {
                         change(rule.copy(endDate = if (label == "On date") rule.endDate ?: date else null,
                             occurrenceCount = if (label == "After") rule.occurrenceCount ?: 10 else null))
-                    }, Modifier.weight(1f))
+                    }, Modifier.weight(1f), enabled)
                 }
             }
             val endDate = rule.endDate
@@ -142,7 +144,8 @@ private fun RepeatNumber(value: String, description: String, onChange: (String) 
 private fun RepeatMonth(month: Int, enabled: Boolean, onChoose: (Int) -> Unit, modifier: Modifier) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
-        Row(Modifier.fillMaxWidth().height(44.dp).border(1.dp, TaskBTheme.colors.border, RoundedCornerShape(8.dp))
+        val shape = RoundedCornerShape(8.dp)
+        Row(Modifier.fillMaxWidth().height(44.dp).clip(shape).border(1.dp, TaskBTheme.colors.border, shape)
             .clickable(enabled, role = Role.Button) { open = true }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(monthNames[month - 1], Modifier.weight(1f), style = TaskBTheme.typography.body, color = TaskBTheme.colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Icon(TaskBIcons.ChevronRight, null, Modifier.size(18.dp), tint = TaskBTheme.colors.muted)

@@ -16,6 +16,7 @@ import androidx.compose.material.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -70,7 +71,7 @@ internal fun TaskDatePicker(date: LocalDate?, today: LocalDate, onChoose: (Local
                                 if (number in 1..month.numberOfDays) {
                                     val value = month.onDay(number)
                                     val chosen = value == date
-                                    Box(Modifier.size(36.dp).background(if (chosen) TaskBTheme.colors.selected else TaskBTheme.colors.surface, CircleShape)
+                                    Box(Modifier.size(36.dp).clip(CircleShape).background(if (chosen) TaskBTheme.colors.selected else TaskBTheme.colors.surface, CircleShape)
                                         .then(if (value == today) Modifier.border(1.dp, TaskBTheme.colors.accent, CircleShape) else Modifier)
                                         .clickable(role = Role.Button) { onChoose(value) }.semantics { selected = chosen; contentDescription = "Choose ${dateDescription.format(value)}" }, contentAlignment = Alignment.Center) {
                                         Text(number.toString(), color = if (chosen) TaskBTheme.colors.accent else TaskBTheme.colors.text, style = TaskBTheme.typography.body)
