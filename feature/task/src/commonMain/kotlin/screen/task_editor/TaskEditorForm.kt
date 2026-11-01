@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -107,6 +106,15 @@ internal fun TaskSelectionField(label: String, icon: ImageVector, tint: Color, p
             Text(label, color = if (placeholder) TaskBTheme.colors.muted else TaskBTheme.colors.text, style = TaskBTheme.typography.body, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Icon(TaskBIcons.ChevronRight, null, tint = TaskBTheme.colors.muted, modifier = Modifier.size(18.dp))
         }
-        onClear?.let { IconButton(it, enabled = enabled, modifier = Modifier.width(44.dp).fillMaxHeight()) { Icon(TaskBIcons.Clear, clearDescription, tint = TaskBTheme.colors.muted) } }
+        onClear?.let { clear ->
+            Box(
+                Modifier.width(44.dp).fillMaxHeight().clickable(
+                    enabled = enabled, interactionSource = null, indication = null, role = Role.Button, onClick = clear,
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(TaskBIcons.Clear, clearDescription, tint = TaskBTheme.colors.muted)
+            }
+        }
     }
 }

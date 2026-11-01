@@ -77,8 +77,8 @@ class TaskListNavigationUiTest {
                 screenshot("task-date-picker", dialog = true)
                 val chosen = YearMonth.from(LocalDate.now().plusDays(2)).plusMonths(1).atDay(15)
                 onNodeWithContentDescription("Choose ${chosen.format(DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH))}").performClick()
-                onNodeWithContentDescription("Clear date").performClick()
-                onNodeWithContentDescription("Clear task group").performClick()
+                clearSelection("Clear date")
+                clearSelection("Clear task group")
                 screenshot("task-compact-edit")
                 onNodeWithContentDescription("Save task").performClick()
                 waitText("1 task")
@@ -95,7 +95,7 @@ class TaskListNavigationUiTest {
                 onNodeWithText("No group").assertIsSelected()
                 onNodeWithContentDescription("Back").performClick()
                 waitText("1 of 1 tasks")
-                onNodeWithContentDescription("Clear task filter").performClick()
+                clearSelection("Clear task filter")
                 onNodeWithText("Edited task").performClick()
                 waitText("Edit task")
                 onNodeWithContentDescription("Delete task").performClick()
@@ -181,8 +181,8 @@ class TaskListNavigationUiTest {
                 runOnIdle { width.value = 400.dp }
                 waitForIdle()
                 screenshot("task-compact-filtered")
-                onNodeWithContentDescription("Clear group filter").performClick()
-                onNodeWithContentDescription("Clear task filter").performClick()
+                clearSelection("Clear group filter")
+                clearSelection("Clear task filter")
                 waitText("8 tasks")
                 onNodeWithText("Expired completion").assertDoesNotExist()
                 screenshot("task-compact-list")
@@ -250,6 +250,10 @@ class TaskListNavigationUiTest {
     }
     private suspend fun SkikoComposeUiTest.waitText(text: String) {
         waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty() }
+    }
+    private suspend fun SkikoComposeUiTest.clearSelection(description: String) {
+        onNodeWithContentDescription(description).performClick()
+        waitUntil(timeoutMillis = 5_000) { onAllNodes(hasContentDescription(description)).fetchSemanticsNodes().isEmpty() }
     }
     private fun SkikoComposeUiTest.screenshot(name: String, dialog: Boolean = false) {
         val output = Path.of("build/reports/screenshots")

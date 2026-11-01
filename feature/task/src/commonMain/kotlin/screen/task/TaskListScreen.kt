@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBTextField
@@ -86,6 +87,11 @@ private fun TaskFilterChip(label: String, icon: ImageVector, tint: Color, onChan
             Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
             Text(label, color = TaskBTheme.colors.accent, style = TaskBTheme.typography.button)
         }
-        IconButton(onClear, Modifier.size(44.dp)) { Icon(TaskBIcons.Clear, clearDescription, tint = TaskBTheme.colors.accent, modifier = Modifier.size(24.dp)) }
+        Box(
+            Modifier.size(44.dp).clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onClear),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(TaskBIcons.Clear, clearDescription, tint = TaskBTheme.colors.accent, modifier = Modifier.size(24.dp))
+        }
     }
 }
