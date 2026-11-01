@@ -35,7 +35,7 @@ internal class FakeTaskRepository(private val clock: Clock = Clock.System) : ITa
         lastWrite = task
         if (task.id != 0 && values.value.none { it.id == task.id }) return false
         values.value = if (task.id == 0) values.value + task.copy(id = (values.value.maxOfOrNull { it.id } ?: 0) + 1)
-            else values.value.map { if (it.id == task.id) it.copy(name = task.name, dueDate = task.dueDate, groupId = task.groupId, recurrence = task.recurrence) else it }
+            else values.value.map { if (it.id == task.id) it.copy(name = task.name, description = task.description, dueDate = task.dueDate, groupId = task.groupId, recurrence = task.recurrence) else it }
         return true
     }
     override suspend fun setCompleted(id: Int, completed: Boolean) {

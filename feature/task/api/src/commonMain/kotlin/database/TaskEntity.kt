@@ -26,4 +26,5 @@ data class TaskEntity(
     /** Completion time in milliseconds since the Unix epoch, or null for an incomplete task. */
     val completedAt: Long? = null,
     @ColumnInfo(defaultValue = "0") val recurring: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val description: String = "",
 )

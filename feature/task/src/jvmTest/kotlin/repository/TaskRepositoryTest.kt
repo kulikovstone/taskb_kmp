@@ -21,6 +21,41 @@ class TaskRepositoryTest {
     private val directory: Path get() = temporaryFolder.root.toPath()
 
     @Test
+    fun `multiline description persists exactly across edits reopening and clearing`() = runBlocking {
+        val file = directory.resolve("description.db")
+        val initial = "  Wedding anniversary\n\nBook a table for two.\nBring flowers 💐\n  "
+        var taskId = 0
+        AppDatabase.open(file).let { database ->
+            try {
+                val repository = TaskRepository(lazy { database })
+                assertTrue(repository.save(Task(name = "Anniversary", description = initial)))
+                val task = repository.tasks.first().single()
+                taskId = task.id
+                assertEquals(initial, task.description)
+                assertEquals(initial, database.taskDao().getById(taskId)?.description)
+                repository.setCompleted(taskId, true)
+                assertTrue(repository.reschedule(taskId, null, LocalDate(2036, 6, 12)))
+                assertEquals(initial, repository.getById(taskId)?.description)
+                assertTrue(repository.save(assertNotNull(repository.getById(taskId)).copy(description = "$initial\nUpdated")))
+            } finally { database.close() }
+        }
+        AppDatabase.open(file).let { database ->
+            try {
+                val repository = TaskRepository(lazy { database })
+                val task = assertNotNull(repository.getById(taskId))
+                assertEquals("$initial\nUpdated", task.description)
+                assertTrue(task.isCompleted)
+                assertTrue(repository.save(task.copy(description = "")))
+                assertEquals("", repository.tasks.first().single().description)
+            } finally { database.close() }
+        }
+        AppDatabase.open(file).let { database ->
+            try { assertEquals("", database.taskDao().getById(taskId)?.description) }
+            finally { database.close() }
+        }
+    }
+
+    @Test
     fun `rescheduling changes only the date and stale undo never overwrites another date`() = runBlocking {
         val file = directory.resolve("reschedule.db")
         val database = AppDatabase.open(file)

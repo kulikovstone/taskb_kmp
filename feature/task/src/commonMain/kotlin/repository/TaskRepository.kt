@@ -48,7 +48,8 @@ internal class TaskRepository(
         require(task.recurrence?.endDate?.let { it >= requireNotNull(task.dueDate) } != false)
         if (task.id == 0) {
             val id = dao.insert(TaskEntity(name = name, dueDate = task.dueDate?.toEpochDays(), groupId = task.groupId,
-                createdAt = clock.now().toEpochMilliseconds(), completedAt = task.completedAt?.toEpochMilliseconds(), recurring = task.recurrence != null)).toInt()
+                createdAt = clock.now().toEpochMilliseconds(), completedAt = task.completedAt?.toEpochMilliseconds(), recurring = task.recurrence != null,
+                description = task.description)).toInt()
             task.recurrence?.let {
                 require(nextRecurrenceDates(it, requireNotNull(task.dueDate), count = 1).isNotEmpty())
                 dao.insertSchedule(it.entity(id, requireNotNull(task.dueDate)))
@@ -63,15 +64,15 @@ internal class TaskRepository(
             record.occurrence(schedule, occurrence.scheduledDate) ?: return@withWriteTransaction false
         }
         val changedSchedule = original.dueDate != task.dueDate || original.recurrence != task.recurrence
-        if (!changedSchedule) return@withWriteTransaction dao.updateDetails(task.id, name, record.task.dueDate, task.groupId) > 0
+        if (!changedSchedule) return@withWriteTransaction dao.updateDetails(task.id, name, record.task.dueDate, task.groupId, task.description) > 0
         if (occurrence != null && original.recurrence == task.recurrence) {
             val date = task.dueDate ?: return@withWriteTransaction false
             val moved = if (scope == TaskChangeScope.ThisOccurrence) moveOne(record, occurrence, original.dueDate, date)
                 else moveFollowing(record, occurrence, original.dueDate, date)
-            if (moved) dao.updateDetails(task.id, name, dao.getById(task.id)?.dueDate, task.groupId)
+            if (moved) dao.updateDetails(task.id, name, dao.getById(task.id)?.dueDate, task.groupId, task.description)
             return@withWriteTransaction moved
         }
-        if (!record.task.recurring && task.recurrence == null && occurrence == null) return@withWriteTransaction dao.updateDetails(task.id, name, task.dueDate?.toEpochDays(), task.groupId) > 0
+        if (!record.task.recurring && task.recurrence == null && occurrence == null) return@withWriteTransaction dao.updateDetails(task.id, name, task.dueDate?.toEpochDays(), task.groupId, task.description) > 0
         val oldDate = record.task.dueDate
         val lastCompleted = (record.occurrences.filter { it.completedAt != null }.map { maxOf(it.scheduledDate, it.movedDate ?: it.scheduledDate) } +
             listOfNotNull(oldDate.takeIf { record.task.completedAt != null })).maxOrNull()
@@ -92,7 +93,7 @@ internal class TaskRepository(
             val history = dao.insertSchedule(TaskRecurrence(RecurrenceFrequency.Daily, occurrenceCount = 1).entity(task.id, start).copy(closedBefore = oldDate + 1))
             dao.saveOccurrence(TaskOccurrenceEntity(history, oldDate, task.id, completedAt = record.task.completedAt))
         }
-        dao.updateDetails(task.id, name, date?.toEpochDays(), task.groupId)
+        dao.updateDetails(task.id, name, date?.toEpochDays(), task.groupId, task.description)
         dao.setRecurring(task.id, task.recurrence != null)
         dao.setCompletedAt(task.id, null)
         true
@@ -153,7 +154,7 @@ internal class TaskRepository(
         )
         closeFrom(record, boundary)
         dao.insertSchedule(shifted.entity(id, date))
-        dao.updateDetails(id, record.task.name, date.toEpochDays(), record.task.groupId)
+        dao.updateDetails(id, record.task.name, date.toEpochDays(), record.task.groupId, record.task.description)
         dao.setRecurring(id, true)
         dao.setCompletedAt(id, null)
         return true

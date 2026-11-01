@@ -30,6 +30,7 @@ internal fun TaskRecord.task() = Task(
     id = task.id, name = task.name, dueDate = task.dueDate?.let(LocalDate::fromEpochDays), groupId = task.groupId,
     createdAt = Instant.fromEpochMilliseconds(task.createdAt), completedAt = task.completedAt?.let(Instant::fromEpochMilliseconds),
     recurrence = (currentSchedule ?: schedules.maxByOrNull { it.id }?.takeIf { task.recurring })?.rule(),
+    description = task.description,
 )
 
 private fun TaskRecord.exceptionIndex() = occurrences.associateBy { it.scheduleId to it.scheduledDate }

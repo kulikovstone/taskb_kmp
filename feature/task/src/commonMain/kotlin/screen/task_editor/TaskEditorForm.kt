@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.component.TaskBTextField
+import com.mkulikov.taskb.ui.component.TaskBTextArea
 import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.feature.task.component.taskDateLabel
 import com.mkulikov.taskb.feature.group.api.model.Group
@@ -38,6 +39,11 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
         TaskBTextField(state.name, "Task name", placeholder = "Enter task name", enabled = enabled,
             autoFocus = true, onDone = { if (state.canSave) onIntent(TaskEditorIntent.Save) }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(24.dp))
+        Text("Description", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
+        Spacer(Modifier.height(8.dp))
+        TaskBTextArea(state.description, "Task description", placeholder = "Add a description", enabled = enabled,
+            minLines = if (wide) 2 else 4, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(24.dp))
         if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Column(Modifier.weight(1f)) { TaskDateSection(state, today, onIntent) }
             Column(Modifier.weight(1f)) { TaskGroupSection(state, groups, onIntent, onChooseGroup) }
@@ -52,7 +58,7 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
         }
         if (state.original?.recurrence != null) {
             Spacer(Modifier.height(16.dp))
-            Text("Name and group apply to every event. Schedule changes preserve completed history.", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted)
+            Text("Name, description and group apply to every event. Schedule changes preserve completed history.", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted)
         }
     }
 }

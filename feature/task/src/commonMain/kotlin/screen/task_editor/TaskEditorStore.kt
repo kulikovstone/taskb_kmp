@@ -105,7 +105,9 @@ internal class TaskEditorStore(
     }
     private fun save(current: TaskEditorState, scope: TaskChangeScope) {
         reduce(TaskEditorMessage.Saving)
-        val task = (current.original ?: Task(name = "")).copy(name = current.normalizedName, dueDate = current.dueDate, groupId = current.groupId, recurrence = current.editedRecurrence)
+        val task = (current.original ?: Task(name = "")).copy(name = current.normalizedName,
+            description = current.description.text.toString(), dueDate = current.dueDate, groupId = current.groupId,
+            recurrence = current.editedRecurrence)
         launchEffect { recover("Couldn't save this task. Please try again.") {
             if (repository.saveOccurrence(task, scope)) TaskEditorMessage.Finished else TaskEditorMessage.Failed("This task has changed or no longer exists. Reopen it and try again.")
         } }

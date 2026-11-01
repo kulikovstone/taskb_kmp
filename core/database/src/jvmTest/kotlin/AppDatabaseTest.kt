@@ -6,6 +6,7 @@ import androidx.room3.withWriteTransaction
 import androidx.sqlite.SQLiteException
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
+import com.mkulikov.taskb.core.database.migration.Migration4To5
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import kotlinx.coroutines.runBlocking
@@ -44,7 +45,7 @@ class AppDatabaseTest {
 
         AppDatabase.open(file).useDatabase { database ->
             assertEquals("saved", database.settingsDao().getValue("example"))
-            assertEquals(5L, database.queryLong("PRAGMA user_version"))
+            assertEquals(6L, database.queryLong("PRAGMA user_version"))
         }
     }
 
@@ -68,7 +69,7 @@ class AppDatabaseTest {
         AppDatabase.open(file).useDatabase { database ->
             assertEquals(GroupEntity(7, "Work", 123), database.groupDao().getById(7))
             assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(5L, database.queryLong("PRAGMA user_version"))
+            assertEquals(6L, database.queryLong("PRAGMA user_version"))
             assertEquals(0L, database.queryLong("SELECT COUNT(*) FROM tasks"))
             assertEquals(0, database.groupDao().getWithTaskCounts(7)?.planned)
         }
@@ -126,7 +127,7 @@ class AppDatabaseTest {
             assertEquals(0, empty.completed)
             assertEquals(GroupEntity(7, "Work", 123), database.groupDao().getById(7))
             assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(5L, database.queryLong("PRAGMA user_version"))
+            assertEquals(6L, database.queryLong("PRAGMA user_version"))
         }
 
         AppDatabase.open(file).useDatabase { database ->
@@ -171,7 +172,56 @@ class AppDatabaseTest {
             assertTrue(existing.schedules.isEmpty())
             assertTrue(existing.occurrences.isEmpty())
             assertNull(database.taskDao().getById(20)?.dueDate)
-            assertEquals(5L, database.queryLong("PRAGMA user_version"))
+            assertEquals(6L, database.queryLong("PRAGMA user_version"))
+        }
+    }
+
+    @Test
+    fun `version five migration adds empty descriptions without changing tasks schedules or exceptions`() = runBlocking {
+        val file = temporaryDirectory.resolve("version-five.db")
+        BundledSQLiteDriver().open(file.toString()).use { connection ->
+            connection.execSQL("CREATE TABLE application_settings (`key` TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
+            connection.execSQL("CREATE TABLE `groups` (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL COLLATE NOCASE, color INTEGER NOT NULL)")
+            connection.execSQL("CREATE UNIQUE INDEX index_groups_name ON `groups` (name)")
+            connection.execSQL("""
+                CREATE TABLE tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL,
+                    dueDate INTEGER, groupId INTEGER, createdAt INTEGER NOT NULL, completedAt INTEGER,
+                    FOREIGN KEY(groupId) REFERENCES `groups`(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+            """.trimIndent())
+            connection.execSQL("CREATE INDEX index_tasks_groupId ON tasks (groupId)")
+            Migration4To5().migrate(connection)
+            connection.execSQL("INSERT INTO `groups` VALUES (7, 'Health', 123)")
+            connection.execSQL("INSERT INTO tasks VALUES (10, 'Workout', 20760, 7, 1000, NULL, 1), (20, 'One-off', NULL, NULL, 3000, 4000, 0)")
+            connection.execSQL("INSERT INTO task_schedules VALUES (30, 10, 20760, 'Daily', 1, 0, 1, 1, NULL, NULL, NULL)")
+            connection.execSQL("INSERT INTO task_occurrences VALUES (30, 20760, 10, NULL, 2000, 0), (30, 20761, 10, 20762, NULL, 0)")
+            connection.execSQL("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+            connection.execSQL("INSERT INTO room_master_table VALUES (42, '57598c43e645afd970e5aafdaff4c85b')")
+            connection.execSQL("PRAGMA user_version = 5")
+        }
+        AppDatabase.open(file).useDatabase { database ->
+            val recurring = assertNotNull(database.taskDao().getRecord(10))
+            assertEquals("", recurring.task.description)
+            assertEquals("Workout", recurring.task.name)
+            assertEquals(7, recurring.task.groupId)
+            assertEquals(20760L, recurring.task.dueDate)
+            assertEquals(1000L, recurring.task.createdAt)
+            assertTrue(recurring.task.recurring)
+            assertEquals(30L, recurring.schedules.single().id)
+            assertEquals(20760L, recurring.schedules.single().startDate)
+            assertEquals(2, recurring.occurrences.size)
+            assertEquals(2000L, recurring.occurrences.single { it.scheduledDate == 20760L }.completedAt)
+            assertEquals(20762L, recurring.occurrences.single { it.scheduledDate == 20761L }.movedDate)
+            val oneOff = assertNotNull(database.taskDao().getById(20))
+            assertEquals("", oneOff.description)
+            assertEquals(4000L, oneOff.completedAt)
+            assertEquals(6L, database.queryLong("PRAGMA user_version"))
+            database.taskDao().update(recurring.task.copy(description = "First line\nSecond line"))
+        }
+        AppDatabase.open(file).useDatabase { database ->
+            assertEquals("First line\nSecond line", database.taskDao().getById(10)?.description)
+            assertEquals("", database.taskDao().getById(20)?.description)
         }
     }
 
@@ -222,7 +272,7 @@ class AppDatabaseTest {
         driver.open(file.toString()).use { connection ->
             connection.execSQL("CREATE TABLE future_data (value TEXT NOT NULL)")
             connection.execSQL("INSERT INTO future_data VALUES ('preserved')")
-            connection.execSQL("PRAGMA user_version = 6")
+            connection.execSQL("PRAGMA user_version = 7")
         }
 
         AppDatabase.open(file).useDatabase { database ->
@@ -238,7 +288,7 @@ class AppDatabaseTest {
             }
             connection.prepare("PRAGMA user_version").use {
                 assertTrue(it.step())
-                assertEquals(6L, it.getLong(0))
+                assertEquals(7L, it.getLong(0))
             }
         }
     }
@@ -253,7 +303,7 @@ class AppDatabaseTest {
         }
         AppDatabase.open(file).useDatabase { database ->
             assertNull(database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(5L, database.queryLong("PRAGMA user_version"))
+            assertEquals(6L, database.queryLong("PRAGMA user_version"))
             assertEquals(0L, database.queryLong("SELECT COUNT(*) FROM `groups`"))
         }
     }

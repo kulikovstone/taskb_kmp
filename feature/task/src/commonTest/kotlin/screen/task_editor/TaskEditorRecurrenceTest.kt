@@ -70,4 +70,29 @@ class TaskEditorRecurrenceTest {
             assertEquals(1, repo.deletions)
         }
     }
+
+    @Test fun `editing a recurring occurrence description preserves its identity and schedule`() = runTest {
+        val key = TaskOccurrenceId(1, date)
+        val rule = TaskRecurrence.monthly(date)
+        val repo = FakeTaskRepository().apply {
+            values.value = listOf(Task(7, "Rent", dueDate = date, recurrence = rule, occurrenceId = key,
+                description = "Previous payment details"))
+        }
+        TaskEditorStore(repo, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(testScheduler), occurrenceId = key).use { store ->
+            runCurrent()
+            assertEquals("Previous payment details", store.state.value.description.text.toString())
+            val description = "Payment details\nAccount: 123\n"
+            store.state.value.description.setTextAndPlaceCursorAtEnd(description)
+            assertTrue(store.state.value.canSave)
+            store.accept(TaskEditorIntent.Save)
+            runCurrent()
+            val saved = assertNotNull(repo.lastWrite)
+            assertEquals(7, saved.id)
+            assertEquals(key, saved.occurrenceId)
+            assertEquals(rule, saved.recurrence)
+            assertEquals(date, saved.dueDate)
+            assertEquals(description, saved.description)
+            assertTrue(store.state.value.isFinished)
+        }
+    }
 }

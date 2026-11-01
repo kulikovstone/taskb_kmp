@@ -30,6 +30,8 @@ class TaskEditorStoreTest {
             runCurrent()
             assertEquals(0, repo.writes)
             store.state.value.name.setTextAndPlaceCursorAtEnd(" Task ")
+            val description = "  First line\n\nSecond line with trailing spaces  \n"
+            store.state.value.description.setTextAndPlaceCursorAtEnd(description)
             store.accept(TaskEditorIntent.DateChanged(LocalDate(2026, 1, 31)))
             store.accept(TaskEditorIntent.ShiftDate(months = 1))
             store.accept(TaskEditorIntent.GroupChanged(7))
@@ -41,6 +43,7 @@ class TaskEditorStoreTest {
             runCurrent()
             val task = assertNotNull(repo.lastWrite)
             assertEquals("Task", task.name)
+            assertEquals(description, task.description)
             assertEquals(LocalDate(2026, 2, 28), task.dueDate)
             assertEquals(7, task.groupId)
             assertNull(task.completedAt)
@@ -54,11 +57,13 @@ class TaskEditorStoreTest {
             runCurrent()
             assertFalse(store.state.value.canSave)
             store.state.value.name.setTextAndPlaceCursorAtEnd("Draft")
+            store.state.value.description.setTextAndPlaceCursorAtEnd("Draft description\nKeep this text.")
             repo.fail = true
             store.accept(TaskEditorIntent.Save)
             runCurrent()
             assertIs<TaskEditorDialog.Error>(store.state.value.dialog)
             assertEquals("Draft", store.state.value.name.text.toString())
+            assertEquals("Draft description\nKeep this text.", store.state.value.description.text.toString())
             store.accept(TaskEditorIntent.DismissDialog)
             store.accept(TaskEditorIntent.ConfirmDelete)
             runCurrent()
@@ -68,6 +73,49 @@ class TaskEditorStoreTest {
             runCurrent()
             assertEquals(1, repo.deletions)
             assertTrue(store.state.value.isFinished)
+        }
+    }
+    @Test
+    fun `editing only description enables save and preserves multiline content through other edits`() = runTest {
+        val originalDescription = "Original description\n\n  Preserve whitespace  \n"
+        val repo = FakeTaskRepository().apply {
+            values.value = listOf(Task(7, "Original", description = originalDescription))
+        }
+        TaskEditorStore(repo, groups(), 7, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
+            runCurrent()
+            assertEquals(originalDescription, store.state.value.description.text.toString())
+            assertFalse(store.state.value.canSave)
+
+            val editedDescription = "  Updated description\n\nKeep a trailing newline.\n"
+            val input = store.state.value.description
+            input.setTextAndPlaceCursorAtEnd(editedDescription)
+            assertTrue(store.state.value.canSave)
+            store.accept(TaskEditorIntent.DateChanged(LocalDate(2026, 11, 1)))
+            store.accept(TaskEditorIntent.GroupChanged(7))
+            runCurrent()
+            assertSame(input, store.state.value.description)
+            assertEquals(editedDescription, store.state.value.description.text.toString())
+
+            store.accept(TaskEditorIntent.Save)
+            runCurrent()
+            assertEquals(editedDescription, repo.values.value.single().description)
+            assertTrue(store.state.value.isFinished)
+        }
+    }
+    @Test
+    fun `existing description can be cleared without changing the task name`() = runTest {
+        val repo = FakeTaskRepository().apply {
+            values.value = listOf(Task(7, "Original", description = "Old description"))
+        }
+        TaskEditorStore(repo, groups(), 7, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
+            runCurrent()
+            store.state.value.description.setTextAndPlaceCursorAtEnd("")
+            assertTrue(store.state.value.canSave)
+            store.accept(TaskEditorIntent.Save)
+            runCurrent()
+            val saved = assertNotNull(repo.lastWrite)
+            assertEquals("Original", saved.name)
+            assertEquals("", saved.description)
         }
     }
     @Test

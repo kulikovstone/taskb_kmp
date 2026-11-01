@@ -25,7 +25,8 @@ internal sealed interface TaskEditorMessage {
 }
 internal fun reduceTaskEditor(state: TaskEditorState, message: TaskEditorMessage): TaskEditorState = when (message) {
     is TaskEditorMessage.Loaded -> if (message.task == null) state.copy(isLoading = false, loadError = "This task no longer exists.")
-        else state.copy(isLoading = false, original = message.task, name = TextFieldState(message.task.name), dueDate = message.task.dueDate,
+        else state.copy(isLoading = false, original = message.task, name = TextFieldState(message.task.name),
+            description = TextFieldState(message.task.description), dueDate = message.task.dueDate,
             recurrence = message.task.recurrence, repeatInterval = (message.task.recurrence?.interval ?: 1).toString(),
             repeatDay = (message.task.recurrence?.dayOfMonth ?: message.task.dueDate?.day ?: 1).toString(), repeatCount = (message.task.recurrence?.occurrenceCount ?: 10).toString(),
             groupId = message.task.groupId?.takeIf { id -> state.isLoadingGroups || state.groupsLoadError != null || state.groups.any { it.id == id } })

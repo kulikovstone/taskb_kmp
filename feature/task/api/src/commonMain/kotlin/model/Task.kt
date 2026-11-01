@@ -13,6 +13,7 @@ data class Task(
     val completedAt: Instant? = null,
     val recurrence: TaskRecurrence? = null,
     val occurrenceId: TaskOccurrenceId? = null,
+    val description: String = "",
 ) {
     val isCompleted: Boolean get() = completedAt != null
     val key: String get() = occurrenceId?.let { "$id:${it.scheduleId}:${it.scheduledDate}" } ?: id.toString()

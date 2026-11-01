@@ -13,6 +13,7 @@ internal data class TaskEditorState(
     val original: Task? = null,
     // Keep text, selection and IME composition synchronous, outside the Store's intent queue.
     val name: TextFieldState = TextFieldState(),
+    val description: TextFieldState = TextFieldState(),
     val dueDate: LocalDate? = null,
     val recurrence: TaskRecurrence? = null,
     val repeatInterval: String = "1",
@@ -49,7 +50,7 @@ internal data class TaskEditorState(
     val upcomingDates: List<LocalDate> get() = editedRecurrence?.let { rule -> dueDate?.let { nextRecurrenceDates(rule, it) } }.orEmpty()
     val canSave get() = !isBusy && !isFinished && loadError == null && groupsLoadError == null && dialog == null && normalizedName.isNotEmpty() &&
         recurrenceError == null && (recurrence == null || upcomingDates.isNotEmpty()) &&
-        (isNew || original?.let { it.name != normalizedName || it.dueDate != dueDate || it.groupId != groupId || it.recurrence != editedRecurrence } == true)
+        (isNew || original?.let { it.name != normalizedName || it.description != description.text.toString() || it.dueDate != dueDate || it.groupId != groupId || it.recurrence != editedRecurrence } == true)
 }
 internal sealed interface TaskEditorDialog {
     data object ConfirmDelete : TaskEditorDialog

@@ -39,6 +39,34 @@ class TaskRecurrenceRepositoryTest {
         assertEquals(1, db.taskDao().getRecord(original.first().id)?.schedules?.size)
     }
 
+    @Test fun `description is shared by every occurrence and survives moves and schedule revisions`() = withRepository { repo, db ->
+        val description = "Warm up for 10 minutes.\n\nBring a towel."
+        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly, description = description))
+        val initial = repo.events()
+        assertTrue(initial.all { it.description == description })
+        val first = event(initial, 3)
+        repo.setOccurrenceCompleted(first.id, id(first), true)
+        val selected = event(initial, 5)
+        assertTrue(repo.saveOccurrence(selected.copy(description = "New plan\nThree sets"), TaskChangeScope.ThisOccurrence))
+        assertTrue(repo.events().all { it.description == "New plan\nThree sets" })
+        assertEquals(1, db.taskDao().getRecord(first.id)?.schedules?.size)
+
+        assertTrue(repo.moveOccurrence(selected.id, id(selected), date(5), date(6), TaskChangeScope.ThisAndFollowing))
+        assertTrue(repo.events().all { it.description == "New plan\nThree sets" })
+        val moved = event(repo.events(), 6)
+        val updatedDescription = "  Revised programme\nRest for 60 seconds.\n"
+        assertTrue(repo.save(moved.copy(recurrence = TaskRecurrence(RecurrenceFrequency.Daily), description = updatedDescription)))
+        assertTrue(repo.events().all { it.description == updatedDescription })
+        assertEquals(updatedDescription, repo.getById(first.id)?.description)
+        assertEquals(updatedDescription, repo.getOccurrence(first.id, id(first))?.description)
+        assertTrue(repo.observeTaskList(date(4)).first().all { it.description == updatedDescription })
+        assertTrue(event(repo.events(), 3).isCompleted)
+
+        assertTrue(repo.save(event(repo.events(), 6).copy(dueDate = date(7), description = "")))
+        assertTrue(repo.events().all { it.description.isEmpty() })
+        assertEquals("", db.taskDao().getById(first.id)?.description)
+    }
+
     @Test fun `single moves keep stable identity completion and all other dates and support stale-safe undo`() = withRepository { repo, _ ->
         repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly))
         val initial = repo.events()
