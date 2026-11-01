@@ -312,6 +312,49 @@ class CalendarScreenUiTest {
     }
 
     @Test
+    fun `drag preview matches horizontal padding to checkbox gap and preserves title layout`() {
+        for (size in listOf(Size(1440f, 900f), Size(1280f, 720f))) {
+            runSkikoComposeUiTest(size = size) {
+                val tasks = listOf(
+                    Task(1000, "Read", dueDate = LocalDate(2026, 10, 5)),
+                    Task(1001, "Configure autoreply", dueDate = LocalDate(2026, 10, 6)),
+                    Task(1002, "Prepare a detailed release plan and review all remaining development tasks", dueDate = LocalDate(2026, 10, 7)),
+                    Task(1003, "Unscheduled task", groupId = 1),
+                )
+                val state = calendarPreviewState().copy(tasks = tasks)
+                setContent { TaskBTheme(false) { CalendarScreen(state, {}, {}, {}, {}, {}) } }
+                val target = onNodeWithTag("calendar-day-2026-10-08", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
+                for (task in tasks) {
+                    val source = onNodeWithTag("calendar-task-${task.id}", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+                    val sourceTitle = onNodeWithText(task.name, useUnmergedTree = true).textLayout()
+                    onRoot().performMouseInput {
+                        moveTo(source.center)
+                        press()
+                        moveTo(source.center + Offset(28f, 0f))
+                        moveTo(target)
+                    }
+                    val preview = onNodeWithTag("calendar-drag-preview", useUnmergedTree = true)
+                    val previewBounds = preview.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                    assertEquals(source.height + 4f, previewBounds.height, 0.5f, "Task ${task.id} at $size: height")
+                    val previewTitleNode = onNode(hasText(task.name) and hasAnyAncestor(hasTestTag("calendar-drag-preview")), useUnmergedTree = true)
+                    val titleBounds = previewTitleNode.fetchSemanticsNode().boundsInRoot
+                    val checkboxBounds = onNode(hasContentDescription("Complete ${task.name}") and hasAnyAncestor(hasTestTag("calendar-drag-preview")), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+                    val gap = titleBounds.left - checkboxBounds.right
+                    assertEquals(gap, checkboxBounds.left - previewBounds.left, 0.5f, "Task ${task.id} at $size: left padding")
+                    assertEquals(gap, previewBounds.right - titleBounds.right, 0.5f, "Task ${task.id} at $size: right padding")
+                    val previewTitle = previewTitleNode.textLayout()
+                    assertEquals(sourceTitle.size, previewTitle.size, "Task ${task.id} at $size: title size")
+                    assertEquals(sourceTitle.lineCount, previewTitle.lineCount, "Task ${task.id} at $size: title wrapping")
+                    assertEquals(sourceTitle.multiParagraph.didExceedMaxLines, previewTitle.multiParagraph.didExceedMaxLines)
+                    if (task.id == 1000 || task.id == 1001) screenshot("calendar-drag-size-${task.id}-${size.width.toInt()}")
+                    onRoot().performMouseInput { release() }
+                    preview.assertDoesNotExist()
+                }
+            }
+        }
+    }
+
+    @Test
     fun `mouse hover highlights the whole task without highlighting its day and checkbox stays independent`() = runSkikoComposeUiTest(size = Size(1440f, 1000f)) {
         val intents = mutableListOf<CalendarIntent>()
         val openedTasks = mutableListOf<Int>()

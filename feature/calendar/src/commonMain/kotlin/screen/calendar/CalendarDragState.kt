@@ -20,6 +20,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntSize
 import com.mkulikov.taskb.feature.task.api.model.Task
 import kotlinx.datetime.LocalDate
 
@@ -29,10 +30,16 @@ internal class CalendarDragState {
         private set
     var position by mutableStateOf(Offset.Zero)
         private set
+    var size by mutableStateOf(IntSize.Zero)
+        private set
     val targets = mutableStateMapOf<LocalDate, Rect>()
     val hoveredDay: LocalDate? get() = if (task == null) null else targets.entries.firstOrNull { it.value.contains(position) }?.key
 
-    fun begin(task: Task, position: Offset) { this.task = task; this.position = position }
+    fun begin(task: Task, position: Offset, size: IntSize) {
+        this.task = task
+        this.position = position
+        this.size = size
+    }
     fun update(position: Offset) { this.position = position }
     fun cancel() { task = null }
     fun finish(onMove: (Int, LocalDate) -> Unit) {
@@ -66,7 +73,7 @@ internal fun Modifier.calendarTaskDrag(
                 } ?: return@awaitEachGesture
                 start.consume()
                 val origin = coordinates?.takeIf { it.isAttached } ?: return@awaitEachGesture
-                dragState.begin(latestTask, origin.localToRoot(start.position))
+                dragState.begin(latestTask, origin.localToRoot(start.position), origin.size)
                 val ended = drag(start.id) { change ->
                     change.consume()
                     coordinates?.takeIf { it.isAttached }?.let { dragState.update(it.localToRoot(change.position)) }

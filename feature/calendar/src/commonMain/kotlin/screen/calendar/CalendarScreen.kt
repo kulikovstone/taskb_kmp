@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.IntOffset
@@ -88,12 +89,26 @@ internal fun CalendarScreen(
                     }
                 }
                 drag.task?.let { task ->
+                    val density = LocalDensity.current
+                    val dense = task.dueDate != null
+                    val horizontalPadding = if (dense) calendarTaskTitleGap - calendarTaskPadding else 8.dp
+                    val verticalPadding = 2.dp
                     Surface(
-                        modifier = Modifier.offset { IntOffset((drag.position.x - origin.x + 12.dp.toPx()).roundToInt(), (drag.position.y - origin.y + 12.dp.toPx()).roundToInt()) }.width(220.dp),
+                        modifier = Modifier
+                            .offset { IntOffset((drag.position.x - origin.x + 12.dp.toPx()).roundToInt(), (drag.position.y - origin.y + 12.dp.toPx()).roundToInt()) }
+                            .requiredSize(
+                                with(density) { drag.size.width.toDp() } + horizontalPadding * 2,
+                                with(density) { drag.size.height.toDp() } + verticalPadding * 2,
+                            )
+                            .testTag("calendar-drag-preview"),
                         shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, TaskBTheme.colors.accent),
                         color = TaskBTheme.colors.surface, elevation = 4.dp,
                     ) {
-                        CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, {}, {}, Modifier.padding(2.dp).heightIn(min = 32.dp), dense = true, enabled = false)
+                        CalendarTaskRow(
+                            task, state.groups.find { it.id == task.groupId }, {}, {},
+                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
+                            dense = dense, enabled = false,
+                        )
                     }
                 }
             }
