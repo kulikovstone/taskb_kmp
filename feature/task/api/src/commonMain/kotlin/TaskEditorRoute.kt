@@ -2,6 +2,7 @@ package com.mkulikov.taskb.feature.task.api
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.datetime.LocalDate
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 
 /** Opens a task editor independently of the tasks list. Defaults apply only to a new task. */
 sealed interface TaskEditorRoute : NavKey {
@@ -10,5 +11,5 @@ sealed interface TaskEditorRoute : NavKey {
         val initialGroupId: Int? = null,
     ) : TaskEditorRoute
 
-    data class Edit(val taskId: Int) : TaskEditorRoute
+    data class Edit(val taskId: Int, val occurrenceId: TaskOccurrenceId? = null) : TaskEditorRoute
 }

@@ -21,6 +21,7 @@ import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -32,10 +33,11 @@ import org.koin.compose.koinInject
 internal fun TaskEditorScreen(
     taskId: Int? = null, initialDate: LocalDate? = null, initialGroupId: Int? = null,
     onBack: () -> Unit, groupResults: Flow<GroupSelectionResult>, onChooseGroup: (Int?) -> Unit,
+    occurrenceId: TaskOccurrenceId? = null,
 ) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
-    val store = rememberNavEntryResource("task-editor") { TaskEditorStore(repository, groups, taskId, initialDate, initialGroupId) }
+    val store = rememberNavEntryResource("task-editor") { TaskEditorStore(repository, groups, taskId, initialDate, initialGroupId, occurrenceId = occurrenceId) }
     val state by store.state.collectAsState()
     LaunchedEffect(store, state.isFinished) { if (state.isFinished) onBack() }
     LaunchedEffect(store, groupResults) {

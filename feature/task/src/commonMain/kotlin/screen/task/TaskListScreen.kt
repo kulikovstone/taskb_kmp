@@ -18,11 +18,13 @@ import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import com.mkulikov.taskb.feature.task.api.model.Task
 
 @Composable
 internal fun TaskListScreen(
     state: TaskState, onIntent: (TaskIntent) -> Unit,
     wide: Boolean, onBack: () -> Unit, onChooseGroup: () -> Unit, onNewTask: () -> Unit, onOpenTask: (Int) -> Unit,
+    onOpenOccurrence: ((Task) -> Unit)? = null,
 ) {
     val actions: @Composable RowScope.() -> Unit = {
         IconButton(onChooseGroup) {
@@ -56,7 +58,7 @@ internal fun TaskListScreen(
                 }
             }
             Spacer(Modifier.height(if (wide) 24.dp else 16.dp))
-            TaskDirectory(state, onIntent, wide, onOpenTask, Modifier.weight(1f).fillMaxWidth())
+            TaskDirectory(state, onIntent, wide, onOpenTask, Modifier.weight(1f).fillMaxWidth(), onOpenOccurrence)
         }
     }
 }

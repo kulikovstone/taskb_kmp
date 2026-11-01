@@ -26,6 +26,7 @@ internal class CalendarNavEntry : INavEntry {
                 onIntent = store::accept,
                 onBack = navigator::back,
                 onOpenTask = { navigator.navigate(TaskEditorRoute.Edit(it)) },
+                onOpenOccurrence = { navigator.navigate(TaskEditorRoute.Edit(it.id, it.occurrenceId)) },
                 onCreateTask = { date -> navigator.navigate(TaskEditorRoute.Create(initialDate = date)) },
                 onOpenDay = { navigator.navigate(CalendarDayRoute(it)) },
             )

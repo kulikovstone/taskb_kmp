@@ -25,6 +25,10 @@ import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.ui.dialog.TaskBChoiceDialog
+import com.mkulikov.taskb.ui.dialog.TaskBDialogChoice
 import kotlinx.datetime.LocalDate
 import kotlin.math.roundToInt
 
@@ -36,9 +40,11 @@ internal fun CalendarScreen(
     onOpenTask: (Int) -> Unit,
     onCreateTask: (LocalDate?) -> Unit,
     onOpenDay: (LocalDate) -> Unit,
+    onOpenOccurrence: ((Task) -> Unit)? = null,
 ) {
     val drag = remember { CalendarDragState() }
     var origin by remember { mutableStateOf(Offset.Zero) }
+    val openTask: (Task) -> Unit = { onOpenOccurrence?.invoke(it) ?: onOpenTask(it.id) }
     Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
         BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
             if (maxWidth < 840.dp) {
@@ -55,8 +61,8 @@ internal fun CalendarScreen(
                         state.isLoading -> TaskBLoading(Modifier.weight(1f))
                         state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })
                         else -> Row(Modifier.weight(1f).fillMaxWidth()) {
-                            CalendarUndatedTasks(state, drag, onIntent, onOpenTask)
-                            CalendarMonthGrid(state, drag, onIntent, onOpenTask, { onCreateTask(it) }, onOpenDay, Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp, bottom = 24.dp))
+                            CalendarUndatedTasks(state, drag, onIntent, openTask)
+                            CalendarMonthGrid(state, drag, onIntent, openTask, { onCreateTask(it) }, onOpenDay, Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp, bottom = 24.dp))
                         }
                     }
                 }
@@ -93,10 +99,16 @@ internal fun CalendarScreen(
             }
         }
     }
+    state.moveChoice?.let { move ->
+        TaskBChoiceDialog("Move repeating task", "Move only this event, or start the remaining schedule on ${move.date}? Completed events keep their dates.", listOf(
+            TaskBDialogChoice("Only this event", { onIntent(CalendarIntent.ConfirmMove(TaskChangeScope.ThisOccurrence)) }),
+            TaskBDialogChoice("This and following events", { onIntent(CalendarIntent.ConfirmMove(TaskChangeScope.ThisAndFollowing)) }),
+        ), { onIntent(CalendarIntent.DismissMoveChoice) })
+    }
 }
 
 @Composable
-private fun CalendarUndatedTasks(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit) {
+private fun CalendarUndatedTasks(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit) {
     val tasks = state.undatedTasks
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
     Column(Modifier.width(320.dp).fillMaxHeight().testTag("calendar-sidebar").padding(24.dp)) {
@@ -108,11 +120,11 @@ private fun CalendarUndatedTasks(state: CalendarState, drag: CalendarDragState, 
         val scroll = rememberLazyListState()
         Box(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().testTag("calendar-undated")) {
-                items(tasks, key = { it.id }) { task ->
+                items(tasks, key = { it.key }) { task ->
                     val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
-                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, onOpenTask, { onIntent(CalendarIntent.ToggleCompleted(it)) },
-                        Modifier.testTag("calendar-task-${task.id}").calendarTaskDrag(task, drag, enabled) { id, date -> onIntent(CalendarIntent.MoveTask(id, date)) },
-                        enabled = enabled, dragging = drag.task?.id == task.id)
+                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
+                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, date -> onIntent(CalendarIntent.MoveTask(id, date, task.occurrenceId)) },
+                        enabled = enabled, dragging = drag.task?.key == task.key)
                 }
             }
             TaskBVerticalScrollbar(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())

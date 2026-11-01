@@ -11,6 +11,9 @@ data class Task(
     val groupId: Int? = null,
     val createdAt: Instant = Clock.System.now(),
     val completedAt: Instant? = null,
+    val recurrence: TaskRecurrence? = null,
+    val occurrenceId: TaskOccurrenceId? = null,
 ) {
     val isCompleted: Boolean get() = completedAt != null
+    val key: String get() = occurrenceId?.let { "$id:${it.scheduleId}:${it.scheduledDate}" } ?: id.toString()
 }

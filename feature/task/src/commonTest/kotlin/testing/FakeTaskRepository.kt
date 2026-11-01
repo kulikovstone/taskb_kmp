@@ -1,6 +1,8 @@
 package com.mkulikov.taskb.feature.task.testing
 
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
@@ -15,6 +17,7 @@ internal class FakeTaskRepository(private val clock: Clock = Clock.System) : ITa
     var deletions = 0
     var subscriptions = 0
     var lastWrite: Task? = null
+    var lastScope: TaskChangeScope? = null
     var onWrite: suspend () -> Unit = {}
     override val tasks = flow {
         if (fail) error("Read failed")
@@ -32,7 +35,7 @@ internal class FakeTaskRepository(private val clock: Clock = Clock.System) : ITa
         lastWrite = task
         if (task.id != 0 && values.value.none { it.id == task.id }) return false
         values.value = if (task.id == 0) values.value + task.copy(id = (values.value.maxOfOrNull { it.id } ?: 0) + 1)
-            else values.value.map { if (it.id == task.id) it.copy(name = task.name, dueDate = task.dueDate, groupId = task.groupId) else it }
+            else values.value.map { if (it.id == task.id) it.copy(name = task.name, dueDate = task.dueDate, groupId = task.groupId, recurrence = task.recurrence) else it }
         return true
     }
     override suspend fun setCompleted(id: Int, completed: Boolean) {
@@ -41,6 +44,8 @@ internal class FakeTaskRepository(private val clock: Clock = Clock.System) : ITa
         values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) it.completedAt ?: clock.now() else null) else it }
     }
     override suspend fun delete(id: Int) { deletions++; onWrite(); values.value = values.value.filter { it.id != id } }
+    override suspend fun saveOccurrence(task: Task, scope: TaskChangeScope): Boolean { lastScope = scope; return save(task) }
+    override suspend fun deleteOccurrence(id: Int, occurrence: TaskOccurrenceId?, scope: TaskChangeScope): Boolean { lastScope = scope; delete(id); return true }
     override suspend fun reschedule(id: Int, expectedDate: LocalDate?, date: LocalDate?): Boolean {
         onWrite()
         if (fail) error("Write failed")

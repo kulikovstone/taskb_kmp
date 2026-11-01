@@ -3,6 +3,7 @@ package com.mkulikov.taskb.feature.task.screen.task
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
@@ -17,6 +18,16 @@ class TaskStateTest {
     private val today = LocalDate(2026, 10, 31)
     private val now = Instant.parse("2026-10-31T12:00:00Z")
     private val groups = listOf(Group(1, "Zulu", GroupColor.Blue), Group(2, "alpha", GroupColor.Green))
+
+    @Test
+    fun `completed recurring events appear only in completed filter without hiding the next event`() {
+        val first = Task(1, "Series", today, completedAt = now, occurrenceId = TaskOccurrenceId(1, today))
+        val next = first.copy(dueDate = today.plus(1, DateTimeUnit.DAY), completedAt = null,
+            occurrenceId = TaskOccurrenceId(1, today.plus(1, DateTimeUnit.DAY)))
+        val state = TaskState(today = today, now = now, tasks = listOf(first, next))
+        assertEquals(listOf(next), state.visibleTasks)
+        assertEquals(listOf(first), state.copy(filter = TaskFilter.Completed).visibleTasks)
+    }
 
     @Test
     fun `date sorting keeps newest tasks first within each date in both directions`() {

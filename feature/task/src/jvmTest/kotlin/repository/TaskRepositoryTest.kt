@@ -27,7 +27,7 @@ class TaskRepositoryTest {
         val date = LocalDate(2026, 10, 30)
         val newerDate = LocalDate(2026, 11, 1)
         try {
-            val repository = TaskRepository(lazy { database.taskDao() })
+            val repository = TaskRepository(lazy { database })
             val group = database.groupDao().insert(GroupEntity(name = "Work", color = 0)).toInt()
             repository.save(Task(name = "Task", groupId = group))
             val task = repository.tasks.first().single()
@@ -63,7 +63,7 @@ class TaskRepositoryTest {
         val database = AppDatabase.open(file)
         try {
             val group = database.groupDao().insert(GroupEntity(name = "Work", color = 0)).toInt()
-            val repository = TaskRepository(lazy { database.taskDao() }, clock)
+            val repository = TaskRepository(lazy { database }, clock)
             assertTrue(repository.save(Task(name = " Task ", dueDate = date, groupId = group,
                 createdAt = Instant.parse("2000-01-01T00:00:00Z"))))
             val task = repository.tasks.first().single()
@@ -86,7 +86,7 @@ class TaskRepositoryTest {
         } finally { database.close() }
         val reopened = AppDatabase.open(file)
         try {
-            val repository = TaskRepository(lazy { reopened.taskDao() })
+            val repository = TaskRepository(lazy { reopened })
             val task = repository.tasks.first().single()
             assertEquals("Renamed", task.name)
             assertEquals(date, task.dueDate)
@@ -106,7 +106,7 @@ class TaskRepositoryTest {
         var now = Instant.parse("2026-10-30T10:00:00Z")
         val clock = object : Clock { override fun now(): Instant = now }
         try {
-            val repository = TaskRepository(lazy { database.taskDao() }, clock)
+            val repository = TaskRepository(lazy { database }, clock)
             repository.save(Task(name = "Task"))
             val task = repository.tasks.first().single()
             val createdAt = task.createdAt

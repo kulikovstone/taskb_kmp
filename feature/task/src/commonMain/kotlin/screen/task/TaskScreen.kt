@@ -13,6 +13,7 @@ import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
+import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.ui.dialog.TaskBMessageDialog
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -24,6 +25,7 @@ import org.koin.compose.koinInject
 internal fun TaskScreen(
     onBack: () -> Unit, onCreateTask: (LocalDate?, Int?) -> Unit, onEditTask: (Int) -> Unit,
     groupResults: Flow<GroupSelectionResult>, onChooseGroup: (Int?, Boolean) -> Unit,
+    onOpenOccurrence: ((Task) -> Unit)? = null,
 ) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
@@ -47,7 +49,7 @@ internal fun TaskScreen(
                     else -> null
                 }
                 onCreateTask(date, (state.groupFilter as? TaskGroupFilter.Selected)?.id)
-            }, onOpenTask = onEditTask)
+            }, onOpenTask = onEditTask, onOpenOccurrence = onOpenOccurrence)
             if (wide && state.selection != null) TaskSelectionDialog(state, store::accept, maxHeight)
         }
     }

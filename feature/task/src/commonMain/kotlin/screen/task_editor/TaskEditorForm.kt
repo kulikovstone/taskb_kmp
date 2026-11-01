@@ -47,6 +47,14 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
             Spacer(Modifier.height(24.dp))
             TaskGroupSection(state, groups, onIntent, onChooseGroup)
         }
+        if (state.dueDate != null) {
+            Spacer(Modifier.height(24.dp))
+            TaskRecurrenceFields(state, onIntent, enabled, wide)
+        }
+        if (state.original?.recurrence != null) {
+            Spacer(Modifier.height(16.dp))
+            Text("Name and group apply to every event. Schedule changes preserve completed history.", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted)
+        }
     }
 }
 
@@ -90,7 +98,7 @@ private fun TaskGroupSection(state: TaskEditorState, groups: List<Group>, onInte
 }
 
 @Composable
-private fun TaskSelectionField(label: String, icon: ImageVector, tint: Color, placeholder: Boolean, description: String, enabled: Boolean, onClick: () -> Unit, onClear: (() -> Unit)?, clearDescription: String) {
+internal fun TaskSelectionField(label: String, icon: ImageVector, tint: Color, placeholder: Boolean, description: String, enabled: Boolean, onClick: () -> Unit, onClear: (() -> Unit)?, clearDescription: String) {
     Row(Modifier.fillMaxWidth().height(56.dp).border(1.dp, TaskBTheme.colors.border, RoundedCornerShape(8.dp)), verticalAlignment = Alignment.CenterVertically) {
         Row(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { contentDescription = description }.padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -103,7 +111,7 @@ private fun TaskSelectionField(label: String, icon: ImageVector, tint: Color, pl
 }
 
 @Composable
-private fun QuickDate(label: String, isSelected: Boolean, enabled: Boolean, onClick: () -> Unit, modifier: Modifier, add: Boolean = false) {
+internal fun QuickDate(label: String, isSelected: Boolean, enabled: Boolean, onClick: () -> Unit, modifier: Modifier, add: Boolean = false) {
     Row(modifier.height(44.dp).background(if (isSelected) TaskBTheme.colors.selected else TaskBTheme.colors.surface, RoundedCornerShape(8.dp))
         .border(1.dp, if (isSelected) TaskBTheme.colors.accent else TaskBTheme.colors.border, RoundedCornerShape(8.dp))
         .clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { selected = isSelected; if (add) contentDescription = "Add one $label" },

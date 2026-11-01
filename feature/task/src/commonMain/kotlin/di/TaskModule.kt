@@ -9,6 +9,6 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 fun taskModule() = module {
-    single<ITaskRepository> { TaskRepository(lazy { get<AppDatabase>().taskDao() }) }
+    single<ITaskRepository> { TaskRepository(lazy { get<AppDatabase>() }) }
     single<INavEntry>(named<TaskNavEntry>()) { TaskNavEntry() }
 }

@@ -20,6 +20,7 @@ internal class TaskNavEntry : INavEntry {
                 onBack = navigator::back,
                 onCreateTask = { date, groupId -> navigator.navigate(TaskEditorRoute.Create(date, groupId)) },
                 onEditTask = { navigator.navigate(TaskEditorRoute.Edit(it)) },
+                onOpenOccurrence = { navigator.navigate(TaskEditorRoute.Edit(it.id, it.occurrenceId)) },
                 groupResults = groups.results,
                 onChooseGroup = { selected, noGroup ->
                     navigator.navigate(GroupSelectionRoute(groups.key, selected, showNoGroup = true, noGroupSelected = noGroup))
@@ -34,7 +35,7 @@ internal class TaskNavEntry : INavEntry {
         }
         scope.entry<TaskEditorRoute.Edit> { route ->
             val groups = rememberNavEntryResource("group-result") { navigator.createResultReceiver<GroupSelectionResult>() }
-            TaskEditorScreen(taskId = route.taskId, onBack = navigator::back,
+            TaskEditorScreen(taskId = route.taskId, occurrenceId = route.occurrenceId, onBack = navigator::back,
                 groupResults = groups.results,
                 onChooseGroup = { navigator.navigate(GroupSelectionRoute(groups.key, it, showNoGroup = false)) })
         }

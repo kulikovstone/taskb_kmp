@@ -37,7 +37,7 @@ import kotlinx.datetime.yearMonth
 import kotlin.math.ceil
 
 @Composable
-internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit, onCreateTask: (LocalDate) -> Unit, onOpenDay: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
+internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onCreateTask: (LocalDate) -> Unit, onOpenDay: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
     val colors = TaskBTheme.colors
     val tasks = state.tasksByDate
     val weeks = state.days.chunked(7)
@@ -65,7 +65,7 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
 }
 
 @Composable
-private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit, onCreateTask: (LocalDate) -> Unit, onOpenDay: (LocalDate) -> Unit, endBorder: Boolean, bottomBorder: Boolean, modifier: Modifier) {
+private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onCreateTask: (LocalDate) -> Unit, onOpenDay: (LocalDate) -> Unit, endBorder: Boolean, bottomBorder: Boolean, modifier: Modifier) {
     val colors = TaskBTheme.colors
     val outsideMonth = date.yearMonth != state.month
     val isToday = date == state.today
@@ -97,7 +97,7 @@ private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarS
 
 /** Учитываем высоту перенесённых названий и ссылки на остальные задачи, чтобы не обрезать строки. */
 @Composable
-private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Int) -> Unit, onOpenDay: () -> Unit, modifier: Modifier) {
+private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onOpenDay: () -> Unit, modifier: Modifier) {
     val colors = TaskBTheme.colors
     val titleStyle = calendarTaskTitleStyle(dense = true)
     val moreStyle = TaskBTheme.typography.body.copy(
@@ -118,11 +118,11 @@ private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: Cale
                         .toInt().coerceIn(0, titleMaxWidth)
                 }
                 val taskWidth = (taskInsets + titleWidth).coerceAtMost(constraints.maxWidth)
-                val row = subcompose(task.id) {
+                val row = subcompose(task.key) {
                     val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
-                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, onOpenTask, { onIntent(CalendarIntent.ToggleCompleted(it)) },
-                        Modifier.testTag("calendar-task-${task.id}").calendarTaskDrag(task, drag, enabled) { id, target -> onIntent(CalendarIntent.MoveTask(id, target)) },
-                        dense = true, enabled = enabled, dragging = drag.task?.id == task.id)
+                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
+                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, target -> onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId)) },
+                        dense = true, enabled = enabled, dragging = drag.task?.key == task.key)
                 }.single().measure(Constraints.fixedWidth(taskWidth))
                 add(row)
                 measuredHeight += row.height

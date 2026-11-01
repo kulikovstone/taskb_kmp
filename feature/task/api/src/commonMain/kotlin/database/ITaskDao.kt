@@ -4,10 +4,35 @@ import androidx.room3.Dao
 import androidx.room3.Insert
 import androidx.room3.Query
 import androidx.room3.Update
+import androidx.room3.OnConflictStrategy
+import androidx.room3.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ITaskDao {
+    @Transaction
+    @Query("SELECT * FROM tasks ORDER BY id")
+    fun observeRecords(): Flow<List<TaskRecord>>
+
+    @Transaction
+    @Query("SELECT * FROM tasks WHERE id = :id LIMIT 1")
+    suspend fun getRecord(id: Int): TaskRecord?
+
+    @Insert
+    suspend fun insertSchedule(schedule: TaskScheduleEntity): Long
+
+    @Query("UPDATE task_schedules SET closedBefore = :before WHERE id = :id")
+    suspend fun closeSchedule(id: Long, before: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveOccurrence(occurrence: TaskOccurrenceEntity)
+
+    @Query("DELETE FROM task_occurrences WHERE scheduleId = :scheduleId AND scheduledDate >= :fromDate")
+    suspend fun deleteOccurrencesFrom(scheduleId: Long, fromDate: Long)
+
+    @Query("UPDATE tasks SET recurring = :recurring WHERE id = :id")
+    suspend fun setRecurring(id: Int, recurring: Boolean)
+
     @Query("SELECT * FROM tasks ORDER BY id")
     fun observeTasks(): Flow<List<TaskEntity>>
 

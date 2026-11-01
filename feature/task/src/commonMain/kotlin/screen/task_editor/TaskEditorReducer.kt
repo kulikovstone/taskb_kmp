@@ -4,10 +4,13 @@ import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.group.api.model.Group
 import kotlinx.datetime.LocalDate
+import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 
 internal sealed interface TaskEditorMessage {
     data class Loaded(val task: Task?) : TaskEditorMessage
     data class Date(val value: LocalDate?) : TaskEditorMessage
+    data class Recurrence(val value: TaskRecurrence?) : TaskEditorMessage
+    data class RepeatInput(val interval: String? = null, val day: String? = null, val count: String? = null) : TaskEditorMessage
     data class GroupSelected(val value: Int?) : TaskEditorMessage
     data class GroupsLoaded(val groups: List<Group>) : TaskEditorMessage
     data object GroupsLoading : TaskEditorMessage
@@ -23,8 +26,13 @@ internal sealed interface TaskEditorMessage {
 internal fun reduceTaskEditor(state: TaskEditorState, message: TaskEditorMessage): TaskEditorState = when (message) {
     is TaskEditorMessage.Loaded -> if (message.task == null) state.copy(isLoading = false, loadError = "This task no longer exists.")
         else state.copy(isLoading = false, original = message.task, name = TextFieldState(message.task.name), dueDate = message.task.dueDate,
+            recurrence = message.task.recurrence, repeatInterval = (message.task.recurrence?.interval ?: 1).toString(),
+            repeatDay = (message.task.recurrence?.dayOfMonth ?: message.task.dueDate?.day ?: 1).toString(), repeatCount = (message.task.recurrence?.occurrenceCount ?: 10).toString(),
             groupId = message.task.groupId?.takeIf { id -> state.isLoadingGroups || state.groupsLoadError != null || state.groups.any { it.id == id } })
-    is TaskEditorMessage.Date -> state.copy(dueDate = message.value, dialog = null)
+    is TaskEditorMessage.Date -> state.copy(dueDate = message.value, recurrence = state.recurrence.takeIf { message.value != null }, dialog = null)
+    is TaskEditorMessage.Recurrence -> state.copy(recurrence = message.value, repeatInterval = (message.value?.interval ?: 1).toString(),
+        repeatDay = (message.value?.dayOfMonth ?: state.dueDate?.day ?: 1).toString(), repeatCount = (message.value?.occurrenceCount ?: 10).toString(), dialog = null)
+    is TaskEditorMessage.RepeatInput -> state.copy(repeatInterval = message.interval ?: state.repeatInterval, repeatDay = message.day ?: state.repeatDay, repeatCount = message.count ?: state.repeatCount)
     is TaskEditorMessage.GroupSelected -> state.copy(groupId = message.value)
     is TaskEditorMessage.GroupsLoaded -> state.copy(groups = message.groups, isLoadingGroups = false, groupsLoadError = null,
         groupId = state.groupId?.takeIf { id -> message.groups.any { it.id == id } })

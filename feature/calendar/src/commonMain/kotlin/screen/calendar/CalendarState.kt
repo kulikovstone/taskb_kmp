@@ -2,6 +2,8 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -24,6 +26,7 @@ internal data class CalendarState(
     val pendingMove: Int? = null,
     val pendingCompletion: Set<Int> = emptySet(),
     val undo: CalendarMove? = null,
+    val moveChoice: CalendarMove? = null,
     val now: Instant = Clock.System.now(),
 ) {
     val undatedTasks: List<Task> get() = tasks.filter {
@@ -51,4 +54,6 @@ internal data class CalendarMove(
     val taskId: Int,
     val previousDate: LocalDate?,
     val date: LocalDate,
+    val occurrenceId: TaskOccurrenceId? = null,
+    val scope: TaskChangeScope = TaskChangeScope.ThisOccurrence,
 )

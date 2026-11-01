@@ -2,6 +2,8 @@ package com.mkulikov.taskb.feature.task.screen.task_editor
 
 import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.core.utils.time.currentDate
@@ -25,6 +27,7 @@ internal class TaskEditorStore(
     initialGroup: Int? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     today: () -> LocalDate = ::currentDate,
+    private val occurrenceId: TaskOccurrenceId? = null,
 ) : CoroutineStore<TaskEditorIntent, TaskEditorState, TaskEditorMessage>(
     TaskEditorState(isNew = taskId == null, isLoading = taskId != null, dueDate = initialDate, groupId = initialGroup, today = today()), ::reduceTaskEditor, dispatcher,
 ) {
@@ -56,12 +59,22 @@ internal class TaskEditorStore(
                 loadRequested = true
                 reduce(TaskEditorMessage.Loading)
                 launchEffect {
-                    try { TaskEditorMessage.Loaded(repository.getById(taskId)) }
+                    try { TaskEditorMessage.Loaded(if (occurrenceId == null) repository.getById(taskId) else repository.getOccurrence(taskId, occurrenceId)) }
                     catch (exception: CancellationException) { throw exception }
                     catch (_: Exception) { TaskEditorMessage.LoadFailed }
                 }
             }
             TaskEditorIntent.DismissDialog -> reduce(TaskEditorMessage.Dialog(null))
+            is TaskEditorIntent.SaveOccurrence -> if (current.dialog == TaskEditorDialog.MoveOccurrence && current.copy(dialog = null).canSave) save(current, intent.scope)
+            is TaskEditorIntent.DeleteOccurrence -> if (current.dialog == TaskEditorDialog.DeleteOccurrence && taskId != null) {
+                reduce(TaskEditorMessage.Saving)
+                launchEffect { recover("Couldn't delete this event. Please try again.") {
+                    if (repository.deleteOccurrence(taskId, occurrenceId, intent.scope)) TaskEditorMessage.Finished else TaskEditorMessage.Failed("This event no longer exists.")
+                } }
+            }
+            is TaskEditorIntent.RepeatEndDateChanged -> if (current.dialog == TaskEditorDialog.RepeatEndDatePicker) current.editedRecurrence?.let {
+                reduce(TaskEditorMessage.Recurrence(it.copy(endDate = intent.date, occurrenceCount = null)))
+            }
             TaskEditorIntent.ConfirmDelete -> if (current.dialog == TaskEditorDialog.ConfirmDelete && taskId != null) {
                 reduce(TaskEditorMessage.Saving)
                 launchEffect { recover("Couldn't delete this task. Please try again.") { repository.delete(taskId); TaskEditorMessage.Finished } }
@@ -71,21 +84,31 @@ internal class TaskEditorStore(
                 if (current.isBusy || current.loadError != null || current.groupsLoadError != null || current.dialog != null) return
                 when (intent) {
                     is TaskEditorIntent.GroupChanged -> if (intent.id == null || current.groups.any { it.id == intent.id }) reduce(TaskEditorMessage.GroupSelected(intent.id))
+                    is TaskEditorIntent.RecurrenceChanged -> if (current.dueDate != null || intent.recurrence == null) reduce(TaskEditorMessage.Recurrence(intent.recurrence))
+                    is TaskEditorIntent.RepeatIntervalChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 4) reduce(TaskEditorMessage.RepeatInput(interval = intent.value))
+                    is TaskEditorIntent.RepeatDayChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 2) reduce(TaskEditorMessage.RepeatInput(day = intent.value))
+                    is TaskEditorIntent.RepeatCountChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 7) reduce(TaskEditorMessage.RepeatInput(count = intent.value))
+                    TaskEditorIntent.ChooseRepeatEndDate -> if (current.recurrence != null) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.RepeatEndDatePicker))
                     is TaskEditorIntent.ShiftDate -> current.dueDate?.let {
                         reduce(TaskEditorMessage.Date(it.plus(intent.days, DateTimeUnit.DAY).plus(intent.months, DateTimeUnit.MONTH)))
                     }
                     TaskEditorIntent.ChooseDate -> reduce(TaskEditorMessage.Dialog(TaskEditorDialog.DatePicker))
-                    TaskEditorIntent.PrepareDelete -> if (current.original != null) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.ConfirmDelete))
+                    TaskEditorIntent.PrepareDelete -> if (current.original != null) reduce(TaskEditorMessage.Dialog(if (occurrenceId != null) TaskEditorDialog.DeleteOccurrence else TaskEditorDialog.ConfirmDelete))
                     TaskEditorIntent.Save -> if (current.canSave) {
-                        reduce(TaskEditorMessage.Saving)
-                        val task = (current.original ?: Task(name = "")).copy(name = current.normalizedName, dueDate = current.dueDate, groupId = current.groupId)
-                        launchEffect { recover("Couldn't save this task. Please try again.") {
-                            if (repository.save(task)) TaskEditorMessage.Finished else TaskEditorMessage.Failed("This task no longer exists.")
-                        } }
+                        if (occurrenceId != null && current.original?.dueDate != current.dueDate && current.original?.recurrence == current.editedRecurrence)
+                            reduce(TaskEditorMessage.Dialog(TaskEditorDialog.MoveOccurrence))
+                        else save(current, TaskChangeScope.ThisAndFollowing)
                     }
                 }
             }
         }
+    }
+    private fun save(current: TaskEditorState, scope: TaskChangeScope) {
+        reduce(TaskEditorMessage.Saving)
+        val task = (current.original ?: Task(name = "")).copy(name = current.normalizedName, dueDate = current.dueDate, groupId = current.groupId, recurrence = current.editedRecurrence)
+        launchEffect { recover("Couldn't save this task. Please try again.") {
+            if (repository.saveOccurrence(task, scope)) TaskEditorMessage.Finished else TaskEditorMessage.Failed("This task has changed or no longer exists. Reopen it and try again.")
+        } }
     }
     private suspend fun recover(message: String, block: suspend () -> TaskEditorMessage): TaskEditorMessage = try { block() }
         catch (exception: CancellationException) { throw exception }

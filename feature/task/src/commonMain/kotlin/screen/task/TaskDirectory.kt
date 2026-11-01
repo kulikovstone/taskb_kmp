@@ -30,7 +30,7 @@ import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
-internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wide: Boolean, onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
+internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wide: Boolean, onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier, onOpenOccurrence: ((Task) -> Unit)? = null) {
     val colors = TaskBTheme.colors
     Column(modifier) {
         Text(state.summary, color = colors.muted, style = TaskBTheme.typography.body, modifier = Modifier.fillMaxWidth().height(28.dp).wrapContentHeight(Alignment.CenterVertically))
@@ -53,8 +53,8 @@ internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wid
                 val scroll = rememberLazyListState()
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     LazyColumn(state = scroll, modifier = Modifier.fillMaxSize()) {
-                        items(state.visibleTasks, key = { it.id }) { task ->
-                            TaskRow(task, state.groups.find { it.id == task.groupId }, state, wide, onIntent, onOpenTask)
+                        items(state.visibleTasks, key = { it.key }) { task ->
+                            TaskRow(task, state.groups.find { it.id == task.groupId }, state, wide, onIntent, { onOpenOccurrence?.invoke(task) ?: onOpenTask(it) })
                         }
                     }
                     TaskBVerticalScrollbar(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
@@ -84,7 +84,7 @@ private fun TaskRow(task: Task, group: Group?, state: TaskState, wide: Boolean, 
             .then(if (wide) Modifier.height(63.dp).padding(horizontal = 20.dp) else Modifier.padding(vertical = 16.dp)),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(44.dp).toggleable(task.isCompleted, enabled = task.id !in state.pendingCompletion, role = Role.Checkbox,
-                onValueChange = { onIntent(TaskIntent.ToggleCompleted(task.id)) })
+                onValueChange = { onIntent(TaskIntent.ToggleCompleted(task.id, task.occurrenceId)) })
                 .semantics { contentDescription = if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}" }, contentAlignment = Alignment.Center) {
                 Icon(if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked, null, tint = if (task.isCompleted) colors.accent else colors.muted, modifier = Modifier.size(24.dp))
             }

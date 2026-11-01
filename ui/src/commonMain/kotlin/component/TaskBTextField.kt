@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.icon.TaskBIcons
@@ -42,10 +43,12 @@ fun TaskBTextField(
     search: Boolean = false,
     enabled: Boolean = true,
     autoFocus: Boolean = false,
+    showClear: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Text,
     onDone: () -> Unit = {},
 ) {
     val colors = TaskBTheme.colors
-    TaskBTextFieldContainer(value, { onValueChange("") }, description, modifier, placeholder, search, enabled, autoFocus) { fieldModifier, decoration ->
+    TaskBTextFieldContainer(value, { onValueChange("") }, description, modifier, placeholder, search, enabled, autoFocus, showClear) { fieldModifier, decoration ->
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -53,7 +56,7 @@ fun TaskBTextField(
             singleLine = true,
             textStyle = TaskBTheme.typography.body.copy(color = colors.text),
             cursorBrush = SolidColor(colors.accent),
-            keyboardOptions = KeyboardOptions(imeAction = if (search) ImeAction.Search else ImeAction.Done),
+            keyboardOptions = KeyboardOptions(imeAction = if (search) ImeAction.Search else ImeAction.Done, keyboardType = keyboardType),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             modifier = fieldModifier,
             decorationBox = decoration,
@@ -70,17 +73,19 @@ fun TaskBTextField(
     search: Boolean = false,
     enabled: Boolean = true,
     autoFocus: Boolean = false,
+    showClear: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Text,
     onDone: () -> Unit = {},
 ) {
     val colors = TaskBTheme.colors
-    TaskBTextFieldContainer(state.text.toString(), state::clearText, description, modifier, placeholder, search, enabled, autoFocus) { fieldModifier, decoration ->
+    TaskBTextFieldContainer(state.text.toString(), state::clearText, description, modifier, placeholder, search, enabled, autoFocus, showClear) { fieldModifier, decoration ->
         BasicTextField(
             state = state,
             enabled = enabled,
             lineLimits = TextFieldLineLimits.SingleLine,
             textStyle = TaskBTheme.typography.body.copy(color = colors.text),
             cursorBrush = SolidColor(colors.accent),
-            keyboardOptions = KeyboardOptions(imeAction = if (search) ImeAction.Search else ImeAction.Done),
+            keyboardOptions = KeyboardOptions(imeAction = if (search) ImeAction.Search else ImeAction.Done, keyboardType = keyboardType),
             onKeyboardAction = { onDone() },
             modifier = fieldModifier,
             decorator = TextFieldDecorator { inner -> decoration(inner) },
@@ -98,6 +103,7 @@ private fun TaskBTextFieldContainer(
     search: Boolean,
     enabled: Boolean,
     autoFocus: Boolean,
+    showClear: Boolean,
     field: @Composable (Modifier, @Composable (@Composable () -> Unit) -> Unit) -> Unit,
 ) {
     val colors = TaskBTheme.colors
@@ -123,7 +129,7 @@ private fun TaskBTextFieldContainer(
                 }
             }
         }
-        if (focused && value.isNotEmpty()) {
+        if (showClear && focused && value.isNotEmpty()) {
             Spacer(Modifier.width(8.dp))
             Box(
                 modifier = Modifier.size(32.dp).clickable(

@@ -56,20 +56,20 @@ internal class TaskStore(
             TaskIntent.CloseSelection -> reduce(TaskMessage.Selection(null))
             TaskIntent.DismissError -> reduce(TaskMessage.DismissError)
             is TaskIntent.ToggleCompleted -> {
-                val task = state.value.tasks.find { it.id == intent.id } ?: return
+                val task = state.value.tasks.find { it.id == intent.id && it.occurrenceId == intent.occurrenceId } ?: return
                 if (task.id in state.value.pendingCompletion) return
                 reduce(TaskMessage.Completing(task.id))
                 launchEffect {
                     try {
-                        repository.setCompleted(task.id, !task.isCompleted)
-                        TaskMessage.Completed(task.id, false)
+                        TaskMessage.Completed(task.id, !repository.setOccurrenceCompleted(task.id, task.occurrenceId, !task.isCompleted))
                     } catch (exception: CancellationException) { throw exception }
                     catch (_: Exception) { TaskMessage.Completed(task.id, true) }
                 }
             }
             TaskIntent.RetryLoad -> if (observation?.isActive != true) {
                 reduce(TaskMessage.Loading)
-                observation = collectEffect(combine(repository.tasks, groups.groups) { tasks, groups ->
+                val taskEvents = state.map { it.today }.distinctUntilChanged().flatMapLatest(repository::observeTaskList)
+                observation = collectEffect(combine(taskEvents, groups.groups) { tasks, groups ->
                     TaskMessage.Loaded(tasks, groups, clock.now()) as TaskMessage
                 }.catch {
                     if (it is CancellationException) throw it

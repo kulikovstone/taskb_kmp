@@ -5,6 +5,9 @@ import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.group.api.repository.GroupWriteResult
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -76,6 +79,33 @@ class CalendarStoreTest {
         }
         runCurrent()
         assertEquals(0, repository.subscriptions)
+    }
+
+    @Test
+    fun `occurrence move prompts for scope and only the selected event changes or is completed`() = runTest {
+        val firstKey = TaskOccurrenceId(4, today)
+        val secondKey = TaskOccurrenceId(4, LocalDate(2026, 11, 30))
+        val first = Task(1, "Shared task", today, recurrence = TaskRecurrence.monthly(today), occurrenceId = firstKey)
+        val second = first.copy(dueDate = secondKey.scheduledDate, occurrenceId = secondKey)
+        val repository = Tasks(listOf(first, second))
+        CalendarStore(repository, Groups(), StandardTestDispatcher(testScheduler), { today }).use { store ->
+            runCurrent()
+            val target = LocalDate(2026, 10, 31)
+            store.accept(CalendarIntent.MoveTask(1, target, firstKey))
+            runCurrent()
+            assertNotNull(store.state.value.moveChoice)
+            assertEquals(0, repository.writes)
+            store.accept(CalendarIntent.ConfirmMove(TaskChangeScope.ThisOccurrence))
+            runCurrent()
+            assertEquals(listOf(first.copy(dueDate = target), second), repository.values.value)
+            store.accept(CalendarIntent.UndoMove)
+            runCurrent()
+            assertEquals(listOf(first, second), repository.values.value)
+            store.accept(CalendarIntent.ToggleCompleted(1, secondKey))
+            runCurrent()
+            assertFalse(repository.values.value.first().isCompleted)
+            assertTrue(repository.values.value.last().isCompleted)
+        }
     }
 
     @Test
@@ -249,6 +279,18 @@ class CalendarStoreTest {
         override suspend fun setCompleted(id: Int, completed: Boolean) {
             if (fail) error("Write failed")
             values.value = values.value.map { if (it.id == id) it.copy(completedAt = if (completed) now() else null) else it }
+        }
+        override suspend fun setOccurrenceCompleted(id: Int, occurrence: TaskOccurrenceId?, completed: Boolean): Boolean {
+            if (occurrence == null) { setCompleted(id, completed); return true }
+            values.value = values.value.map { if (it.id == id && it.occurrenceId == occurrence) it.copy(completedAt = if (completed) now() else null) else it }
+            return true
+        }
+        override suspend fun moveOccurrence(id: Int, occurrence: TaskOccurrenceId?, expectedDate: LocalDate?, date: LocalDate, scope: TaskChangeScope): Boolean {
+            if (occurrence == null) return reschedule(id, expectedDate, date)
+            writes++
+            if (values.value.none { it.id == id && it.occurrenceId == occurrence && it.dueDate == expectedDate }) return false
+            values.value = values.value.map { if (it.id == id && it.occurrenceId == occurrence) it.copy(dueDate = date) else it }
+            return true
         }
         override suspend fun reschedule(id: Int, expectedDate: LocalDate?, date: LocalDate?): Boolean {
             writes++

@@ -2,11 +2,13 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import kotlin.time.Instant
 
 internal sealed interface CalendarMessage {
+    data class MoveChoice(val value: CalendarMove?) : CalendarMessage
     data object Loading : CalendarMessage
     data object LoadFailed : CalendarMessage
     data object DismissError : CalendarMessage
@@ -21,6 +23,7 @@ internal sealed interface CalendarMessage {
 }
 
 internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): CalendarState = when (message) {
+    is CalendarMessage.MoveChoice -> state.copy(moveChoice = message.value)
     CalendarMessage.Loading -> state.copy(isLoading = true, loadError = null)
     CalendarMessage.LoadFailed -> state.copy(isLoading = false, loadError = "Couldn't load the calendar. Please try again.")
     CalendarMessage.DismissError -> state.copy(error = null)
@@ -31,9 +34,9 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
     is CalendarMessage.Moved -> state.copy(
         pendingMove = null,
         error = message.error,
-        undo = if (message.undoing) null else if (message.error == null) message.move else state.undo,
-        tasks = if (message.error != null) state.tasks else state.tasks.map { task ->
-            if (task.id == message.move.taskId) task.copy(dueDate = if (message.undoing) message.move.previousDate else message.move.date) else task
+        undo = if (message.undoing || message.move.scope == TaskChangeScope.ThisAndFollowing) null else if (message.error == null) message.move else state.undo,
+        tasks = if (message.error != null || message.move.scope == TaskChangeScope.ThisAndFollowing) state.tasks else state.tasks.map { task ->
+            if (task.id == message.move.taskId && task.occurrenceId == message.move.occurrenceId) task.copy(dueDate = if (message.undoing) message.move.previousDate else message.move.date) else task
         },
     )
     is CalendarMessage.ExpireUndo -> if (state.undo?.token == message.token) state.copy(undo = null) else state
