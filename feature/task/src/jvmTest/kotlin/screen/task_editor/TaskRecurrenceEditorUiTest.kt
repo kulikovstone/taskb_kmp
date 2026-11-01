@@ -3,7 +3,9 @@ package com.mkulikov.taskb.feature.task.screen.task_editor
 import androidx.compose.runtime.collectAsState
 import androidx.compose.material.Surface
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.test.*
@@ -25,6 +27,54 @@ import kotlin.test.*
 
 @OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
 class TaskRecurrenceEditorUiTest {
+    @Test fun `task date and recurrence end date share the distant year picker`() {
+        val scheduler = TestCoroutineScheduler()
+        val repo = FakeTaskRepository()
+        TaskEditorStore(repo, FakeGroupRepository(), initialDate = LocalDate(2026, 11, 3), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+            scheduler.runCurrent()
+            runSkikoComposeUiTest(size = Size(400f, 980f)) {
+                setContent {
+                    TaskBTheme(false) {
+                        val state = store.state.collectAsState().value
+                        Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
+                            Box {
+                                TaskEditorContent(state, store::accept, false, {}, {})
+                                TaskEditorDialogs(state, state.today, store::accept, 980.dp)
+                            }
+                        }
+                    }
+                }
+                onNodeWithContentDescription("Task name").performTextReplacement("Wedding anniversary")
+                onNodeWithContentDescription("Choose date").performClick()
+                scheduler.runCurrent(); waitForIdle()
+                onNodeWithContentDescription("Choose year").performClick()
+                onNodeWithContentDescription("Choose year 2036").performClick()
+                onNodeWithContentDescription("Choose month").performClick()
+                onNodeWithContentDescription("Choose June 2036").performClick()
+                onNodeWithContentDescription("Choose June 12, 2036").performClick()
+                scheduler.runCurrent(); waitForIdle()
+                assertEquals(LocalDate(2036, 6, 12), store.state.value.dueDate)
+                onNodeWithContentDescription("Choose repeat pattern").performScrollTo().performClick()
+                scheduler.runCurrent(); waitForIdle()
+                onNodeWithText("On date").performScrollTo().performClick()
+                scheduler.runCurrent(); waitForIdle()
+                onNodeWithContentDescription("Choose repeat end date").performScrollTo().performClick()
+                scheduler.runCurrent(); waitForIdle()
+                onNodeWithContentDescription("Choose year").performClick()
+                onNodeWithContentDescription("Next 20 years").performClick()
+                onNodeWithContentDescription("Choose year 2046").performClick()
+                onNodeWithContentDescription("Choose June 12, 2046").performClick()
+                scheduler.runCurrent(); waitForIdle()
+                assertEquals(LocalDate(2036, 6, 12), store.state.value.dueDate)
+                assertEquals(LocalDate(2046, 6, 12), store.state.value.recurrence?.endDate)
+                onNodeWithContentDescription("Save task").performClick()
+                scheduler.runCurrent()
+                assertEquals(LocalDate(2036, 6, 12), repo.lastWrite?.dueDate)
+                assertEquals(LocalDate(2046, 6, 12), repo.lastWrite?.recurrence?.endDate)
+            }
+        }
+    }
+
     @Test fun `monthly default persistent selector and conditional endings work at both layouts`() {
         for (wide in listOf(true, false)) {
             val scheduler = TestCoroutineScheduler()

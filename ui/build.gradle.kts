@@ -9,6 +9,7 @@ kotlin {
             implementation(libs.compose.ui.test)
         }
         commonMain.dependencies {
+            api(libs.kotlinx.datetime)
             api(libs.compose.runtime)
             api(libs.compose.ui)
             api(libs.compose.foundation)

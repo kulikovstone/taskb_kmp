@@ -4,6 +4,7 @@ import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.outlined.Add
 import com.composables.icons.materialsymbols.outlined.Arrow_back
 import com.composables.icons.materialsymbols.outlined.Arrow_downward
+import com.composables.icons.materialsymbols.outlined.Arrow_drop_down
 import com.composables.icons.materialsymbols.outlined.Check
 import com.composables.icons.materialsymbols.outlined.Check_box_outline_blank
 import com.composables.icons.materialsymbols.outlined.Chevron_left
@@ -35,6 +36,7 @@ object TaskBIcons {
     val Repeat get() = MaterialSymbols.Outlined.Repeat
     val ChevronRight get() = MaterialSymbols.Outlined.Chevron_right
     val ChevronLeft get() = MaterialSymbols.Outlined.Chevron_left
+    val Dropdown get() = MaterialSymbols.Outlined.Arrow_drop_down
     val Checked get() = MaterialSymbols.OutlinedFilled.Check_box
     val Unchecked get() = MaterialSymbols.Outlined.Check_box_outline_blank
 }
