@@ -28,11 +28,12 @@ internal data class TaskState(
 ) {
     private val unexpiredTasks: List<Task> get() = tasks.filter {
         val completedAt = it.completedAt
-        (completedAt == null || completedAt > now - 24.hours) &&
+        it.startTime == null && (completedAt == null || completedAt > now - 24.hours) &&
             (it.occurrenceId == null || !it.isCompleted || filter == TaskFilter.Completed)
     }
     val taskCount: Int get() = unexpiredTasks.size
     val nextCompletionExpiry: Instant? get() = tasks.asSequence()
+        .filter { it.startTime == null }
         .mapNotNull { it.completedAt?.plus(24.hours) }
         .filter { it > now }
         .minOrNull()

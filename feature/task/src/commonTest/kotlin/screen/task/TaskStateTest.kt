@@ -6,6 +6,7 @@ import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlin.test.Test
@@ -18,6 +19,23 @@ class TaskStateTest {
     private val today = LocalDate(2026, 10, 31)
     private val now = Instant.parse("2026-10-31T12:00:00Z")
     private val groups = listOf(Group(1, "Zulu", GroupColor.Blue), Group(2, "alpha", GroupColor.Green))
+
+    @Test
+    fun `timed events stay out of task lists filters and counters`() {
+        val ordinary = Task(1, "Pay bills", today, 1)
+        val timed = Task(2, "Team sync", today, 1, startTime = LocalTime(12, 0), durationMinutes = 60)
+        val completed = timed.copy(id = 3, completedAt = now)
+        val state = TaskState(today = today, now = now, tasks = listOf(ordinary, timed, completed), groups = groups)
+
+        assertEquals(listOf(ordinary), state.visibleTasks)
+        assertEquals(1, state.taskCount)
+        assertEquals("1 task", state.summary)
+        for (filter in TaskFilter.entries) {
+            assertEquals(emptyList(), state.copy(tasks = listOf(timed, completed), filter = filter).visibleTasks)
+        }
+        assertEquals(emptyList(), state.copy(query = "Team sync").visibleTasks)
+        assertEquals(null, state.copy(tasks = listOf(completed)).nextCompletionExpiry)
+    }
 
     @Test
     fun `completed recurring events appear only in completed filter without hiding the next event`() {

@@ -1,11 +1,22 @@
 package com.mkulikov.taskb.feature.task.screen.task_editor
 
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 
 internal sealed interface TaskEditorIntent {
     data class DateChanged(val date: LocalDate?) : TaskEditorIntent
+    data class StartTimeChanged(val time: LocalTime?) : TaskEditorIntent
+    data class DurationChanged(val minutes: Int) : TaskEditorIntent
+    data object ChooseStartTime : TaskEditorIntent
+    data object ChooseCustomDuration : TaskEditorIntent
+    data class DurationModeChanged(val mode: TaskDurationMode) : TaskEditorIntent
+    data class DurationInputChanged(val days: String? = null, val hours: String? = null, val minutes: String? = null) : TaskEditorIntent
+    data object ChooseTaskEndDate : TaskEditorIntent
+    data object ChooseEndTime : TaskEditorIntent
+    data class TaskEndDateChanged(val date: LocalDate) : TaskEditorIntent
+    data class EndTimeChanged(val time: LocalTime) : TaskEditorIntent
     data class GroupChanged(val id: Int?) : TaskEditorIntent
     data class RecurrenceChanged(val recurrence: TaskRecurrence?) : TaskEditorIntent
     data class RepeatIntervalChanged(val value: String) : TaskEditorIntent

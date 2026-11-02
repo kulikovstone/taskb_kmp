@@ -16,6 +16,8 @@ import com.composables.icons.materialsymbols.outlined.Folder
 import com.composables.icons.materialsymbols.outlined.Search
 import com.composables.icons.materialsymbols.outlined.Today
 import com.composables.icons.materialsymbols.outlined.Repeat
+import com.composables.icons.materialsymbols.outlined.Schedule
+import com.composables.icons.materialsymbols.outlined.Keyboard
 import com.composables.icons.materialsymbols.outlinedfilled.Cancel
 import com.composables.icons.materialsymbols.outlinedfilled.Check_box
 import com.composables.icons.materialsymbols.outlinedfilled.Folder
@@ -34,6 +36,8 @@ object TaskBIcons {
     val Cancel get() = MaterialSymbols.OutlinedFilled.Cancel
     val Calendar get() = MaterialSymbols.Outlined.Today
     val Repeat get() = MaterialSymbols.Outlined.Repeat
+    val Schedule get() = MaterialSymbols.Outlined.Schedule
+    val Keyboard get() = MaterialSymbols.Outlined.Keyboard
     val ChevronRight get() = MaterialSymbols.Outlined.Chevron_right
     val ChevronLeft get() = MaterialSymbols.Outlined.Chevron_left
     val Dropdown get() = MaterialSymbols.Outlined.Arrow_drop_down

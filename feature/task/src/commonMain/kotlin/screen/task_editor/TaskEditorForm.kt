@@ -54,6 +54,8 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
         }
         if (state.dueDate != null) {
             Spacer(Modifier.height(24.dp))
+            TaskTimeFields(state, onIntent, enabled, wide)
+            Spacer(Modifier.height(24.dp))
             TaskRecurrenceFields(state, onIntent, enabled, wide)
         }
         if (state.original?.recurrence != null) {
