@@ -60,7 +60,7 @@ class CalendarNavigationUiTest {
                 onNodeWithContentDescription("Task name").performTextReplacement("Updated from calendar")
                 onNodeWithContentDescription("Save task").performClick()
                 waitText("Updated from calendar")
-                onNodeWithTag("calendar-sidebar-title").assertTextEquals("Unscheduled")
+                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
                 onNodeWithText(label).assertIsDisplayed()
                 onNodeWithTag("calendar-day-number-${next.firstDay}", useUnmergedTree = true).performClick()
                 waitText("Selected day details")

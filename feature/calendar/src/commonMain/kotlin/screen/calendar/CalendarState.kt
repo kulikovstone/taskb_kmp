@@ -4,6 +4,9 @@ import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.task.api.model.occursOn
+import com.mkulikov.taskb.feature.task.api.model.startDateTime
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -39,10 +42,24 @@ internal data class CalendarState(
         .mapNotNull { it.completedAt?.plus(24.hours) }
         .filter { it > now }
         .minOrNull()
-    val tasksByDate: Map<LocalDate?, List<Task>> get() = tasks.filter { it.dueDate != null }
-        .sortedWith(compareBy<Task> { it.isCompleted }.thenByDescending { it.createdAt }.thenByDescending { it.id })
-        .groupBy { it.dueDate }
-    val sidebarTasks: List<Task> get() = selectedDate?.let { tasksByDate[it].orEmpty() } ?: undatedTasks
+    val tasksByDate: Map<LocalDate?, List<Task>> get() {
+        val dated = tasks.filter { it.dueDate != null }
+        val timed = dated.filter { it.startDateTime != null }
+        val grouped = dated.filter { it.startDateTime == null }.groupBy { it.dueDate }.toMutableMap()
+        // Only expand the visible month and the selected day, even for events lasting many years.
+        for (date in (days + listOfNotNull(selectedDate)).distinct()) {
+            val events = timed.filter { it.occursOn(date) }
+            if (events.isNotEmpty()) grouped[date] = grouped[date].orEmpty() + events
+        }
+        return grouped.mapValues { (_, tasks) -> tasks.sortedWith(calendarTaskOrder) }
+    }
+    val monthTasksByDate: Map<LocalDate?, List<Task>> get() = tasksByDate
+        .mapValues { (_, tasks) -> tasks.filterNot { it.isDailyRoutine } }
+        .filterValues { it.isNotEmpty() }
+    val sidebarTasks: List<Task> get() = selectedDate?.let { tasksByDate[it].orEmpty().sortedWith(sidebarTaskOrder) } ?: undatedTasks
+    val sidebarDailyTasks: List<Task> get() = if (selectedDate == null) emptyList() else sidebarTasks.filter { it.isDailyRoutine }
+    val sidebarTimedTasks: List<Task> get() = sidebarTasks.filter { it.startDateTime != null && (selectedDate == null || !it.isDailyRoutine) }
+    val sidebarUntimedTasks: List<Task> get() = sidebarTasks.filter { it.startDateTime == null && (selectedDate == null || !it.isDailyRoutine) }
     val days: List<LocalDate> get() {
         val offset = month.firstDay.dayOfWeek.isoDayNumber - 1
         val first = month.firstDay.minus(offset, DateTimeUnit.DAY)
@@ -50,6 +67,17 @@ internal data class CalendarState(
         return List(count) { first.plus(it, DateTimeUnit.DAY) }
     }
 }
+
+private val calendarTaskOrder = compareBy<Task> { it.startDateTime == null }
+    .thenBy { it.startDateTime }
+    .thenBy { it.isCompleted }
+    .thenByDescending { it.createdAt }
+    .thenByDescending { it.id }
+
+private val sidebarTaskOrder = compareBy<Task> { !it.isDailyRoutine }.then(calendarTaskOrder)
+
+internal val Task.isDailyRoutine: Boolean
+    get() = recurrence?.let { it.frequency == RecurrenceFrequency.Daily && it.interval == 1 } == true
 
 internal data class CalendarMove(
     val token: Long,

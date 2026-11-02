@@ -1,27 +1,41 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
+import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
 internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit) {
     val tasks = state.sidebarTasks
     val date = state.selectedDate
+    val daily = state.sidebarDailyTasks
+    val timed = state.sidebarTimedTasks
+    val untimed = state.sidebarUntimedTasks
+    var dailyExpanded by remember(date) { mutableStateOf(true) }
+    var timedExpanded by remember(date) { mutableStateOf(true) }
+    var untimedExpanded by remember(date) { mutableStateOf(true) }
     val colors = TaskBTheme.colors
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
     val count = "${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}"
@@ -33,25 +47,61 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
     }
     Column(Modifier.width(320.dp).fillMaxHeight().testTag("calendar-sidebar").padding(24.dp)) {
         Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(date?.let(calendarSidebarDateLabel::format) ?: "Unscheduled", modifier = Modifier.weight(1f).testTag("calendar-sidebar-title"),
+            Text(date?.let(calendarSidebarDateLabel::format) ?: "No date", modifier = Modifier.weight(1f).testTag("calendar-sidebar-title"),
                 style = TaskBTheme.typography.section.copy(lineHeightStyle = lineHeightStyle), color = colors.heading,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             TextButton({ onIntent(if (date == null) CalendarIntent.Today else CalendarIntent.ShowUnscheduled) },
                 modifier = Modifier.width(if (date == null) 76.dp else 110.dp).height(36.dp).testTag("calendar-sidebar-toggle"),
                 contentPadding = PaddingValues(horizontal = 8.dp)) {
-                Text(if (date == null) "Today" else "Unscheduled", color = colors.accent, style = TaskBTheme.typography.label)
+                Text(if (date == null) "Today" else "No date", color = colors.accent, style = TaskBTheme.typography.label)
             }
         }
         Spacer(Modifier.height(4.dp))
         Text(context, style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle), color = colors.muted)
         Spacer(Modifier.height(16.dp))
-        if (tasks.isEmpty()) Text(if (date == null) "No unscheduled tasks." else "No tasks for this day.",
+        if (tasks.isEmpty()) Text(if (date == null) "No tasks without a date." else "No tasks for this day.",
             color = colors.muted, style = TaskBTheme.typography.body)
         val scroll = rememberLazyListState()
         LaunchedEffect(date) { scroll.scrollToItem(0) }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().testTag("calendar-sidebar-list")) {
-                items(tasks, key = { it.key }) { task ->
+        Row(Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(state = scroll, modifier = Modifier.weight(1f).fillMaxHeight().testTag("calendar-sidebar-list")) {
+                if (daily.isNotEmpty()) item(key = "daily-heading") {
+                    CalendarSidebarSectionHeader("Daily · ${daily.size}", dailyExpanded, { dailyExpanded = !dailyExpanded },
+                        Modifier.testTag("calendar-sidebar-daily-heading"))
+                    if (dailyExpanded) Spacer(Modifier.height(8.dp))
+                }
+                if (dailyExpanded) items(daily, key = { it.key }) { task ->
+                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
+                        { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
+                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
+                            sourceDate = date ?: task.dueDate) { id, target ->
+                            onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
+                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now)
+                }
+                if (timed.isNotEmpty()) item(key = "timed-heading") {
+                    if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
+                    CalendarSidebarSectionHeader("With time · ${timed.size}", timedExpanded, { timedExpanded = !timedExpanded },
+                        Modifier.testTag("calendar-sidebar-timed-heading"))
+                    if (timedExpanded) Spacer(Modifier.height(4.dp))
+                }
+                if (timedExpanded) items(timed, key = { it.key }) { task ->
+                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, {},
+                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
+                            sourceDate = date ?: task.dueDate) { id, target ->
+                            onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
+                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now)
+                    Spacer(Modifier.height(4.dp))
+                }
+                if (untimed.isNotEmpty() && date != null) item(key = "untimed-heading") {
+                    if (timed.isNotEmpty()) Spacer(Modifier.height(if (timedExpanded) 12.dp else 16.dp))
+                    else if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
+                    CalendarSidebarSectionHeader("Without time · ${untimed.size}", untimedExpanded, { untimedExpanded = !untimedExpanded },
+                        Modifier.testTag("calendar-sidebar-untimed-heading"))
+                    if (untimedExpanded) Spacer(Modifier.height(8.dp))
+                }
+                if (date == null || untimedExpanded) items(untimed, key = { it.key }) { task ->
                     val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
                         { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
@@ -60,7 +110,27 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         }, enabled = enabled, dragging = drag.task?.key == task.key)
                 }
             }
-            TaskBVerticalScrollbar(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+            if (scroll.canScrollForward || scroll.canScrollBackward) TaskBVerticalScrollbar(scroll, Modifier.fillMaxHeight())
         }
+    }
+}
+
+@Composable
+private fun CalendarSidebarSectionHeader(title: String, expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Row(
+        modifier.height(18.dp)
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button,
+                onClickLabel = if (expanded) "Collapse" else "Expand", onClick = onToggle)
+            .semantics { heading(); stateDescription = if (expanded) "Expanded" else "Collapsed" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(TaskBIcons.ChevronRight, contentDescription = null, tint = TaskBTheme.colors.muted,
+            modifier = Modifier.size(16.dp).rotate(if (expanded) 90f else 0f))
+        Text(title, color = TaskBTheme.colors.muted,
+            style = TaskBTheme.typography.label.copy(
+                lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+            ), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

@@ -38,7 +38,7 @@ class TaskRecurrenceNavigationUiTest {
                 setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
                 waitText("Calendar")
                 onNodeWithText("Calendar").performClick()
-                waitText("Unscheduled")
+                waitText("No date")
                 onNodeWithTag("calendar-sidebar-toggle").performClick()
                 onNodeWithText("New task").performClick()
                 waitText("Create task")
@@ -55,16 +55,24 @@ class TaskRecurrenceNavigationUiTest {
                 onNodeWithText("After").performScrollTo().performClick()
                 onNodeWithContentDescription("Repeat occurrence count").performScrollTo().performTextReplacement("3")
                 onNodeWithContentDescription("Save task").performClick()
-                waitText("Unscheduled")
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText("Recurring routine"), useUnmergedTree = true).fetchSemanticsNodes().size == 3 }
+                waitText("No date")
                 var events = runBlocking { repo.observeCalendar(start, start.plus(10, DateTimeUnit.DAY)).first().sortedBy { it.dueDate } }
                 assertEquals(3, events.size)
                 assertEquals(1, runBlocking { db.taskDao().observeTasks().first().size })
                 val first = events[0]
                 val second = events[1]
                 val third = events[2]
+                onNodeWithTag("calendar-day-number-$start", useUnmergedTree = true).performClick()
+                waitText("Daily · 1")
+                onNodeWithText("Recurring routine", useUnmergedTree = true).assertIsDisplayed()
+                for (event in events) {
+                    onNode(hasTestTag("calendar-task-${event.key}") and
+                        hasAnyAncestor(hasTestTag("calendar-day-${event.dueDate}")), useUnmergedTree = true).assertDoesNotExist()
+                }
                 onNode(hasContentDescription("Complete Recurring routine") and hasAnyAncestor(hasTestTag("calendar-task-${first.key}")), useUnmergedTree = true).performClick()
                 waitUntil(timeoutMillis = 10_000) { runBlocking { repo.getOccurrence(first.id, requireNotNull(first.occurrenceId)) }?.isCompleted == true }
+                onNodeWithTag("calendar-day-number-${second.dueDate}", useUnmergedTree = true).performClick()
+                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasTestTag("calendar-task-${second.key}"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
                 val source = onNodeWithTag("calendar-task-${second.key}", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
                 val targetDate = start.plus(3, DateTimeUnit.DAY)
                 val target = onNodeWithTag("calendar-day-$targetDate", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
@@ -72,19 +80,23 @@ class TaskRecurrenceNavigationUiTest {
                 waitText("Move repeating task")
                 onNodeWithText("Only this event").performClick()
                 waitUntil(timeoutMillis = 10_000) { runBlocking { repo.getOccurrence(second.id, requireNotNull(second.occurrenceId)) }?.dueDate == targetDate }
+                onNodeWithTag("calendar-day-number-$targetDate", useUnmergedTree = true).performClick()
+                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasTestTag("calendar-task-${second.key}"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
                 onNodeWithTag("calendar-task-${second.key}", useUnmergedTree = true).performClick()
                 waitText("Edit task")
                 onNodeWithContentDescription("Delete task").performClick()
                 waitText("Delete repeating task")
                 onNodeWithText("Only this event").performClick()
-                waitText("Unscheduled")
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText("Recurring routine"), useUnmergedTree = true).fetchSemanticsNodes().size == 2 }
+                waitText("No date")
+                assertEquals(2, runBlocking { repo.observeCalendar(start, start.plus(10, DateTimeUnit.DAY)).first().size })
+                onNodeWithTag("calendar-day-number-${third.dueDate}", useUnmergedTree = true).performClick()
+                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasTestTag("calendar-task-${third.key}"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
                 onNodeWithTag("calendar-task-${third.key}", useUnmergedTree = true).performClick()
                 waitText("Edit task")
                 onNodeWithContentDescription("Task name").performTextReplacement("Renamed series")
                 onNodeWithContentDescription("Save task").performClick()
-                waitText("Unscheduled")
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText("Renamed series"), useUnmergedTree = true).fetchSemanticsNodes().size == 2 }
+                waitText("No date")
+                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText("Renamed series"), useUnmergedTree = true).fetchSemanticsNodes().size == 1 }
                 val output = Path.of("build/reports/screenshots/recurrence-calendar.png")
                 Files.createDirectories(output.parent)
                 ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())

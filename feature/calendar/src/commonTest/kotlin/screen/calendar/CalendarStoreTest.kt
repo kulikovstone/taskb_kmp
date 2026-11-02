@@ -8,6 +8,7 @@ import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,6 +26,30 @@ import kotlin.time.Instant
 class CalendarStoreTest {
     private val today = LocalDate(2026, 10, 30)
     private val created = Instant.parse("2026-10-01T10:00:00Z")
+
+    @Test
+    fun `completing a daily routine preserves other occurrences and its history remains in the daily section`() = runTest {
+        val first = Task(1, "Daily routine", today, createdAt = created,
+            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = TaskOccurrenceId(4, today))
+        val second = first.copy(dueDate = LocalDate(2026, 10, 31), occurrenceId = TaskOccurrenceId(4, LocalDate(2026, 10, 31)))
+        val repository = Tasks(listOf(first, second))
+        CalendarStore(repository, Groups(), StandardTestDispatcher(testScheduler), { today }).use { store ->
+            runCurrent()
+            assertEquals(listOf(first), store.state.value.sidebarDailyTasks)
+            assertTrue(store.state.value.monthTasksByDate.isEmpty())
+            store.accept(CalendarIntent.ToggleCompleted(first.id, first.occurrenceId))
+            runCurrent()
+            assertTrue(store.state.value.sidebarDailyTasks.single().isCompleted)
+            assertFalse(repository.values.value.single { it.key == second.key }.isCompleted)
+            assertTrue(store.state.value.monthTasksByDate.isEmpty())
+            store.accept(CalendarIntent.SelectDay(second.dueDate!!))
+            runCurrent()
+            assertEquals(listOf(second), store.state.value.sidebarDailyTasks)
+            store.accept(CalendarIntent.SelectDay(today))
+            runCurrent()
+            assertTrue(store.state.value.sidebarDailyTasks.single().isCompleted)
+        }
+    }
 
     @Test
     fun `sidebar defaults to today and keeps every selected day task with active tasks first`() {

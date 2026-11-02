@@ -44,7 +44,7 @@ class CalendarScreenUiTest {
         onNodeWithTag("calendar-choose-date").assertIsNotEnabled().performMouseInput { click() }
         runOnIdle { assertTrue(intents.isEmpty()) }
         onNodeWithTag("calendar-sidebar-toggle").performClick()
-        onNodeWithTag("calendar-sidebar-title").assertTextEquals("Unscheduled")
+        onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
         onNodeWithText("Scope, milestones and owners for the next release.", useUnmergedTree = true).assertIsDisplayed()
         val date = LocalDate(2026, 10, 28)
         onNode(hasText("more", substring = true) and hasAnyAncestor(hasTestTag("calendar-day-$date")), useUnmergedTree = true).performClick()
@@ -71,7 +71,7 @@ class CalendarScreenUiTest {
         val target = onNodeWithTag("calendar-day-2026-10-08", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
         onRoot().performMouseInput { moveTo(source.center); press(); moveTo(source.center + Offset(28f, 0f)); moveTo(target) }
         val preview = onNodeWithTag("calendar-drag-preview", useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        assertEquals(source.width + 16f, preview.width, 0.5f)
+        assertEquals(source.width + 12f, preview.width, 0.5f)
         assertEquals(source.height + 4f, preview.height, 0.5f)
         onNode(hasText("Summarize progress and the next milestones.") and hasAnyAncestor(hasTestTag("calendar-drag-preview")), useUnmergedTree = true).assertIsDisplayed()
         onRoot().performMouseInput { release() }
@@ -222,7 +222,7 @@ class CalendarScreenUiTest {
                 val createdDates = mutableListOf<LocalDate?>()
                 setContent { TaskBTheme(false) { CalendarScreen(state, { if (it is CalendarIntent.SelectDay) selectedDays.add(it.date) }, {}, {}, createdDates::add) } }
 
-                onNodeWithText("Unscheduled").assertIsDisplayed()
+                onNodeWithText("No date").assertIsDisplayed()
                 val longTitle = onNodeWithText(state.tasks.first { it.id == 8 }.name, useUnmergedTree = true).textLayout()
                 assertEquals(2, longTitle.lineCount)
                 assertTrue(longTitle.multiParagraph.didExceedMaxLines)

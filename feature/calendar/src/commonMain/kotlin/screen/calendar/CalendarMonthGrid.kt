@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Constraints
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.startDateTime
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
@@ -39,7 +40,7 @@ import kotlin.math.ceil
 @Composable
 internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, modifier: Modifier = Modifier) {
     val colors = TaskBTheme.colors
-    val tasks = state.tasksByDate
+    val tasks = state.monthTasksByDate
     val weeks = state.days.chunked(7)
     Column(modifier.calendarMonthGestures(onIntent).testTag("calendar-grid").clip(RoundedCornerShape(8.dp)).border(1.dp, colors.border, RoundedCornerShape(8.dp)).padding(1.dp)) {
         Box(Modifier.fillMaxWidth().height(40.dp)) {
@@ -89,17 +90,16 @@ private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarS
                 }
                 if (outsideMonth) Text(calendarMonthAbbreviation.format(date), color = colors.muted, style = TaskBTheme.typography.button)
             }
-            CalendarDayTasks(tasks, state, drag, onIntent, onOpenTask, { onIntent(CalendarIntent.SelectDay(date)) }, Modifier.weight(1f).fillMaxWidth().padding(horizontal = 2.dp))
+            CalendarDayTasks(date, tasks, state, drag, onIntent, onOpenTask, { onIntent(CalendarIntent.SelectDay(date)) }, Modifier.weight(1f).fillMaxWidth().padding(horizontal = 2.dp))
         }
         if (endBorder) Box(Modifier.align(Alignment.CenterEnd).width(1.dp).fillMaxHeight().background(colors.border))
         if (bottomBorder) Divider(Modifier.align(Alignment.BottomCenter), color = colors.border)
-        if (hovered) Box(Modifier.matchParentSize().border(2.dp, colors.accent))
     }
 }
 
 /** Учитываем высоту перенесённых названий и ссылки на остальные задачи, чтобы не обрезать строки. */
 @Composable
-private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onSelectDay: () -> Unit, modifier: Modifier) {
+private fun CalendarDayTasks(date: LocalDate, tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onSelectDay: () -> Unit, modifier: Modifier) {
     val colors = TaskBTheme.colors
     val titleStyle = calendarTaskTitleStyle(dense = true)
     val moreStyle = TaskBTheme.typography.body.copy(
@@ -113,18 +113,19 @@ private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: Cale
         val rows = buildList<Placeable> {
             var measuredHeight = 0
             for (task in tasks) {
+                val timed = task.startDateTime != null
                 val titleLayout = textMeasurer.measure(task.name, style = titleStyle, maxLines = 2,
                     overflow = TextOverflow.Ellipsis, constraints = Constraints(maxWidth = titleMaxWidth))
                 val titleWidth = if (titleLayout.multiParagraph.didExceedMaxLines) titleMaxWidth else {
                     ceil((0 until titleLayout.lineCount).maxOf { titleLayout.getLineRight(it) - titleLayout.getLineLeft(it) })
                         .toInt().coerceIn(0, titleMaxWidth)
                 }
-                val taskWidth = (taskInsets + titleWidth).coerceAtMost(constraints.maxWidth)
+                val taskWidth = if (timed) constraints.maxWidth else (taskInsets + titleWidth).coerceAtMost(constraints.maxWidth)
                 val row = subcompose(task.key) {
                     val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled, dense = true) { id, target -> onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId)) },
-                        dense = true, enabled = enabled, dragging = drag.task?.key == task.key)
+                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled, dense = true, sourceDate = date) { id, target -> onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId)) },
+                        dense = true, enabled = enabled, dragging = drag.task?.key == task.key, date = date, now = state.now)
                 }.single().measure(Constraints.fixedWidth(taskWidth))
                 add(row)
                 measuredHeight += row.height

@@ -23,6 +23,7 @@ import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.task.api.model.startDateTime
 import com.mkulikov.taskb.ui.dialog.TaskBChoiceDialog
 import com.mkulikov.taskb.ui.dialog.TaskBDialogChoice
 import kotlinx.datetime.LocalDate
@@ -85,7 +86,11 @@ internal fun CalendarScreen(
                 drag.task?.let { task ->
                     val density = LocalDensity.current
                     val dense = drag.dense
-                    val horizontalPadding = if (dense) calendarTaskTitleGap - calendarTaskPadding else 8.dp
+                    val horizontalPadding = when {
+                        dense -> calendarTaskTitleGap - calendarTaskPadding
+                        task.startDateTime != null -> 8.dp
+                        else -> calendarSidebarTaskTitleGap(task)
+                    }
                     val verticalPadding = 2.dp
                     Surface(
                         modifier = Modifier
@@ -101,7 +106,7 @@ internal fun CalendarScreen(
                         CalendarTaskRow(
                             task, state.groups.find { it.id == task.groupId }, {}, {},
                             modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-                            dense = dense, enabled = false,
+                            dense = dense, enabled = false, date = drag.sourceDate, now = state.now,
                         )
                     }
                 }
@@ -120,4 +125,10 @@ internal fun CalendarScreen(
 @Composable
 private fun CalendarScreenPreview() {
     TaskBTheme(darkTheme = false) { CalendarScreen(calendarPreviewState(), {}, {}, {}, {}) }
+}
+
+@Preview(name = "Calendar with timed tasks", widthDp = 1440, heightDp = 900)
+@Composable
+private fun CalendarTimedScreenPreview() {
+    TaskBTheme(darkTheme = false) { CalendarScreen(timedCalendarPreviewState(), {}, {}, {}, {}) }
 }

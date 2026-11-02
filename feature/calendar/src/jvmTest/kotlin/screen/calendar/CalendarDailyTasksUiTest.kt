@@ -1,0 +1,66 @@
+package com.mkulikov.taskb.feature.calendar.screen.calendar
+
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.v2.runSkikoComposeUiTest
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.ui.theme.TaskBTheme
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalTestApi::class)
+class CalendarDailyTasksUiTest {
+    @Test
+    fun `daily routines are first without appearing in the month or duplicating the time sections`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
+        val date = LocalDate(2026, 11, 6)
+        val timedDaily = Task(312, "Daily call", date, startTime = LocalTime(8, 0),
+            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = TaskOccurrenceId(3120, date))
+        val state = mutableStateOf(timedCalendarPreviewState().let { it.copy(tasks = it.tasks + timedDaily + Task(320, "Plan the weekend")) })
+        val intents = mutableListOf<CalendarIntent>()
+        setContent {
+            TaskBTheme(false) {
+                CalendarScreen(state.value, { intent ->
+                    intents.add(intent)
+                    state.value = when (intent) {
+                        is CalendarIntent.ToggleCompleted -> state.value.copy(tasks = state.value.tasks.map { task ->
+                            if (task.id == intent.id && task.occurrenceId == intent.occurrenceId)
+                                task.copy(completedAt = if (task.isCompleted) null else state.value.now)
+                            else task
+                        })
+                        CalendarIntent.ShowUnscheduled -> state.value.copy(selectedDate = null)
+                        else -> state.value
+                    }
+                }, {}, {}, {})
+            }
+        }
+        val dailyHeader = onNodeWithText("Daily · 3").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val timedHeader = onNodeWithText("With time · 3").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val untimedHeader = onNodeWithText("Without time · 1").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue(dailyHeader.top < timedHeader.top && timedHeader.top < untimedHeader.top)
+        onNodeWithText("Friday · 7 tasks").assertIsDisplayed()
+        onNodeWithText("08:00–09:00 (1 hour)").assertIsDisplayed()
+        onNodeWithContentDescription("Complete Daily call", useUnmergedTree = true).assertDoesNotExist()
+        for (task in state.value.sidebarDailyTasks) {
+            onNode(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()
+            onAllNodes(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-grid")), useUnmergedTree = true).assertCountEquals(0)
+        }
+        onNode(hasText("+1 more") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()
+        val morning = state.value.tasks.single { it.id == 310 }
+        onNodeWithContentDescription("Complete Morning exercise", useUnmergedTree = true).performClick()
+        onNodeWithContentDescription("Mark Morning exercise incomplete", useUnmergedTree = true).assertIsOn()
+        runOnIdle { assertEquals(CalendarIntent.ToggleCompleted(310, morning.occurrenceId), intents.single()) }
+        onNodeWithTag("calendar-sidebar-toggle").performClick()
+        onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
+        onNodeWithText("Plan the weekend", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithText("Daily · 3").assertDoesNotExist()
+        onNodeWithText("With time · 3").assertDoesNotExist()
+        onNodeWithText("Without time · 1").assertDoesNotExist()
+    }
+}

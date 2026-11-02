@@ -3,7 +3,11 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
 
 internal fun calendarPreviewState(): CalendarState {
@@ -50,4 +54,28 @@ internal fun calendarPreviewState(): CalendarState {
     val recentlyCompleted = Task(id = 9, name = "Send the release notes", groupId = 1, createdAt = created,
         completedAt = Instant.parse("2026-10-29T11:00:00Z"))
     return CalendarState(today = LocalDate(2026, 10, 29), tasks = listOf(longUndated) + undated + scheduled + ungrouped + recentlyCompleted, groups = groups, isLoading = false, now = Instant.parse("2026-10-29T12:00:00Z"))
+}
+
+internal fun timedCalendarPreviewState(): CalendarState {
+    val groups = listOf(Group(1, "Work", GroupColor.Blue), Group(2, "Personal", GroupColor.Green), Group(3, "Travel", GroupColor.Purple))
+    val tasks = listOf(
+        Task(300, "Team sync", LocalDate(2026, 11, 6), 1, startTime = LocalTime(12, 0), durationMinutes = 60),
+        Task(301, "Coffee break", LocalDate(2026, 11, 6), startTime = LocalTime(15, 0), durationMinutes = 30),
+        Task(302, "Business trip", LocalDate(2026, 11, 6), 3, startTime = LocalTime(18, 0), durationMinutes = 3840),
+        Task(303, "Pay utility bills", LocalDate(2026, 11, 6), 2, description = "Electricity and internet for November."),
+        Task(304, "Review mobile app design", LocalDate(2026, 11, 4), 1, startTime = LocalTime(11, 0), durationMinutes = 60),
+        Task(305, "Design review", LocalDate(2026, 11, 2), 1, startTime = LocalTime(9, 0), durationMinutes = 60),
+        Task(306, "Sprint review", LocalDate(2026, 10, 30), 1, startTime = LocalTime(16, 0), durationMinutes = 60),
+        Task(307, "Plan next sprint", LocalDate(2026, 11, 9), 1),
+        Task(308, "Buy groceries", LocalDate(2026, 11, 2), 2),
+        Task(309, "Read one chapter", LocalDate(2026, 11, 4), 2),
+        Task(310, "Morning exercise", LocalDate(2026, 11, 6), 2,
+            createdAt = Instant.parse("2026-11-01T08:00:00Z"),
+            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = TaskOccurrenceId(3100, LocalDate(2026, 11, 6))),
+        Task(311, "Read for 15 minutes", LocalDate(2026, 11, 6),
+            createdAt = Instant.parse("2026-11-01T07:00:00Z"),
+            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = TaskOccurrenceId(3110, LocalDate(2026, 11, 6))),
+    )
+    return CalendarState(today = LocalDate(2026, 11, 2), selectedDate = LocalDate(2026, 11, 6), tasks = tasks,
+        groups = groups, isLoading = false, now = Instant.parse("2026-11-02T12:00:00Z"))
 }

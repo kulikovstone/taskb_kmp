@@ -23,6 +23,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
 import com.mkulikov.taskb.feature.task.api.model.Task
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 
 @Stable
 internal class CalendarDragState {
@@ -34,22 +36,33 @@ internal class CalendarDragState {
         private set
     var dense by mutableStateOf(false)
         private set
+    var sourceDate: LocalDate? by mutableStateOf(null)
+        private set
     val targets = mutableStateMapOf<LocalDate, Rect>()
     val hoveredDay: LocalDate? get() = if (task == null) null else targets.entries.firstOrNull { it.value.contains(position) }?.key
 
-    fun begin(task: Task, position: Offset, size: IntSize, dense: Boolean) {
+    fun begin(task: Task, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) {
         this.task = task
         this.position = position
         this.size = size
         this.dense = dense
+        this.sourceDate = sourceDate
     }
     fun update(position: Offset) { this.position = position }
     fun cancel() { task = null }
     fun finish(onMove: (Int, LocalDate) -> Unit) {
         val source = task
         val date = hoveredDay
+        val displayedDate = sourceDate
         cancel()
-        if (source != null && date != null && date != source.dueDate) onMove(source.id, date)
+        if (source != null && date != null) {
+            // A continuing event is dragged by the day under the pointer, not by its start date.
+            val startDate = source.dueDate
+            val newStart = if (startDate != null && displayedDate != null)
+                startDate.plus(date.toEpochDays() - displayedDate.toEpochDays(), DateTimeUnit.DAY)
+            else date
+            if (newStart != source.dueDate) onMove(source.id, newStart)
+        }
     }
 }
 
@@ -60,12 +73,14 @@ internal fun Modifier.calendarTaskDrag(
     dragState: CalendarDragState,
     enabled: Boolean,
     dense: Boolean = false,
+    sourceDate: LocalDate? = task.dueDate,
     onMove: (Int, LocalDate) -> Unit,
 ): Modifier {
     var coordinates: LayoutCoordinates? by remember { mutableStateOf(null) }
     val latestTask by rememberUpdatedState(task)
     val latestMove by rememberUpdatedState(onMove)
-    return onGloballyPositioned { coordinates = it }.pointerInput(task.id, enabled, dragState, dense) {
+    val latestSourceDate by rememberUpdatedState(sourceDate)
+    return onGloballyPositioned { coordinates = it }.pointerInput(task.id, enabled, dragState, dense, sourceDate) {
         if (!enabled) return@pointerInput
         try {
             awaitEachGesture {
@@ -77,7 +92,7 @@ internal fun Modifier.calendarTaskDrag(
                 } ?: return@awaitEachGesture
                 start.consume()
                 val origin = coordinates?.takeIf { it.isAttached } ?: return@awaitEachGesture
-                dragState.begin(latestTask, origin.localToRoot(start.position), origin.size, dense)
+                dragState.begin(latestTask, origin.localToRoot(start.position), origin.size, dense, latestSourceDate)
                 val ended = drag(start.id) { change ->
                     change.consume()
                     coordinates?.takeIf { it.isAttached }?.let { dragState.update(it.localToRoot(change.position)) }

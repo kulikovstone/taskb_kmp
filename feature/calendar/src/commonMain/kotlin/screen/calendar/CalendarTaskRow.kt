@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
@@ -29,13 +30,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.startDateTime
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import kotlinx.datetime.LocalDate
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 internal val calendarTaskPadding = 2.dp
 internal val calendarTaskCheckboxSize = 20.dp
 internal val calendarTaskTitleGap = 6.dp
 internal val calendarTaskTitleInset = calendarTaskPadding + calendarTaskCheckboxSize + calendarTaskTitleGap
+
+internal fun calendarSidebarTaskTitleGap(task: Task) = if (task.isDailyRoutine) 4.dp else 6.dp
 
 @Composable
 internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle =
@@ -54,7 +61,13 @@ internal fun CalendarTaskRow(
     dense: Boolean = false,
     enabled: Boolean = true,
     dragging: Boolean = false,
+    date: LocalDate? = task.dueDate,
+    now: Instant = Clock.System.now(),
 ) {
+    if (task.startDateTime != null) {
+        CalendarTimedTaskRow(task, group, onOpenTask, modifier, dense, enabled, dragging, date, now)
+        return
+    }
     val colors = TaskBTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
@@ -67,25 +80,30 @@ internal fun CalendarTaskRow(
                 .indication(interactionSource, LocalIndication.current)
                 .then(
                     if (dense) Modifier.padding(calendarTaskPadding)
-                    else Modifier.heightIn(min = 44.dp).padding(vertical = 6.dp),
+                    else Modifier.padding(vertical = 4.dp),
                 ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(if (dense) calendarTaskTitleGap else 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (dense) calendarTaskTitleGap else calendarSidebarTaskTitleGap(task)),
         ) {
             Box(
-                Modifier.size(if (dense) calendarTaskCheckboxSize else 44.dp)
+                (if (dense) Modifier.size(calendarTaskCheckboxSize) else Modifier.width(24.dp))
                     .toggleable(task.isCompleted, interactionSource = interactionSource, indication = null,
                         enabled = enabled, role = Role.Checkbox, onValueChange = { onToggle(task.id) })
-                    .semantics { contentDescription = if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}" },
+                    .semantics { contentDescription = if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}" }
+                    .then(if (dense) Modifier else Modifier.padding(vertical = 6.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked, null,
                     tint = if (dense && group != null) group.color.color else if (task.isCompleted) colors.accent else colors.muted,
-                    modifier = Modifier.size(if (dense) calendarTaskCheckboxSize else 24.dp),
+                    // Crop the icon's empty 3 dp margins without scaling its 18 dp glyph.
+                    modifier = if (dense) Modifier.size(calendarTaskCheckboxSize) else Modifier
+                        .size(width = 24.dp, height = 18.dp).clipToBounds()
+                        .wrapContentSize(Alignment.TopStart, unbounded = true)
+                        .requiredSize(24.dp).offset(x = (-3).dp, y = (-3).dp),
                 )
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (dense) 4.dp else 2.dp)) {
                 Text(
                     task.name,
                     modifier = Modifier.fillMaxWidth().clickable(interactionSource = interactionSource, indication = null,
