@@ -27,4 +27,7 @@ data class TaskEntity(
     val completedAt: Long? = null,
     @ColumnInfo(defaultValue = "0") val recurring: Boolean = false,
     @ColumnInfo(defaultValue = "''") val description: String = "",
+    /** Local start time as minutes since midnight. */
+    val startTimeMinutes: Int? = null,
+    val durationMinutes: Int? = null,
 )
