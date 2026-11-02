@@ -51,7 +51,7 @@ internal fun CalendarScreen(
                 }
             } else {
                 Column(Modifier.fillMaxSize()) {
-                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(null) })
+                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(state.selectedDate) })
                     when {
                         state.isLoading -> TaskBLoading(Modifier.weight(1f))
                         state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })
