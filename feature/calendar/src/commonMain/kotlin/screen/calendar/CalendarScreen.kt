@@ -2,9 +2,6 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -17,14 +14,12 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
-import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
@@ -40,7 +35,6 @@ internal fun CalendarScreen(
     onBack: () -> Unit,
     onOpenTask: (Int) -> Unit,
     onCreateTask: (LocalDate?) -> Unit,
-    onOpenDay: (LocalDate) -> Unit,
     onOpenOccurrence: ((Task) -> Unit)? = null,
 ) {
     val drag = remember { CalendarDragState() }
@@ -62,8 +56,8 @@ internal fun CalendarScreen(
                         state.isLoading -> TaskBLoading(Modifier.weight(1f))
                         state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })
                         else -> Row(Modifier.weight(1f).fillMaxWidth()) {
-                            CalendarUndatedTasks(state, drag, onIntent, openTask)
-                            CalendarMonthGrid(state, drag, onIntent, openTask, { onCreateTask(it) }, onOpenDay, Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp, bottom = 24.dp))
+                            CalendarSidebar(state, drag, onIntent, openTask)
+                            CalendarMonthGrid(state, drag, onIntent, openTask, Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp, bottom = 24.dp))
                         }
                     }
                 }
@@ -90,7 +84,7 @@ internal fun CalendarScreen(
                 }
                 drag.task?.let { task ->
                     val density = LocalDensity.current
-                    val dense = task.dueDate != null
+                    val dense = drag.dense
                     val horizontalPadding = if (dense) calendarTaskTitleGap - calendarTaskPadding else 8.dp
                     val verticalPadding = 2.dp
                     Surface(
@@ -122,33 +116,8 @@ internal fun CalendarScreen(
     }
 }
 
-@Composable
-private fun CalendarUndatedTasks(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit) {
-    val tasks = state.undatedTasks
-    val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
-    Column(Modifier.width(320.dp).fillMaxHeight().testTag("calendar-sidebar").padding(24.dp)) {
-        Text("Unscheduled", style = TaskBTheme.typography.section.copy(lineHeightStyle = lineHeightStyle), color = TaskBTheme.colors.heading)
-        Spacer(Modifier.height(4.dp))
-        Text("${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}", style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle), color = TaskBTheme.colors.muted)
-        Spacer(Modifier.height(16.dp))
-        if (tasks.isEmpty()) Text("No unscheduled tasks.", color = TaskBTheme.colors.muted, style = TaskBTheme.typography.body)
-        val scroll = rememberLazyListState()
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().testTag("calendar-undated")) {
-                items(tasks, key = { it.key }) { task ->
-                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
-                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, date -> onIntent(CalendarIntent.MoveTask(id, date, task.occurrenceId)) },
-                        enabled = enabled, dragging = drag.task?.key == task.key)
-                }
-            }
-            TaskBVerticalScrollbar(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
-        }
-    }
-}
-
 @Preview(name = "Calendar", widthDp = 1440, heightDp = 900)
 @Composable
 private fun CalendarScreenPreview() {
-    TaskBTheme(darkTheme = false) { CalendarScreen(calendarPreviewState(), {}, {}, {}, {}, {}) }
+    TaskBTheme(darkTheme = false) { CalendarScreen(calendarPreviewState(), {}, {}, {}, {}) }
 }

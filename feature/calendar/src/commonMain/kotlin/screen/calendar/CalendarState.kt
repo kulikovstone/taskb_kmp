@@ -18,6 +18,7 @@ import kotlin.time.Instant
 internal data class CalendarState(
     val today: LocalDate,
     val month: YearMonth = today.yearMonth,
+    val selectedDate: LocalDate? = today,
     val tasks: List<Task> = emptyList(),
     val groups: List<Group> = emptyList(),
     val isLoading: Boolean = true,
@@ -41,6 +42,7 @@ internal data class CalendarState(
     val tasksByDate: Map<LocalDate?, List<Task>> get() = tasks.filter { it.dueDate != null }
         .sortedWith(compareBy<Task> { it.isCompleted }.thenByDescending { it.createdAt }.thenByDescending { it.id })
         .groupBy { it.dueDate }
+    val sidebarTasks: List<Task> get() = selectedDate?.let { tasksByDate[it].orEmpty() } ?: undatedTasks
     val days: List<LocalDate> get() {
         val offset = month.firstDay.dayOfWeek.isoDayNumber - 1
         val first = month.firstDay.minus(offset, DateTimeUnit.DAY)

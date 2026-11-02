@@ -61,7 +61,10 @@ internal class CalendarStore(
                 val date = today()
                 reduce(CalendarMessage.Today(date, clock.now()))
                 reduce(CalendarMessage.Month(date.yearMonth))
+                reduce(CalendarMessage.SelectedDate(date))
             }
+            is CalendarIntent.SelectDay -> reduce(CalendarMessage.SelectedDate(intent.date))
+            CalendarIntent.ShowUnscheduled -> reduce(CalendarMessage.SelectedDate(null))
             CalendarIntent.DismissError -> reduce(CalendarMessage.DismissError)
             CalendarIntent.DismissMoveChoice -> reduce(CalendarMessage.MoveChoice(null))
             is CalendarIntent.ConfirmMove -> {
@@ -71,7 +74,16 @@ internal class CalendarStore(
             }
             CalendarIntent.RetryLoad -> if (observation?.isActive != true) {
                 reduce(CalendarMessage.Loading)
-                val events = state.map { it.days.first() to it.days.last() }.distinctUntilChanged().flatMapLatest { (from, through) -> repository.observeCalendar(from, through) }
+                val events = state.map {
+                    val from = it.days.first()
+                    val through = it.days.last()
+                    Triple(from, through, it.selectedDate?.takeUnless { date -> date in from..through })
+                }.distinctUntilChanged().flatMapLatest { (from, through, selectedDate) ->
+                    val calendar = repository.observeCalendar(from, through)
+                    if (selectedDate == null) calendar else combine(
+                        calendar, repository.observeCalendar(selectedDate, selectedDate),
+                    ) { visibleTasks, selectedTasks -> (visibleTasks + selectedTasks).distinctBy { it.key } }
+                }
                 observation = collectEffect(combine(events, groups.groups) { tasks, groups ->
                     CalendarMessage.Loaded(tasks, groups, clock.now()) as CalendarMessage
                 }.catch {

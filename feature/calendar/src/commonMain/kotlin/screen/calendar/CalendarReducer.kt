@@ -14,6 +14,7 @@ internal sealed interface CalendarMessage {
     data object DismissError : CalendarMessage
     data class Loaded(val tasks: List<Task>, val groups: List<Group>, val now: Instant) : CalendarMessage
     data class Month(val value: YearMonth) : CalendarMessage
+    data class SelectedDate(val value: LocalDate?) : CalendarMessage
     data class Today(val value: LocalDate, val now: Instant) : CalendarMessage
     data class Moving(val id: Int, val undoing: Boolean = false) : CalendarMessage
     data class Moved(val move: CalendarMove, val undoing: Boolean, val error: String? = null) : CalendarMessage
@@ -29,6 +30,7 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
     CalendarMessage.DismissError -> state.copy(error = null)
     is CalendarMessage.Loaded -> state.copy(tasks = message.tasks, groups = message.groups, now = message.now, isLoading = false, loadError = null)
     is CalendarMessage.Month -> state.copy(month = message.value)
+    is CalendarMessage.SelectedDate -> state.copy(selectedDate = message.value)
     is CalendarMessage.Today -> state.copy(today = message.value, now = message.now)
     is CalendarMessage.Moving -> state.copy(pendingMove = message.id, undo = if (message.undoing) null else state.undo)
     is CalendarMessage.Moved -> state.copy(

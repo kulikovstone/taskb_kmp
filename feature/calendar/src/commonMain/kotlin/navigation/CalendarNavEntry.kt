@@ -7,10 +7,8 @@ import androidx.compose.runtime.getValue
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
-import com.mkulikov.taskb.feature.calendar.api.CalendarDayRoute
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarScreen
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarStore
-import com.mkulikov.taskb.feature.calendar.screen.day.CalendarDayScreen
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
 import org.koin.compose.getKoin
@@ -28,11 +26,7 @@ internal class CalendarNavEntry : INavEntry {
                 onOpenTask = { navigator.navigate(TaskEditorRoute.Edit(it)) },
                 onOpenOccurrence = { navigator.navigate(TaskEditorRoute.Edit(it.id, it.occurrenceId)) },
                 onCreateTask = { date -> navigator.navigate(TaskEditorRoute.Create(initialDate = date)) },
-                onOpenDay = { navigator.navigate(CalendarDayRoute(it)) },
             )
-        }
-        scope.entry<CalendarDayRoute> { route ->
-            CalendarDayScreen(date = route.date, onBack = navigator::back)
         }
     }
 }

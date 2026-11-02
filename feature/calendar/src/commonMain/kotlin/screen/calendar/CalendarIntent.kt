@@ -8,6 +8,8 @@ internal sealed interface CalendarIntent {
     data object PreviousMonth : CalendarIntent
     data object NextMonth : CalendarIntent
     data object Today : CalendarIntent
+    data class SelectDay(val date: LocalDate) : CalendarIntent
+    data object ShowUnscheduled : CalendarIntent
     data object RetryLoad : CalendarIntent
     data object UndoMove : CalendarIntent
     data object DismissError : CalendarIntent

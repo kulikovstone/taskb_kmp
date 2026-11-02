@@ -32,13 +32,16 @@ internal class CalendarDragState {
         private set
     var size by mutableStateOf(IntSize.Zero)
         private set
+    var dense by mutableStateOf(false)
+        private set
     val targets = mutableStateMapOf<LocalDate, Rect>()
     val hoveredDay: LocalDate? get() = if (task == null) null else targets.entries.firstOrNull { it.value.contains(position) }?.key
 
-    fun begin(task: Task, position: Offset, size: IntSize) {
+    fun begin(task: Task, position: Offset, size: IntSize, dense: Boolean) {
         this.task = task
         this.position = position
         this.size = size
+        this.dense = dense
     }
     fun update(position: Offset) { this.position = position }
     fun cancel() { task = null }
@@ -56,12 +59,13 @@ internal fun Modifier.calendarTaskDrag(
     task: Task,
     dragState: CalendarDragState,
     enabled: Boolean,
+    dense: Boolean = false,
     onMove: (Int, LocalDate) -> Unit,
 ): Modifier {
     var coordinates: LayoutCoordinates? by remember { mutableStateOf(null) }
     val latestTask by rememberUpdatedState(task)
     val latestMove by rememberUpdatedState(onMove)
-    return onGloballyPositioned { coordinates = it }.pointerInput(task.id, enabled, dragState) {
+    return onGloballyPositioned { coordinates = it }.pointerInput(task.id, enabled, dragState, dense) {
         if (!enabled) return@pointerInput
         try {
             awaitEachGesture {
@@ -73,7 +77,7 @@ internal fun Modifier.calendarTaskDrag(
                 } ?: return@awaitEachGesture
                 start.consume()
                 val origin = coordinates?.takeIf { it.isAttached } ?: return@awaitEachGesture
-                dragState.begin(latestTask, origin.localToRoot(start.position), origin.size)
+                dragState.begin(latestTask, origin.localToRoot(start.position), origin.size, dense)
                 val ended = drag(start.id) { change ->
                     change.consume()
                     coordinates?.takeIf { it.isAttached }?.let { dragState.update(it.localToRoot(change.position)) }

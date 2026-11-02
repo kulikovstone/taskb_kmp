@@ -37,7 +37,7 @@ import kotlinx.datetime.yearMonth
 import kotlin.math.ceil
 
 @Composable
-internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onCreateTask: (LocalDate) -> Unit, onOpenDay: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
+internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, modifier: Modifier = Modifier) {
     val colors = TaskBTheme.colors
     val tasks = state.tasksByDate
     val weeks = state.days.chunked(7)
@@ -54,7 +54,7 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 week.forEachIndexed { dayIndex, date ->
                     key(date) {
-                        CalendarDayCell(date, tasks[date].orEmpty(), state, drag, onIntent, onOpenTask, onCreateTask, onOpenDay,
+                        CalendarDayCell(date, tasks[date].orEmpty(), state, drag, onIntent, onOpenTask,
                             endBorder = dayIndex < 6, bottomBorder = weekIndex < weeks.lastIndex,
                             modifier = Modifier.weight(1f).fillMaxHeight())
                     }
@@ -65,39 +65,41 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
 }
 
 @Composable
-private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onCreateTask: (LocalDate) -> Unit, onOpenDay: (LocalDate) -> Unit, endBorder: Boolean, bottomBorder: Boolean, modifier: Modifier) {
+private fun CalendarDayCell(date: LocalDate, tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, endBorder: Boolean, bottomBorder: Boolean, modifier: Modifier) {
     val colors = TaskBTheme.colors
     val outsideMonth = date.yearMonth != state.month
     val isToday = date == state.today
     val hovered = drag.hoveredDay == date
+    val isSelected = date == state.selectedDate
     DisposableEffect(drag, date) { onDispose { drag.targets.remove(date) } }
     Box(modifier
         .onGloballyPositioned { drag.targets[date] = it.boundsInRoot() }
-        .background(when { hovered -> colors.selected; outsideMonth || date.dayOfWeek.isoDayNumber >= 6 -> colors.subtle; else -> colors.surface })
-        .clickable(interactionSource = null, indication = null, role = Role.Button) { onCreateTask(date) }
-        .semantics { contentDescription = "Create task on $date"; selected = hovered }
+        .background(when { hovered || isSelected -> colors.selected; outsideMonth || date.dayOfWeek.isoDayNumber >= 6 -> colors.subtle; else -> colors.surface })
+        .clickable(interactionSource = null, indication = null, role = Role.Button) { onIntent(CalendarIntent.SelectDay(date)) }
+        .semantics { contentDescription = "Show tasks for $date"; selected = hovered || isSelected }
         .testTag("calendar-day-$date").clipToBounds()) {
         Column(Modifier.fillMaxSize().padding(end = if (endBorder) 1.dp else 0.dp, bottom = if (bottomBorder) 1.dp else 0.dp).padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(Modifier.fillMaxWidth().height(20.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Box(Modifier.size(20.dp)
                     .then(if (isToday) Modifier.background(colors.actionFill, RoundedCornerShape(4.dp)) else Modifier)
-                    .clickable(interactionSource = null, indication = null, role = Role.Button) { onOpenDay(date) }
-                    .semantics { contentDescription = "Open day $date" }
+                    .clickable(interactionSource = null, indication = null, role = Role.Button) { onIntent(CalendarIntent.SelectDay(date)) }
+                    .semantics { contentDescription = "Show tasks for $date" }
                     .testTag("calendar-day-number-$date"), contentAlignment = Alignment.Center) {
                     Text(date.day.toString(), color = if (isToday) colors.onAction else if (outsideMonth) colors.muted else colors.text, style = TaskBTheme.typography.button)
                 }
                 if (outsideMonth) Text(calendarMonthAbbreviation.format(date), color = colors.muted, style = TaskBTheme.typography.button)
             }
-            CalendarDayTasks(tasks, state, drag, onIntent, onOpenTask, { onOpenDay(date) }, Modifier.weight(1f).fillMaxWidth().padding(horizontal = 2.dp))
+            CalendarDayTasks(tasks, state, drag, onIntent, onOpenTask, { onIntent(CalendarIntent.SelectDay(date)) }, Modifier.weight(1f).fillMaxWidth().padding(horizontal = 2.dp))
         }
         if (endBorder) Box(Modifier.align(Alignment.CenterEnd).width(1.dp).fillMaxHeight().background(colors.border))
         if (bottomBorder) Divider(Modifier.align(Alignment.BottomCenter), color = colors.border)
+        if (hovered) Box(Modifier.matchParentSize().border(2.dp, colors.accent))
     }
 }
 
 /** Учитываем высоту перенесённых названий и ссылки на остальные задачи, чтобы не обрезать строки. */
 @Composable
-private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onOpenDay: () -> Unit, modifier: Modifier) {
+private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit, onSelectDay: () -> Unit, modifier: Modifier) {
     val colors = TaskBTheme.colors
     val titleStyle = calendarTaskTitleStyle(dense = true)
     val moreStyle = TaskBTheme.typography.body.copy(
@@ -121,7 +123,7 @@ private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: Cale
                 val row = subcompose(task.key) {
                     val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, target -> onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId)) },
+                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled, dense = true) { id, target -> onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId)) },
                         dense = true, enabled = enabled, dragging = drag.task?.key == task.key)
                 }.single().measure(Constraints.fixedWidth(taskWidth))
                 add(row)
@@ -141,7 +143,7 @@ private fun CalendarDayTasks(tasks: List<Task>, state: CalendarState, drag: Cale
         }
         val more = if (tasks.size > visible) subcompose("more") {
             Text("+${tasks.size - visible} more", color = colors.accent, style = moreStyle, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = calendarTaskTitleInset).clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onOpenDay))
+                modifier = Modifier.padding(start = calendarTaskTitleInset).clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onSelectDay))
         }.single().measure(Constraints(maxWidth = constraints.maxWidth, maxHeight = (constraints.maxHeight - rowsHeight).coerceAtLeast(0))) else null
         layout(constraints.maxWidth, constraints.maxHeight) {
             var y = 0

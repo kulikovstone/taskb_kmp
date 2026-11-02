@@ -67,7 +67,7 @@ internal fun CalendarTaskRow(
                 .indication(interactionSource, LocalIndication.current)
                 .then(
                     if (dense) Modifier.padding(calendarTaskPadding)
-                    else Modifier.heightIn(min = 44.dp).padding(vertical = if (group != null) 2.dp else 0.dp),
+                    else Modifier.heightIn(min = 44.dp).padding(vertical = 6.dp),
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(if (dense) calendarTaskTitleGap else 8.dp),
@@ -93,6 +93,15 @@ internal fun CalendarTaskRow(
                     color = if (task.isCompleted) colors.completedText else colors.text,
                     style = titleStyle,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!dense && task.description.isNotBlank()) Text(
+                    task.description,
+                    modifier = Modifier.fillMaxWidth().clickable(interactionSource = interactionSource, indication = null,
+                        enabled = enabled, role = Role.Button) { onOpenTask(task.id) },
+                    color = colors.muted,
+                    style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

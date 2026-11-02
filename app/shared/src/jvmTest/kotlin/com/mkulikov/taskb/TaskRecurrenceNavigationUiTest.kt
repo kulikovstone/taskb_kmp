@@ -12,6 +12,8 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.Padding
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import org.koin.compose.KoinIsolatedContext
@@ -37,9 +39,15 @@ class TaskRecurrenceNavigationUiTest {
                 waitText("Calendar")
                 onNodeWithText("Calendar").performClick()
                 waitText("Unscheduled")
-                onNodeWithTag("calendar-day-$start", useUnmergedTree = true).performClick()
+                onNodeWithTag("calendar-sidebar-toggle").performClick()
+                onNodeWithText("New task").performClick()
                 waitText("Create task")
                 onNodeWithContentDescription("Task name").performTextReplacement("Recurring routine")
+                onNodeWithContentDescription("Choose date").performClick()
+                val dateLabel = LocalDate.Format {
+                    monthName(MonthNames.ENGLISH_FULL); chars(" "); day(Padding.NONE); chars(", "); year()
+                }.format(start)
+                onNodeWithContentDescription("Choose $dateLabel").performClick()
                 onNodeWithContentDescription("Choose repeat pattern").performScrollTo().performClick()
                 waitText("Every month on day 3")
                 onNodeWithText("Daily").performClick()

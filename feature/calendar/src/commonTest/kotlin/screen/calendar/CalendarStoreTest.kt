@@ -27,6 +27,78 @@ class CalendarStoreTest {
     private val created = Instant.parse("2026-10-01T10:00:00Z")
 
     @Test
+    fun `sidebar defaults to today and keeps every selected day task with active tasks first`() {
+        val state = CalendarState(today, tasks = listOf(
+            Task(1, "Earlier", today, createdAt = created),
+            Task(2, "Later", today, createdAt = created + 1.milliseconds),
+            Task(3, "Another day", LocalDate(2026, 10, 31), createdAt = created),
+            Task(4, "Completed history", today, createdAt = created, completedAt = created),
+            Task(5, "Unscheduled", createdAt = created),
+        ))
+        assertEquals(today, state.selectedDate)
+        assertEquals(listOf(2, 1, 4), state.sidebarTasks.map { it.id })
+        assertEquals(listOf(5), reduceCalendar(state, CalendarMessage.SelectedDate(null)).sidebarTasks.map { it.id })
+        assertEquals(listOf(3), reduceCalendar(state, CalendarMessage.SelectedDate(LocalDate(2026, 10, 31))).sidebarTasks.map { it.id })
+        assertTrue(reduceCalendar(state, CalendarMessage.SelectedDate(LocalDate(2026, 11, 1))).sidebarTasks.isEmpty())
+    }
+
+    @Test
+    fun `day selection exits unscheduled and today restores the date and month without timer resets`() = runTest {
+        var date = today
+        CalendarStore(Tasks(emptyList()), Groups(), StandardTestDispatcher(testScheduler), { date }).use { store ->
+            runCurrent()
+            assertEquals(today, store.state.value.selectedDate)
+            store.accept(CalendarIntent.ShowUnscheduled)
+            runCurrent()
+            assertNull(store.state.value.selectedDate)
+            val selected = LocalDate(2026, 9, 28)
+            store.accept(CalendarIntent.SelectDay(selected))
+            store.accept(CalendarIntent.NextMonth)
+            runCurrent()
+            assertEquals(selected, store.state.value.selectedDate)
+            assertEquals(YearMonth(2026, 11), store.state.value.month)
+            date = LocalDate(2026, 11, 1)
+            advanceTimeBy(60_000)
+            runCurrent()
+            assertEquals(selected, store.state.value.selectedDate)
+            store.accept(CalendarIntent.ShowUnscheduled)
+            store.accept(CalendarIntent.Today)
+            runCurrent()
+            assertEquals(date, store.state.value.selectedDate)
+            assertEquals(YearMonth(2026, 11), store.state.value.month)
+        }
+    }
+
+    @Test
+    fun `browsing other months retains selected day occurrences without duplicate unscheduled tasks`() = runTest {
+        val occurrence = TaskOccurrenceId(4, today)
+        val later = TaskOccurrenceId(4, LocalDate(2026, 11, 30))
+        val first = Task(1, "Repeating task", today, recurrence = TaskRecurrence.monthly(today), occurrenceId = occurrence)
+        val second = first.copy(dueDate = later.scheduledDate, occurrenceId = later)
+        val repository = Tasks(listOf(first, second, Task(2, "Unscheduled"))).apply { boundedCalendar = true }
+        CalendarStore(repository, Groups(), StandardTestDispatcher(testScheduler), { today }).use { store ->
+            runCurrent()
+            store.accept(CalendarIntent.NextMonth)
+            store.accept(CalendarIntent.NextMonth)
+            runCurrent()
+            assertEquals(YearMonth(2026, 12), store.state.value.month)
+            assertEquals(listOf(first), store.state.value.sidebarTasks)
+            assertEquals(setOf(first.key, second.key, "2"), store.state.value.tasks.map { it.key }.toSet())
+            assertEquals(3, store.state.value.tasks.size)
+            assertTrue((today to today) in repository.calendarRanges)
+            store.accept(CalendarIntent.ToggleCompleted(1, occurrence))
+            runCurrent()
+            assertTrue(store.state.value.sidebarTasks.single().isCompleted)
+            assertFalse(store.state.value.tasks.first { it.occurrenceId == later }.isCompleted)
+            store.accept(CalendarIntent.ShowUnscheduled)
+            runCurrent()
+            assertEquals(listOf(2), store.state.value.sidebarTasks.map { it.id })
+        }
+        runCurrent()
+        assertEquals(0, repository.subscriptions)
+    }
+
+    @Test
     fun `undated tasks put recent completions last exclude older completions and preserve creation order`() {
         val now = Instant.parse("2026-10-30T10:00:00Z")
         val state = CalendarState(today, now = now, tasks = listOf(
@@ -267,6 +339,8 @@ class CalendarStoreTest {
         var fail = false
         var writes = 0
         var subscriptions = 0
+        var boundedCalendar = false
+        val calendarRanges = mutableListOf<Pair<LocalDate, LocalDate>>()
         var beforeMove: suspend () -> Unit = {}
         override val tasks = flow {
             if (fail) error("Read failed")
@@ -274,6 +348,10 @@ class CalendarStoreTest {
             try { emitAll(values) } finally { subscriptions-- }
         }
         override suspend fun getById(id: Int) = values.value.find { it.id == id }
+        override fun observeCalendar(from: LocalDate, through: LocalDate): Flow<List<Task>> {
+            calendarRanges.add(from to through)
+            return tasks.map { list -> list.filter { !boundedCalendar || it.dueDate?.let { date -> date in from..through } != false } }
+        }
         override suspend fun save(task: Task): Boolean = error("Unused")
         override suspend fun delete(id: Int) { values.value = values.value.filter { it.id != id } }
         override suspend fun setCompleted(id: Int, completed: Boolean) {

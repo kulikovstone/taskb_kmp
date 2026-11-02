@@ -15,6 +15,7 @@ internal fun calendarPreviewState(): CalendarState {
     val longUndated = Task(
         id = 8,
         name = "Prepare a detailed plan for the next release and review all remaining tasks",
+        description = "Scope, milestones and owners for the next release.",
         groupId = 1,
         createdAt = Instant.fromEpochMilliseconds(created.toEpochMilliseconds() + 1),
     )
@@ -36,6 +37,11 @@ internal fun calendarPreviewState(): CalendarState {
         Triple("2026-10-30", "Monthly review", 1), Triple("2026-10-31", "Plan November", 2),
         Triple("2026-11-01", "Weekend walk", 6),
     ).mapIndexed { index, (date, name, group) -> Task(index + 100, name, LocalDate.parse(date), group,
+        description = when (index) {
+            26 -> "Summarize progress and the next milestones."
+            27 -> "Take the riverside route after work."
+            else -> "Review the details and prepare the next steps."
+        },
         createdAt = Instant.fromEpochMilliseconds(created.toEpochMilliseconds() - index), completedAt = created.takeIf { index in 2..4 }) }
     val ungrouped = listOf(
         Task(id = 200, name = "Renew passport", dueDate = LocalDate(2026, 10, 3), createdAt = created),
