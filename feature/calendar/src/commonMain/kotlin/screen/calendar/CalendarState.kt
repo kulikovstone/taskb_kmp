@@ -57,9 +57,11 @@ internal data class CalendarState(
         .mapValues { (_, tasks) -> tasks.filterNot { it.isDailyRoutine } }
         .filterValues { it.isNotEmpty() }
     val sidebarTasks: List<Task> get() = selectedDate?.let { tasksByDate[it].orEmpty().sortedWith(sidebarTaskOrder) } ?: undatedTasks
-    val sidebarDailyTasks: List<Task> get() = if (selectedDate == null) emptyList() else sidebarTasks.filter { it.isDailyRoutine }
-    val sidebarTimedTasks: List<Task> get() = sidebarTasks.filter { it.startDateTime != null && (selectedDate == null || !it.isDailyRoutine) }
-    val sidebarUntimedTasks: List<Task> get() = sidebarTasks.filter { it.startDateTime == null && (selectedDate == null || !it.isDailyRoutine) }
+    val sidebarDailyTasks: List<Task> get() = if (selectedDate == null) emptyList() else sidebarTasks.filter { !it.isCompleted && it.isDailyRoutine }
+    val sidebarTimedTasks: List<Task> get() = sidebarTasks.filter { !it.isCompleted && it.startDateTime != null && (selectedDate == null || !it.isDailyRoutine) }
+    val sidebarUntimedTasks: List<Task> get() = sidebarTasks.filter { !it.isCompleted && it.startDateTime == null && (selectedDate == null || !it.isDailyRoutine) }
+    val sidebarCompletedTasks: List<Task> get() = sidebarTasks.filter { it.isCompleted }
+        .sortedWith(compareByDescending<Task> { it.completedAt }.thenByDescending { it.createdAt }.thenByDescending { it.id })
     val days: List<LocalDate> get() {
         val offset = month.firstDay.dayOfWeek.isoDayNumber - 1
         val first = month.firstDay.minus(offset, DateTimeUnit.DAY)

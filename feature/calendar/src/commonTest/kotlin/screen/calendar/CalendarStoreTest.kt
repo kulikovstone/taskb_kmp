@@ -28,7 +28,7 @@ class CalendarStoreTest {
     private val created = Instant.parse("2026-10-01T10:00:00Z")
 
     @Test
-    fun `completing a daily routine preserves other occurrences and its history remains in the daily section`() = runTest {
+    fun `completing a daily routine moves it to completed and preserves other occurrences and history`() = runTest {
         val first = Task(1, "Daily routine", today, createdAt = created,
             recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = TaskOccurrenceId(4, today))
         val second = first.copy(dueDate = LocalDate(2026, 10, 31), occurrenceId = TaskOccurrenceId(4, LocalDate(2026, 10, 31)))
@@ -39,7 +39,8 @@ class CalendarStoreTest {
             assertTrue(store.state.value.monthTasksByDate.isEmpty())
             store.accept(CalendarIntent.ToggleCompleted(first.id, first.occurrenceId))
             runCurrent()
-            assertTrue(store.state.value.sidebarDailyTasks.single().isCompleted)
+            assertTrue(store.state.value.sidebarDailyTasks.isEmpty())
+            assertEquals(first.key, store.state.value.sidebarCompletedTasks.single().key)
             assertFalse(repository.values.value.single { it.key == second.key }.isCompleted)
             assertTrue(store.state.value.monthTasksByDate.isEmpty())
             store.accept(CalendarIntent.SelectDay(second.dueDate!!))
@@ -47,7 +48,12 @@ class CalendarStoreTest {
             assertEquals(listOf(second), store.state.value.sidebarDailyTasks)
             store.accept(CalendarIntent.SelectDay(today))
             runCurrent()
-            assertTrue(store.state.value.sidebarDailyTasks.single().isCompleted)
+            assertTrue(store.state.value.sidebarDailyTasks.isEmpty())
+            assertEquals(first.key, store.state.value.sidebarCompletedTasks.single().key)
+            store.accept(CalendarIntent.ToggleCompleted(first.id, first.occurrenceId))
+            runCurrent()
+            assertEquals(listOf(first), store.state.value.sidebarDailyTasks)
+            assertTrue(store.state.value.sidebarCompletedTasks.isEmpty())
         }
     }
 

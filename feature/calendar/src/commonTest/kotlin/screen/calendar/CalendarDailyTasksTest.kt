@@ -31,7 +31,8 @@ class CalendarDailyTasksTest {
         val state = CalendarState(date, tasks = listOf(event, previous, today, tomorrow, Task(3, "Bills", date)))
         assertEquals(listOf(today, event, state.tasks.last()), state.sidebarTasks)
         assertEquals(listOf(today), state.sidebarDailyTasks)
-        assertEquals(listOf(previous), state.copy(selectedDate = previous.dueDate).sidebarDailyTasks)
+        assertTrue(state.copy(selectedDate = previous.dueDate).sidebarDailyTasks.isEmpty())
+        assertEquals(listOf(previous), state.copy(selectedDate = previous.dueDate).sidebarCompletedTasks)
         assertTrue(state.copy(selectedDate = LocalDate(2026, 11, 8)).sidebarDailyTasks.isEmpty())
         assertTrue(state.monthTasksByDate.values.flatten().none { it.isDailyRoutine })
     }

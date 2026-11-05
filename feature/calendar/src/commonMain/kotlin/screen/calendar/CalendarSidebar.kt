@@ -35,9 +35,11 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
     val daily = state.sidebarDailyTasks
     val timed = state.sidebarTimedTasks
     val untimed = state.sidebarUntimedTasks
+    val completed = state.sidebarCompletedTasks
     var dailyExpanded by remember(date) { mutableStateOf(true) }
     var timedExpanded by remember(date) { mutableStateOf(true) }
     var untimedExpanded by remember(date) { mutableStateOf(true) }
+    var completedExpanded by remember(date) { mutableStateOf(true) }
     val colors = TaskBTheme.colors
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
     val count = "${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}"
@@ -113,6 +115,24 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, target ->
                             onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
                         }, enabled = enabled, dragging = drag.task?.key == task.key,
+                        contentPadding = calendarSidebarTaskPadding)
+                }
+                if (completed.isNotEmpty()) item(key = "completed-heading") {
+                    if (untimed.isNotEmpty()) Spacer(Modifier.height(16.dp))
+                    else if (timed.isNotEmpty()) Spacer(Modifier.height(if (timedExpanded) 12.dp else 16.dp))
+                    else if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
+                    CalendarSidebarSectionHeader("Completed · ${completed.size}", completedExpanded, { completedExpanded = !completedExpanded },
+                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-completed-heading"))
+                    if (completedExpanded) Spacer(Modifier.height(8.dp))
+                }
+                if (completedExpanded) items(completed, key = { it.key }) { task ->
+                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
+                        { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
+                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
+                            sourceDate = date ?: task.dueDate) { id, target ->
+                            onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
+                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now,
                         contentPadding = calendarSidebarTaskPadding)
                 }
             }
