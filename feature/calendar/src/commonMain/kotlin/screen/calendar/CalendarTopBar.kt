@@ -20,7 +20,7 @@ internal fun CalendarTopBar(state: CalendarState, onIntent: (CalendarIntent) -> 
     Row(Modifier.fillMaxWidth().height(96.dp).padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onBack, Modifier.size(48.dp)) { Icon(TaskBIcons.Back, "Back", tint = colors.heading) }
         Spacer(Modifier.width(8.dp))
-        Text(calendarMonthLabel.format(state.month), modifier = Modifier.weight(1f), style = TaskBTheme.typography.display,
+        Text(calendarMonthLabel.format(state.month), modifier = Modifier.weight(1f).offset(y = (-2).dp), style = TaskBTheme.typography.display,
             color = colors.heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.width(24.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

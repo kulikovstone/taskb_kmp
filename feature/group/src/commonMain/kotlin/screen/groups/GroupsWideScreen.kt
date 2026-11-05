@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
@@ -33,7 +34,7 @@ internal fun GroupsWideScreen(
         Row(Modifier.fillMaxWidth().height(96.dp).padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(TaskBIcons.Back, contentDescription = "Back", tint = TaskBTheme.colors.heading) }
             Spacer(Modifier.width(8.dp))
-            Text("Groups", style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
+            Text("Groups", modifier = Modifier.offset(y = (-2).dp), style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
             Spacer(Modifier.weight(1f))
             TaskBEditorButton("New group", TaskBIcons.Add, onCreateGroup)
         }
