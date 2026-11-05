@@ -35,6 +35,7 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
     val events = state.sidebarEventItems
     val mainTasks = state.sidebarMainTaskItems
     val completed = state.sidebarCompletedItems
+    val isDayCompleted = state.isSelectedDayCompleted
     val showTaskHeading = date != null || events.isNotEmpty()
     var dailyExpanded by remember(date) { mutableStateOf(true) }
     var eventsExpanded by remember(date) { mutableStateOf(true) }
@@ -73,8 +74,14 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
             modifier = Modifier.padding(calendarSidebarTaskPadding), color = colors.muted, style = TaskBTheme.typography.body)
         val scroll = rememberLazyListState()
         LaunchedEffect(date) { scroll.scrollToItem(0) }
+        LaunchedEffect(isDayCompleted) {
+            if (isDayCompleted) scroll.scrollToItem(0)
+        }
         Row(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(state = scroll, modifier = Modifier.weight(1f).fillMaxHeight().testTag("calendar-sidebar-list")) {
+                if (isDayCompleted) item(key = "day-completed") {
+                    CalendarDayCompleted(Modifier.padding(calendarSidebarTaskPadding).padding(bottom = 24.dp))
+                }
                 if (daily.isNotEmpty()) item(key = "daily-heading") {
                     CalendarSidebarSectionHeader("Daily · ${daily.size}", dailyExpanded, { dailyExpanded = !dailyExpanded },
                         Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-daily-heading"))

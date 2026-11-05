@@ -69,6 +69,13 @@ internal data class CalendarState(
     val sidebarEventItems get() = eventItems(selectedDate).sortedWith(calendarItemOrder)
     val sidebarMainTaskItems get() = sidebarUntimedTasks.map(CalendarItem::TaskItem)
     val sidebarCompletedItems get() = sidebarCompletedTasks.map(CalendarItem::TaskItem)
+    val isSelectedDayCompleted: Boolean get() {
+        if (selectedDate != today || isLoading || loadError != null) return false
+        val tasks = sidebarTasks
+        val timedEvents = sidebarEventItems.map { it.event }.filter { it.isTimed }
+        return (tasks.isNotEmpty() || timedEvents.isNotEmpty()) &&
+            tasks.all { it.isCompleted } && timedEvents.all { it.isPastCalendarEvent(now) }
+    }
     val days: List<LocalDate> get() {
         val offset = month.firstDay.dayOfWeek.isoDayNumber - 1
         val first = month.firstDay.minus(offset, DateTimeUnit.DAY)

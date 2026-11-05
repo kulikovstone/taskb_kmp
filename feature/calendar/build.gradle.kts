@@ -10,6 +10,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.compose.material)
+            implementation(libs.compose.resources)
 
             implementation(project(":core:navigation"))
             implementation(project(":core:mvi"))
@@ -28,4 +29,8 @@ kotlin {
             implementation(libs.compose.ui.test)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.mkulikov.taskb.feature.calendar.resources"
 }
