@@ -22,6 +22,8 @@ import androidx.compose.material3.isInputValid
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -148,7 +150,7 @@ internal fun TaskTimePickerDialog(title: String, initialTime: LocalTime?, availa
                     .verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(title, style = type.section, color = colors.text)
                     val pickerColors = TimePickerDefaults.colors(clockDialColor = colors.subtle, clockDialSelectedContentColor = colors.onAction,
-                        clockDialUnselectedContentColor = colors.text, selectorColor = colors.accent, containerColor = colors.surface,
+                        clockDialUnselectedContentColor = colors.text, selectorColor = colors.actionFill, containerColor = colors.surface,
                         periodSelectorBorderColor = colors.border, periodSelectorSelectedContainerColor = colors.selected,
                         periodSelectorUnselectedContainerColor = colors.surface, periodSelectorSelectedContentColor = colors.text,
                         periodSelectorUnselectedContentColor = colors.muted, timeSelectorSelectedContainerColor = colors.selected,
@@ -156,7 +158,10 @@ internal fun TaskTimePickerDialog(title: String, initialTime: LocalTime?, availa
                         timeSelectorUnselectedContentColor = colors.text)
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         if (keyboard) TimeInput(picker, colors = pickerColors)
-                        else TimePicker(picker, colors = pickerColors, layoutType = TimePickerLayoutType.Vertical)
+                        else TimePicker(picker,
+                            // Isolate the dial's Clear/Xor blending from the dialog's render target.
+                            modifier = Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+                            colors = pickerColors, layoutType = TimePickerLayoutType.Vertical)
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         IconButton({ keyboard = !keyboard }) {
