@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTextArea
@@ -34,10 +35,14 @@ import kotlinx.datetime.plus
 internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: LocalDate, onIntent: (TaskEditorIntent) -> Unit, onChooseGroup: () -> Unit, wide: Boolean, modifier: Modifier) {
     val enabled = !state.isBusy && state.dialog == null
     Column(modifier.verticalScroll(rememberScrollState()).padding(horizontal = if (wide) 0.dp else 24.dp, vertical = if (wide) 32.dp else 24.dp)) {
-        Text("Task name", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
-        Spacer(Modifier.height(8.dp))
-        TaskBTextField(state.name, "Task name", placeholder = "Enter task name", enabled = enabled,
-            autoFocus = true, onDone = { if (state.canSave) onIntent(TaskEditorIntent.Save) }, modifier = Modifier.fillMaxWidth())
+        if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Column(Modifier.weight(1f)) { TaskNameSection(state, onIntent, enabled) }
+            Column(Modifier.weight(1f)) { TaskGroupSection(state, groups, onIntent, onChooseGroup) }
+        } else {
+            TaskNameSection(state, onIntent, enabled)
+            Spacer(Modifier.height(24.dp))
+            TaskGroupSection(state, groups, onIntent, onChooseGroup)
+        }
         Spacer(Modifier.height(24.dp))
         Text("Description", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
         Spacer(Modifier.height(8.dp))
@@ -46,11 +51,9 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
         Spacer(Modifier.height(24.dp))
         if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Column(Modifier.weight(1f)) { TaskDateSection(state, today, onIntent) }
-            Column(Modifier.weight(1f)) { TaskGroupSection(state, groups, onIntent, onChooseGroup) }
+            Spacer(Modifier.weight(1f))
         } else {
             TaskDateSection(state, today, onIntent)
-            Spacer(Modifier.height(24.dp))
-            TaskGroupSection(state, groups, onIntent, onChooseGroup)
         }
         if (state.dueDate != null) {
             Spacer(Modifier.height(24.dp))
@@ -61,6 +64,14 @@ internal fun TaskEditorForm(state: TaskEditorState, groups: List<Group>, today: 
             Text("Name, description and group apply to every event. Schedule changes preserve completed history.", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted)
         }
     }
+}
+
+@Composable
+private fun TaskNameSection(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, enabled: Boolean) {
+    Text("Task name", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text, modifier = Modifier.height(18.dp))
+    Spacer(Modifier.height(8.dp))
+    TaskBTextField(state.name, "Task name", placeholder = "Enter task name", enabled = enabled,
+        autoFocus = true, onDone = { if (state.canSave) onIntent(TaskEditorIntent.Save) }, modifier = Modifier.fillMaxWidth())
 }
 
 @Composable
@@ -90,14 +101,14 @@ private fun TaskGroupSection(state: TaskEditorState, groups: List<Group>, onInte
         Spacer(Modifier.height(8.dp))
         TaskSelectionField(group?.name ?: "No group", groupIcon, group?.color?.color ?: TaskBTheme.colors.muted,
             placeholder = group == null, description = "Choose task group", enabled = enabled, onClick = onChooseGroup,
-            onClear = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(null)) } }, clearDescription = "Clear task group")
+            onClear = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(null)) } }, clearDescription = "Clear task group", height = 44.dp)
     }
 }
 
 @Composable
-internal fun TaskSelectionField(label: String, icon: ImageVector, tint: Color, placeholder: Boolean, description: String, enabled: Boolean, onClick: () -> Unit, onClear: (() -> Unit)?, clearDescription: String) {
+internal fun TaskSelectionField(label: String, icon: ImageVector, tint: Color, placeholder: Boolean, description: String, enabled: Boolean, onClick: () -> Unit, onClear: (() -> Unit)?, clearDescription: String, height: Dp = 56.dp) {
     val shape = RoundedCornerShape(8.dp)
-    Row(Modifier.fillMaxWidth().height(56.dp).clip(shape).border(1.dp, TaskBTheme.colors.border, shape), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(height).clip(shape).border(1.dp, TaskBTheme.colors.border, shape), verticalAlignment = Alignment.CenterVertically) {
         Row(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { contentDescription = description }.padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
