@@ -25,11 +25,12 @@ internal fun Int.localTime() = LocalTime(this / 60, this % 60)
 internal fun normalizedEventDuration(startTimeMinutes: Int?, durationMinutes: Int?): Int? =
     if (startTimeMinutes == null) null else durationMinutes ?: 60
 
-internal fun EventRecurrence.entity(eventId: Int, start: LocalDate, startTime: LocalTime? = null, durationMinutes: Int? = null) = EventScheduleEntity(
+internal fun EventRecurrence.entity(eventId: Int, start: LocalDate, startTime: LocalTime? = null, durationMinutes: Int? = null, durationDays: Int = 1) = EventScheduleEntity(
     eventId = eventId, startDate = start.toEpochDays(), frequency = frequency.name, interval = interval,
     weekdays = weekdays.fold(0) { mask, day -> mask or (1 shl day.ordinal) }, dayOfMonth = dayOfMonth, month = month,
     endDate = endDate?.toEpochDays(), occurrenceCount = occurrenceCount,
     startTimeMinutes = startTime?.minuteOfDay(), durationMinutes = normalizedEventDuration(startTime?.minuteOfDay(), durationMinutes),
+    durationDays = durationDays,
 )
 
 internal val EventRecord.currentSchedule get() = schedules.filter { it.closedBefore == null }.maxByOrNull { it.id }
@@ -44,6 +45,7 @@ internal fun EventRecord.event(): Event {
         recurrence = displaySchedule?.rule(),
         description = event.description,
         startTime = time?.localTime(), durationMinutes = normalizedEventDuration(time, duration),
+        durationDays = if (event.recurring) displaySchedule?.durationDays ?: 1 else event.durationDays,
     )
 }
 
@@ -63,6 +65,7 @@ internal fun EventRecord.occurrence(
         dueDate = exception?.movedDate?.let(LocalDate::fromEpochDays) ?: date,
         recurrence = schedule.rule(), occurrenceId = EventOccurrenceId(schedule.id, date),
         startTime = time?.localTime(), durationMinutes = normalizedEventDuration(time, duration),
+        durationDays = if (exception?.overridesTiming == true) exception.durationDays else schedule.durationDays,
     )
 }
 
@@ -72,7 +75,9 @@ internal fun EventRecord.calendar(from: LocalDate, through: LocalDate): List<Eve
         occurrences.mapNotNull { normalizedEventDuration(it.startTimeMinutes, it.durationMinutes) } +
         listOfNotNull(normalizedEventDuration(event.startTimeMinutes, event.durationMinutes))).maxOrNull() ?: 0
     // Include starts before the window when their duration extends into the visible dates.
-    val searchFrom = LocalDate.fromEpochDays(from.toEpochDays() - (longestDuration.toLong() + 1439) / 1440)
+    val longestDays = (schedules.map { it.durationDays } + occurrences.map { it.durationDays } + event.durationDays).maxOrNull() ?: 1
+    val lookback = maxOf((longestDuration.toLong() + 1439) / 1440, longestDays.toLong() - 1)
+    val searchFrom = LocalDate.fromEpochDays(from.toEpochDays() - lookback)
     if (!event.recurring) event().takeIf { it.dueDate == null || it.overlapsDates(from, through) }?.let(::add)
     for (schedule in schedules) {
         val end = minOf(through.toEpochDays(), schedule.closedBefore?.minus(1) ?: through.toEpochDays())

@@ -10,6 +10,7 @@ import com.mkulikov.taskb.core.database.migration.Migration4To5
 import com.mkulikov.taskb.core.database.migration.Migration5To6
 import com.mkulikov.taskb.core.database.migration.Migration6To7
 import com.mkulikov.taskb.core.database.migration.Migration7To8
+import com.mkulikov.taskb.core.database.migration.Migration10To11
 import com.mkulikov.taskb.core.database.migration.Migration9To10
 import com.mkulikov.taskb.core.database.migration.Migration8To9
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
@@ -25,7 +26,7 @@ import kotlinx.coroutines.Dispatchers
 
 @Database(
     entities = [ApplicationSetting::class, GroupEntity::class, TaskEntity::class, TaskScheduleEntity::class, TaskOccurrenceEntity::class, EventEntity::class, EventScheduleEntity::class, EventOccurrenceEntity::class],
-    version = 10,
+    version = 11,
     autoMigrations = [AutoMigration(from = 2, to = 3)],
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -40,7 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
             builder
                 .setDriver(driver)
                 .setQueryCoroutineContext(Dispatchers.Default)
-                .addMigrations(Migration3To4(), Migration4To5(), Migration5To6(), Migration6To7(), Migration7To8(), Migration8To9(), Migration9To10())
+                .addMigrations(Migration3To4(), Migration4To5(), Migration5To6(), Migration6To7(), Migration7To8(), Migration8To9(), Migration9To10(), Migration10To11())
                 .fallbackToDestructiveMigrationFrom(true, 1)
                 .build()
     }

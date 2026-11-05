@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.event.api.database
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
@@ -23,4 +24,5 @@ data class EventScheduleEntity(
     val closedBefore: Long? = null,
     val startTimeMinutes: Int? = null,
     val durationMinutes: Int? = null,
+    @ColumnInfo(defaultValue = "1") val durationDays: Int = 1,
 )

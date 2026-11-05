@@ -7,9 +7,7 @@ import com.mkulikov.taskb.feature.task.api.recurrence.nextRecurrenceDates
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.core.utils.time.currentDate
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
-import com.mkulikov.taskb.feature.event.api.model.eventEndDateTime
 
 internal data class EventEditorState(
     val isNew: Boolean = true,
@@ -17,15 +15,10 @@ internal data class EventEditorState(
     // Keep text, selection and IME composition synchronous, outside the Store's intent queue.
     val name: TextFieldState = TextFieldState(),
     val description: TextFieldState = TextFieldState(),
-    val dueDate: LocalDate? = null,
+    val today: LocalDate = currentDate(),
+    val dueDate: LocalDate = today,
+    val endDate: LocalDate = dueDate,
     val startTime: LocalTime? = null,
-    val durationMinutes: Int? = null,
-    val customDuration: Boolean = false,
-    val durationMode: EventDurationMode = EventDurationMode.Duration,
-    val durationDays: String = "0",
-    val durationHours: String = "1",
-    val durationMinutePart: String = "0",
-    val endDate: LocalDate? = null,
     val endTime: LocalTime? = null,
     val recurrence: EventRecurrence? = null,
     val repeatInterval: String = "1",
@@ -35,7 +28,6 @@ internal data class EventEditorState(
     val groups: List<Group> = emptyList(),
     val isLoadingGroups: Boolean = true,
     val groupsLoadError: String? = null,
-    val today: LocalDate = currentDate(),
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val isFinished: Boolean = false,
@@ -44,41 +36,27 @@ internal data class EventEditorState(
 ) {
     val isBusy get() = isLoading || isLoadingGroups || isSaving
     val normalizedName get() = name.text.toString().trim()
+    val editedDurationDays: Int? get() = (endDate.toEpochDays() - dueDate.toEpochDays() + 1)
+        .takeIf { it in 1..Int.MAX_VALUE.toLong() }?.toInt()
     val editedDurationMinutes: Int? get() {
-        if (startTime == null || dueDate == null) return null
-        if (!customDuration) return durationMinutes?.takeIf { it > 0 }
-        val minutes = when (durationMode) {
-            EventDurationMode.Duration -> {
-                val days = durationDays.toLongOrNull()?.takeIf { it >= 0 } ?: return null
-                val hours = durationHours.toLongOrNull()?.takeIf { it in 0..23 } ?: return null
-                val minute = durationMinutePart.toLongOrNull()?.takeIf { it in 0..59 } ?: return null
-                days * 1440 + hours * 60 + minute
-            }
-            EventDurationMode.EndDateTime -> {
-                val date = endDate ?: return null
-                val time = endTime ?: return null
-                (date.toEpochDays() - dueDate.toEpochDays()) * 1440 +
-                    time.hour * 60 + time.minute - startTime.hour * 60 - startTime.minute
-            }
-        }
+        val start = startTime ?: return null
+        val end = endTime ?: return null
+        val minutes = (endDate.toEpochDays() - dueDate.toEpochDays()) * 1440 +
+            end.hour * 60 + end.minute - start.hour * 60 - start.minute
         return minutes.takeIf { it in 1..Int.MAX_VALUE.toLong() }?.toInt()
     }
+    val savedDurationDays get() = if (startTime == null) editedDurationDays else 1
     val timingError: String? get() = when {
-        startTime == null -> null
-        dueDate == null -> "Choose a start date."
-        editedDurationMinutes != null -> null
-        !customDuration -> "Choose a positive duration."
-        durationMode == EventDurationMode.EndDateTime -> "The end date and time must be after the start."
-        else -> "Enter a positive duration: days, hours (0–23) and minutes (0–59)."
+        endDate < dueDate -> "The end date must not be before the start date."
+        startTime != null && editedDurationMinutes == null -> "The end date and time must be after the start."
+        editedDurationDays == null -> "The date range is too long."
+        else -> null
     }
-    val ending: LocalDateTime? get() = if (startTime == null || dueDate == null || editedDurationMinutes == null) null
-        else eventEndDateTime(dueDate, startTime, requireNotNull(editedDurationMinutes))
     val recurrenceError: String? get() = recurrence?.let {
         when {
             repeatInterval.toIntOrNull()?.let { value -> value in 1..9999 } != true -> "Enter an interval between 1 and 9999."
             repeatDay.toIntOrNull()?.let { value -> value in 1..31 } != true -> "Enter a day between 1 and 31."
             it.occurrenceCount != null && repeatCount.toIntOrNull()?.let { value -> value in 1..1_000_000 } != true -> "Enter between 1 and 1000000 occurrences."
-            dueDate == null -> "Choose a start date."
             it.endDate?.let { end -> end < dueDate } == true -> "The end date must not be before the start date."
             else -> null
         }
@@ -88,12 +66,11 @@ internal data class EventEditorState(
         dayOfMonth = repeatDay.toIntOrNull()?.takeIf { it in 1..31 } ?: recurrence.dayOfMonth,
         occurrenceCount = if (recurrence.occurrenceCount == null) null else repeatCount.toIntOrNull()?.takeIf { it in 1..1_000_000 } ?: recurrence.occurrenceCount,
     )
-    val upcomingDates: List<LocalDate> get() = editedRecurrence?.let { rule -> dueDate?.let { nextRecurrenceDates(rule, it) } }.orEmpty()
+    val upcomingDates: List<LocalDate> get() = editedRecurrence?.let { rule -> nextRecurrenceDates(rule, dueDate) }.orEmpty()
     val canSave get() = !isBusy && !isFinished && loadError == null && groupsLoadError == null && dialog == null && normalizedName.isNotEmpty() &&
         recurrenceError == null && timingError == null && (recurrence == null || upcomingDates.isNotEmpty()) &&
-        (isNew || original?.let { it.name != normalizedName || it.description != description.text.toString() || it.dueDate != dueDate || it.startTime != startTime || it.durationMinutes != editedDurationMinutes || it.groupId != groupId || it.recurrence != editedRecurrence } == true)
+        (isNew || original?.let { it.name != normalizedName || it.description != description.text.toString() || it.dueDate != dueDate || it.startTime != startTime || it.durationMinutes != editedDurationMinutes || it.durationDays != savedDurationDays || it.groupId != groupId || it.recurrence != editedRecurrence } == true)
 }
-internal enum class EventDurationMode { Duration, EndDateTime }
 internal sealed interface EventEditorDialog {
     data object ConfirmDelete : EventEditorDialog
     data object DatePicker : EventEditorDialog

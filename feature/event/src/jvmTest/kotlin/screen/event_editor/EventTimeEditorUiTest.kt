@@ -65,37 +65,65 @@ class EventTimeEditorUiTest {
         }
     }
 
-    @Test fun `date and time reveal dependent fields and clearing time hides duration`() {
-        val scheduler = TestCoroutineScheduler()
-        EventEditorStore(FakeEventRepository(), FakeGroupRepository(), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
-            scheduler.runCurrent()
-            runSkikoComposeUiTest(size = Size(1280f, 980f)) {
-                setContent { TaskBTheme(false) { EventEditorContent(store.state.collectAsState().value, store::accept, true, {}, {}) } }
-                onNodeWithContentDescription("Choose start time").assertDoesNotExist()
-                store.accept(EventEditorIntent.DateChanged(LocalDate(2026, 11, 6)))
-                scheduler.runCurrent(); waitForIdle()
-                onNodeWithContentDescription("Choose start time").assertIsDisplayed()
-                onNodeWithText("Duration").assertDoesNotExist()
-                store.accept(EventEditorIntent.StartTimeChanged(LocalTime(12, 0)))
-                scheduler.runCurrent(); waitForIdle()
-                onNodeWithText("Duration").assertIsDisplayed()
-                onNodeWithText("1 hour").assertIsSelected()
-                onNodeWithText("Ends at 13:00 · same day").assertIsDisplayed()
-                onNodeWithContentDescription("Clear duration").assertDoesNotExist()
-                onNodeWithText("Optional").assertDoesNotExist()
-                onNodeWithText("15 min").performClick()
-                scheduler.runCurrent(); waitForIdle()
-                onNodeWithText("Ends at 12:15 · same day").assertIsDisplayed()
-                onNodeWithText("15 min").assertIsSelected()
-                onNodeWithContentDescription("Clear start time").performClick()
-                scheduler.runCurrent(); waitForIdle()
-                onNodeWithText("Duration").assertDoesNotExist()
-                onNodeWithContentDescription("Choose start time").assertIsDisplayed()
+    @Test fun `all day date range has no clear action and saves in both layouts and themes`() {
+        for (wide in listOf(true, false)) for (dark in listOf(false, true)) {
+            val scheduler = TestCoroutineScheduler()
+            val repo = FakeEventRepository()
+            val date = LocalDate(2026, 11, 6)
+            EventEditorStore(repo, FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+                scheduler.runCurrent()
+                runSkikoComposeUiTest(size = Size(if (wide) 1280f else 400f, 980f)) {
+                    setContent {
+                        TaskBTheme(dark) {
+                            val state = store.state.collectAsState().value
+                            Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
+                                Box {
+                                    EventEditorContent(state, store::accept, wide, {}, {})
+                                    EventEditorDialogs(state, state.today, store::accept, 980.dp)
+                                }
+                            }
+                        }
+                    }
+                    onNodeWithContentDescription("Event name").performTextReplacement("Vacation")
+                    if (wide) {
+                        val name = onNodeWithContentDescription("Event name").fetchSemanticsNode().boundsInRoot
+                        val group = onNodeWithContentDescription("Choose event group").fetchSemanticsNode().boundsInRoot
+                        assertEquals(name.top, group.top, 0.5f)
+                        val start = onNodeWithContentDescription("Choose date").fetchSemanticsNode().boundsInRoot
+                        val end = onNodeWithContentDescription("Choose event end date").fetchSemanticsNode().boundsInRoot
+                        assertEquals(start.top, end.top, 0.5f)
+                    }
+                    onNodeWithContentDescription("Clear date").assertDoesNotExist()
+                    onNodeWithContentDescription("Choose event end date").performScrollTo().performClick()
+                    scheduler.runCurrent(); waitForIdle()
+                    onNodeWithContentDescription("Choose November 8, 2026").performClick()
+                    scheduler.runCurrent(); waitForIdle()
+                    onNodeWithContentDescription("Choose end time").assertDoesNotExist()
+                    onNodeWithText("Duration").assertDoesNotExist()
+                    onNodeWithText("Custom").assertDoesNotExist()
+                    onNodeWithText("30 min").assertDoesNotExist()
+                    onNodeWithContentDescription("Choose start time").performScrollTo().performClick()
+                    scheduler.runCurrent(); waitForIdle()
+                    onNodeWithContentDescription("Apply time").performClick()
+                    scheduler.runCurrent(); waitForIdle()
+                    onNodeWithContentDescription("Choose end time").performScrollTo().assertIsDisplayed()
+                    for (label in listOf("15 min", "30 min", "1 hour")) onNodeWithText(label).assertDoesNotExist()
+                    onNodeWithContentDescription("Clear start time").performScrollTo().performClick()
+                    scheduler.runCurrent(); waitForIdle()
+                    val output = Path.of("build/reports/screenshots/event-range-${if (wide) "wide" else "compact"}-${if (dark) "dark" else "light"}.png")
+                    Files.createDirectories(output.parent)
+                    ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
+                    onNodeWithContentDescription("Save event").performClick()
+                    scheduler.runCurrent()
+                    assertEquals(3, repo.lastWrite?.durationDays)
+                    assertNull(repo.lastWrite?.startTime)
+                    assertNull(repo.lastWrite?.durationMinutes)
+                }
             }
         }
     }
 
-    @Test fun `standard 24 hour picker and custom duration save at desktop and compact widths`() {
+    @Test fun `time reveals an end time thirty minutes later and quick intervals update it`() {
         for (wide in listOf(true, false)) {
             val scheduler = TestCoroutineScheduler()
             val repo = FakeEventRepository()
@@ -113,32 +141,25 @@ class EventTimeEditorUiTest {
                             }
                         }
                     }
-                    onNodeWithContentDescription("Event name").performTextReplacement("Business trip")
+                    onNodeWithContentDescription("Event name").performTextReplacement("Meeting")
                     onNodeWithContentDescription("Choose start time").performScrollTo().performClick()
                     scheduler.runCurrent(); waitForIdle()
-                    onNodeWithContentDescription("Switch to keyboard input").performClick()
                     onNodeWithContentDescription("Apply time").performClick()
                     scheduler.runCurrent(); waitForIdle()
-                    assertEquals(LocalTime(9, 0), store.state.value.startTime)
-                    assertEquals(60, store.state.value.editedDurationMinutes)
-                    onNodeWithText("1 hour").performScrollTo().assertIsSelected()
-                    onNodeWithText("15 min").assertIsDisplayed()
-                    onNodeWithText("30 min").assertIsDisplayed()
-                    onNodeWithText("Custom").assertIsDisplayed()
-                    onNodeWithText("Custom").performScrollTo().performClick()
-                    scheduler.runCurrent(); waitForIdle()
-                    onNodeWithContentDescription("Duration days").performScrollTo().performTextReplacement("2")
-                    scheduler.runCurrent(); waitForIdle()
-                    onNodeWithContentDescription("Duration hours").performScrollTo().performTextReplacement("16")
-                    scheduler.runCurrent(); waitForIdle()
-                    onNodeWithText("2 days 16 hr").performScrollTo().assertIsDisplayed()
-                    val output = Path.of("build/reports/screenshots/event-time-editor-${if (wide) "wide" else "compact"}.png")
+                    onNodeWithText("30 min").performScrollTo().assertIsSelected()
+                    onNode(hasContentDescription("Choose end time") and hasText("09:30")).performScrollTo().assertIsDisplayed()
+                    onNodeWithText("Duration").assertDoesNotExist()
+                    onNodeWithText("Custom").assertDoesNotExist()
+                    val output = Path.of("build/reports/screenshots/event-time-range-${if (wide) "wide" else "compact"}.png")
                     Files.createDirectories(output.parent)
                     ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
+                    onNodeWithText("15 min").performScrollTo().performClick()
+                    scheduler.runCurrent(); waitForIdle()
+                    onNodeWithText("15 min").assertIsSelected()
+                    onNode(hasContentDescription("Choose end time") and hasText("09:15")).performScrollTo().assertIsDisplayed()
                     onNodeWithContentDescription("Save event").performClick()
                     scheduler.runCurrent()
-                    assertEquals(LocalTime(9, 0), repo.lastWrite?.startTime)
-                    assertEquals(3840, repo.lastWrite?.durationMinutes)
+                    assertEquals(15, repo.lastWrite?.durationMinutes)
                 }
             }
         }

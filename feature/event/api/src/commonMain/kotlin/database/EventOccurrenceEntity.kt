@@ -19,4 +19,5 @@ data class EventOccurrenceEntity(
     @ColumnInfo(defaultValue = "0") val overridesTiming: Boolean = false,
     val startTimeMinutes: Int? = null,
     val durationMinutes: Int? = null,
+    @ColumnInfo(defaultValue = "1") val durationDays: Int = 1,
 )

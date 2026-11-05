@@ -50,7 +50,7 @@ internal fun EventRecurrence.description(): String {
 
 @Composable
 internal fun EventRecurrenceFields(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean, wide: Boolean) {
-    val date = state.dueDate ?: return
+    val date = state.dueDate
     val rule = state.editedRecurrence
     fun change(value: EventRecurrence?) = onIntent(EventEditorIntent.RecurrenceChanged(value))
     Column(Modifier.fillMaxWidth()) {

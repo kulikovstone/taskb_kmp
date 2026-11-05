@@ -24,12 +24,12 @@ internal fun LocalTime.calendarTimeLabel(): String =
 
 internal val Event.calendarLastDate: LocalDate?
     get() {
-        val end = endDateTime ?: return dueDate
+        val end = endDateTime ?: return endDate
         return if (end.time == LocalTime(0, 0)) end.date.minus(1, DateTimeUnit.DAY) else end.date
     }
 
 internal val Event.isMultiDayCalendarEvent: Boolean
-    get() = startDateTime != null && calendarLastDate?.let { it > requireNotNull(dueDate) } == true
+    get() = calendarLastDate?.let { it > requireNotNull(dueDate) } == true
 
 internal fun Event.isPastCalendarEvent(now: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): Boolean =
     (endDateTime ?: startDateTime)?.let { it <= now.toLocalDateTime(timeZone) } == true

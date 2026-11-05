@@ -47,7 +47,7 @@ class CalendarDailyTasksUiTest {
         val untimedHeader = onNodeWithText("Without time · 1").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(dailyHeader.top < timedHeader.top && timedHeader.top < untimedHeader.top)
         onNodeWithText("Friday · 3 tasks · 4 events").assertIsDisplayed()
-        onNodeWithText("08:00–09:00 (1 hour)").assertIsDisplayed()
+        onNodeWithText("08:00–08:30 (30 min)").assertIsDisplayed()
         onNodeWithContentDescription("Complete Daily call", useUnmergedTree = true).assertDoesNotExist()
         for (task in state.value.sidebarDailyTasks) {
             onNode(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()

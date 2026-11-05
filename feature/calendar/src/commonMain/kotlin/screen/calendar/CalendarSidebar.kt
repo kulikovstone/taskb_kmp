@@ -116,7 +116,8 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                     val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
                         { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, target ->
+                        Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
+                            sourceDate = date ?: task.dueDate) { id, target ->
                             onIntent(task.moveTo(target))
                         }, enabled = enabled, dragging = drag.item?.key == task.key,
                         contentPadding = calendarSidebarTaskPadding)

@@ -28,4 +28,5 @@ data class EventEntity(
     /** Local start time as minutes since midnight. */
     val startTimeMinutes: Int? = null,
     val durationMinutes: Int? = null,
+    @ColumnInfo(defaultValue = "1") val durationDays: Int = 1,
 )

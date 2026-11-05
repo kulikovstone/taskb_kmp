@@ -5,203 +5,170 @@ import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.event.api.model.EventChangeScope
 import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
 import com.mkulikov.taskb.feature.event.api.model.EventRecurrence
-import com.mkulikov.taskb.feature.event.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.event.testing.FakeEventRepository
+import com.mkulikov.taskb.feature.event.testing.FakeGroupRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EventEditorTimingTest {
     private val date = LocalDate(2026, 11, 6)
+    private fun endDate(store: EventEditorStore, date: LocalDate) {
+        store.accept(EventEditorIntent.ChooseEventEndDate)
+        store.accept(EventEditorIntent.EventEndDateChanged(date))
+    }
 
-    @Test fun `choosing a start time supplies the mandatory one hour duration`() = runTest {
+    @Test fun `new events always have a date and a matching inclusive end date`() = runTest {
         val repo = FakeEventRepository()
-        EventEditorStore(repo, FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
+        EventEditorStore(repo, FakeGroupRepository(), today = { date }, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
             runCurrent()
-            store.state.value.name.setTextAndPlaceCursorAtEnd("Coffee break")
-            assertNull(store.state.value.startTime)
-            assertTrue(store.state.value.canSave)
-            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(15, 0)))
-            runCurrent()
-            assertEquals(60, store.state.value.editedDurationMinutes)
-            assertFalse(store.state.value.copy(durationMinutes = null).canSave)
-            assertFalse(store.state.value.copy(durationMinutes = 0).canSave)
+            assertEquals(date, store.state.value.dueDate)
+            assertEquals(date, store.state.value.endDate)
+            store.state.value.name.setTextAndPlaceCursorAtEnd("Event")
             store.accept(EventEditorIntent.Save)
             runCurrent()
-            val saved = assertNotNull(repo.lastWrite)
-            assertEquals(LocalTime(15, 0), saved.startTime)
-            assertEquals(60, saved.durationMinutes)
+            assertEquals(date, repo.lastWrite?.dueDate)
+            assertEquals(date, repo.lastWrite?.endDate)
+            assertNull(repo.lastWrite?.startTime)
+            assertNull(repo.lastWrite?.durationMinutes)
         }
     }
 
-    @Test fun `clearing time and date remove dependent duration while preserving the rest of the draft`() = runTest {
+    @Test fun `choosing time supplies an end thirty minutes later and midnight advances the end date`() = runTest {
+        val repo = FakeEventRepository()
+        EventEditorStore(repo, FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
+            runCurrent()
+            store.state.value.name.setTextAndPlaceCursorAtEnd("Late call")
+            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(23, 50)))
+            runCurrent()
+            assertEquals(LocalDate(2026, 11, 7), store.state.value.endDate)
+            assertEquals(LocalTime(0, 20), store.state.value.endTime)
+            assertEquals(30, store.state.value.editedDurationMinutes)
+            store.accept(EventEditorIntent.Save)
+            runCurrent()
+            assertEquals(30, repo.lastWrite?.durationMinutes)
+        }
+    }
+
+    @Test fun `quick intervals set the actual endpoint and changing start time preserves the interval`() = runTest {
         EventEditorStore(FakeEventRepository(), FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
             runCurrent()
-            store.state.value.name.setTextAndPlaceCursorAtEnd("Flight")
-            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(18, 0)))
-            store.accept(EventEditorIntent.ChooseCustomDuration)
-            store.accept(EventEditorIntent.DurationInputChanged(days = "2", hours = "16", minutes = "0"))
+            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(12, 0)))
+            store.accept(EventEditorIntent.DurationChanged(15))
             runCurrent()
-            assertEquals(3840, store.state.value.editedDurationMinutes)
+            assertEquals(LocalTime(12, 15), store.state.value.endTime)
+            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(18, 0)))
+            runCurrent()
+            assertEquals(LocalTime(18, 15), store.state.value.endTime)
+            store.accept(EventEditorIntent.DurationChanged(60))
+            runCurrent()
+            assertEquals(LocalTime(19, 0), store.state.value.endTime)
+        }
+    }
+
+    @Test fun `a vacation spans inclusive dates without requiring a time`() = runTest {
+        val repo = FakeEventRepository()
+        EventEditorStore(repo, FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
+            runCurrent()
+            store.state.value.name.setTextAndPlaceCursorAtEnd("Vacation")
+            endDate(store, LocalDate(2026, 11, 8))
+            runCurrent()
+            assertTrue(store.state.value.canSave)
+            store.accept(EventEditorIntent.Save)
+            runCurrent()
+            assertEquals(3, repo.lastWrite?.durationDays)
+            assertEquals(LocalDate(2026, 11, 8), repo.lastWrite?.endDate)
+            assertNull(repo.lastWrite?.startTime)
+            assertNull(repo.lastWrite?.durationMinutes)
+        }
+    }
+
+    @Test fun `changing the start date moves the inclusive date range and clearing time keeps it`() = runTest {
+        EventEditorStore(FakeEventRepository(), FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
+            runCurrent()
+            endDate(store, LocalDate(2026, 11, 8))
+            store.accept(EventEditorIntent.DateChanged(LocalDate(2026, 11, 10)))
+            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(9, 0)))
+            runCurrent()
+            assertEquals(LocalDate(2026, 11, 12), store.state.value.endDate)
+            assertEquals(LocalTime(9, 30), store.state.value.endTime)
+            store.accept(EventEditorIntent.DurationChanged(15))
+            runCurrent()
+            assertEquals(LocalDate(2026, 11, 12), store.state.value.endDate)
+            assertEquals(LocalTime(9, 30), store.state.value.endTime)
             store.accept(EventEditorIntent.StartTimeChanged(null))
             runCurrent()
-            assertNull(store.state.value.startTime)
-            assertNull(store.state.value.editedDurationMinutes)
-            assertFalse(store.state.value.customDuration)
-            assertEquals(date, store.state.value.dueDate)
-            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(12, 0)))
-            runCurrent()
-            assertEquals(60, store.state.value.editedDurationMinutes)
-            store.accept(EventEditorIntent.DurationChanged(30))
-            store.accept(EventEditorIntent.DateChanged(null))
-            runCurrent()
-            assertNull(store.state.value.startTime)
-            assertNull(store.state.value.durationMinutes)
-            assertEquals("Flight", store.state.value.normalizedName)
-            assertTrue(store.state.value.canSave)
+            assertEquals(LocalDate(2026, 11, 12), store.state.value.endDate)
+            assertEquals(3, store.state.value.editedDurationDays)
+            assertNull(store.state.value.endTime)
         }
     }
 
-    @Test fun `custom multi day duration calculates its end and is saved`() = runTest {
-        val repo = FakeEventRepository()
-        EventEditorStore(repo, FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
+    @Test fun `endpoints before or equal to the start block saving until corrected`() = runTest {
+        EventEditorStore(FakeEventRepository(), FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
             runCurrent()
-            store.state.value.name.setTextAndPlaceCursorAtEnd("Business trip")
-            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(18, 0)))
-            store.accept(EventEditorIntent.ChooseCustomDuration)
-            store.accept(EventEditorIntent.DurationInputChanged(days = "2", hours = "16", minutes = "0"))
+            store.state.value.name.setTextAndPlaceCursorAtEnd("Invalid until fixed")
+            endDate(store, LocalDate(2026, 11, 5))
             runCurrent()
-            assertEquals(LocalDateTime(2026, 11, 9, 10, 0), store.state.value.ending)
-            store.accept(EventEditorIntent.Save)
-            runCurrent()
-            assertEquals(3840, repo.lastWrite?.durationMinutes)
-        }
-    }
-
-    @Test fun `exact ending requires an explicit later date rather than inferring overnight`() = runTest {
-        val repo = FakeEventRepository()
-        EventEditorStore(repo, FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            runCurrent()
-            store.state.value.name.setTextAndPlaceCursorAtEnd("Flight")
-            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(18, 0)))
-            store.accept(EventEditorIntent.ChooseCustomDuration)
-            store.accept(EventEditorIntent.DurationModeChanged(EventDurationMode.EndDateTime))
-            store.accept(EventEditorIntent.ChooseEndTime)
-            runCurrent()
-            assertEquals(EventEditorDialog.EndTimePicker, store.state.value.dialog)
-            store.accept(EventEditorIntent.EndTimeChanged(LocalTime(10, 0)))
-            store.accept(EventEditorIntent.Save)
-            runCurrent()
+            assertFalse(store.state.value.canSave)
             assertNotNull(store.state.value.timingError)
+            endDate(store, date)
+            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(12, 0)))
+            store.accept(EventEditorIntent.ChooseEndTime)
+            store.accept(EventEditorIntent.EndTimeChanged(LocalTime(12, 0)))
+            runCurrent()
             assertFalse(store.state.value.canSave)
-            assertEquals(0, repo.writes)
-            store.accept(EventEditorIntent.ChooseEventEndDate)
+            endDate(store, LocalDate(2026, 11, 7))
             runCurrent()
-            store.accept(EventEditorIntent.EventEndDateChanged(LocalDate(2026, 11, 9)))
-            runCurrent()
-            assertNull(store.state.value.timingError)
-            assertEquals(3840, store.state.value.editedDurationMinutes)
-            store.accept(EventEditorIntent.Save)
-            runCurrent()
-            assertEquals(3840, repo.lastWrite?.durationMinutes)
+            assertTrue(store.state.value.canSave)
         }
     }
 
-    @Test fun `invalid custom numbers cannot save and a preset recovers the draft`() = runTest {
-        val repo = FakeEventRepository()
-        EventEditorStore(repo, FakeGroupRepository(), initialDate = date, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            runCurrent()
-            store.state.value.name.setTextAndPlaceCursorAtEnd("Workout")
-            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(9, 0)))
-            store.accept(EventEditorIntent.ChooseCustomDuration)
-            for (input in listOf("", "24")) {
-                store.accept(EventEditorIntent.DurationInputChanged(hours = input))
-                store.accept(EventEditorIntent.Save)
+    @Test fun `existing timed and all day events reopen with matching endpoints and no false dirty state`() = runTest {
+        for (original in listOf(
+            Event(7, "Trip", date, startTime = LocalTime(18, 0), durationMinutes = 3840),
+            Event(7, "Legacy hour", date, startTime = LocalTime(15, 0), durationMinutes = null),
+            Event(7, "Vacation", date, durationDays = 3),
+        )) {
+            val repo = FakeEventRepository().apply { values.value = listOf(original) }
+            EventEditorStore(repo, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
                 runCurrent()
-                assertFalse(store.state.value.canSave)
-                assertNotNull(store.state.value.timingError)
-                assertEquals(0, repo.writes)
+                assertFalse(store.state.value.canSave, original.name)
+                assertEquals(original.endDate, store.state.value.endDate)
+                assertEquals(if (original.startTime == null) null else original.durationMinutes ?: 60, store.state.value.editedDurationMinutes)
             }
-            store.accept(EventEditorIntent.DurationInputChanged(days = "0", hours = "0", minutes = "0"))
+        }
+    }
+
+    @Test fun `legacy undated events receive a date in the editor`() = runTest {
+        val repo = FakeEventRepository().apply { values.value = listOf(Event(7, "Unscheduled")) }
+        EventEditorStore(repo, FakeGroupRepository(), 7, today = { date }, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
             runCurrent()
-            assertFalse(store.state.value.canSave)
-            store.accept(EventEditorIntent.DurationChanged(15))
-            runCurrent()
+            assertEquals(date, store.state.value.dueDate)
+            assertEquals(date, store.state.value.endDate)
             assertTrue(store.state.value.canSave)
-            assertNull(store.state.value.timingError)
-            assertEquals(15, store.state.value.editedDurationMinutes)
         }
     }
 
-    @Test fun `loading custom timing is unchanged until another duration is selected`() = runTest {
-        val original = Event(7, "Business trip", dueDate = date, startTime = LocalTime(18, 0), durationMinutes = 3840)
-        val repo = FakeEventRepository().apply { values.value = listOf(original) }
-        EventEditorStore(repo, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            runCurrent()
-            assertEquals(LocalTime(18, 0), store.state.value.startTime)
-            assertEquals("2", store.state.value.durationDays)
-            assertEquals("16", store.state.value.durationHours)
-            assertEquals(3840, store.state.value.editedDurationMinutes)
-            assertFalse(store.state.value.canSave)
-            store.accept(EventEditorIntent.DurationChanged(15))
-            runCurrent()
-            assertTrue(store.state.value.canSave)
-            store.accept(EventEditorIntent.Save)
-            runCurrent()
-            assertEquals(LocalTime(18, 0), repo.lastWrite?.startTime)
-            assertEquals(15, repo.lastWrite?.durationMinutes)
-        }
-    }
-
-    @Test fun `legacy timed event without a duration opens with one hour without a false dirty state`() = runTest {
-        val repo = FakeEventRepository().apply {
-            values.value = listOf(Event(7, "Old timed event", dueDate = date, startTime = LocalTime(15, 0), durationMinutes = null))
-        }
-        EventEditorStore(repo, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            runCurrent()
-            assertEquals(60, store.state.value.durationMinutes)
-            assertEquals(60, store.state.value.editedDurationMinutes)
-            assertFalse(store.state.value.canSave)
-            assertFalse(store.state.value.customDuration)
-        }
-    }
-
-    @Test fun `fifteen minute duration is a preset when reopened`() = runTest {
-        val repo = FakeEventRepository().apply {
-            values.value = listOf(Event(7, "Coffee break", dueDate = date, startTime = LocalTime(15, 0), durationMinutes = 15))
-        }
-        EventEditorStore(repo, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            runCurrent()
-            assertEquals(15, store.state.value.editedDurationMinutes)
-            assertFalse(store.state.value.customDuration)
-            assertFalse(store.state.value.canSave)
-        }
-    }
-
-    @Test fun `changing only occurrence timing asks which events to edit`() = runTest {
+    @Test fun `changing one recurring occurrence date range asks which occurrences to edit`() = runTest {
         val key = EventOccurrenceId(1, date)
-        val original = Event(7, "Team sync", dueDate = date, startTime = LocalTime(12, 0), durationMinutes = 60,
-            recurrence = EventRecurrence.monthly(date), occurrenceId = key)
+        val original = Event(7, "Vacation", date, recurrence = EventRecurrence.monthly(date), occurrenceId = key)
         val repo = FakeEventRepository().apply { values.value = listOf(original) }
-        EventEditorStore(repo, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(testScheduler), occurrenceId = key).use { store ->
+        EventEditorStore(repo, FakeGroupRepository(), 7, occurrenceId = key, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
             runCurrent()
-            assertFalse(store.state.value.canSave)
-            store.accept(EventEditorIntent.StartTimeChanged(LocalTime(13, 0)))
+            endDate(store, LocalDate(2026, 11, 8))
             store.accept(EventEditorIntent.Save)
             runCurrent()
             assertEquals(EventEditorDialog.MoveOccurrence, store.state.value.dialog)
             assertEquals(0, repo.writes)
             store.accept(EventEditorIntent.SaveOccurrence(EventChangeScope.ThisOccurrence))
             runCurrent()
-            assertEquals(LocalTime(13, 0), repo.lastWrite?.startTime)
-            assertEquals(60, repo.lastWrite?.durationMinutes)
-            assertEquals(key, repo.lastWrite?.occurrenceId)
+            assertEquals(3, repo.lastWrite?.durationDays)
             assertEquals(EventChangeScope.ThisOccurrence, repo.lastScope)
         }
     }

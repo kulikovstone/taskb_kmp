@@ -32,14 +32,14 @@ class EventTimingRepositoryTest {
     private fun day(day: Int) = LocalDate(2026, 11, day)
     private suspend fun EventRepository.calendarEvents() = observeCalendar(day(1), day(30)).first().sortedBy { it.dueDate }
 
-    @Test fun `a timed save defaults missing duration to one hour and rejects invalid durations`() = runBlocking<Unit> {
+    @Test fun `a timed save defaults missing duration to thirty minutes and rejects invalid durations`() = runBlocking<Unit> {
         val db = AppDatabase.open(folder.root.toPath().resolve("default-duration.db"))
         try {
             val repo = EventRepository(lazy { db }, clock)
             repo.save(Event(name = "Default hour", dueDate = day(6), startTime = LocalTime(12, 0), durationMinutes = null))
             val saved = repo.events.first().single()
-            assertEquals(60, saved.durationMinutes)
-            assertEquals(60, db.eventDao().getById(saved.id)?.durationMinutes)
+            assertEquals(30, saved.durationMinutes)
+            assertEquals(30, db.eventDao().getById(saved.id)?.durationMinutes)
             assertFailsWith<IllegalArgumentException> { repo.save(saved.copy(durationMinutes = 0)) }
             assertFailsWith<IllegalArgumentException> { repo.save(saved.copy(durationMinutes = -1)) }
             assertFailsWith<IllegalArgumentException> { repo.save(saved.copy(startTime = null, durationMinutes = 60)) }

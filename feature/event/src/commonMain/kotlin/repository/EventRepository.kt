@@ -10,7 +10,6 @@ import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.event.api.model.EventChangeScope
 import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
 import com.mkulikov.taskb.feature.event.api.model.EventRecurrence
-import com.mkulikov.taskb.feature.event.api.model.endDateTime
 import com.mkulikov.taskb.feature.task.api.recurrence.recurrenceOrdinal
 import com.mkulikov.taskb.feature.task.api.recurrence.nextRecurrenceDates
 import com.mkulikov.taskb.feature.event.api.repository.IEventRepository
@@ -43,23 +42,25 @@ internal class EventRepository(
     override suspend fun save(event: Event): Boolean = saveOccurrence(event, EventChangeScope.ThisAndFollowing)
 
     override suspend fun saveOccurrence(event: Event, scope: EventChangeScope): Boolean =
-        saveWithDuration(event.copy(durationMinutes = event.durationMinutes ?: event.startTime?.let { 60 }), scope)
+        saveWithDuration(event.copy(durationMinutes = event.durationMinutes ?: event.startTime?.let { if (event.id == 0) 30 else 60 },
+            durationDays = if (event.startTime == null) event.durationDays else 1), scope)
 
     private suspend fun saveWithDuration(event: Event, scope: EventChangeScope): Boolean = database.value.withWriteTransaction {
         val name = event.name.trim().also { require(it.isNotEmpty()) }
+        require(event.durationDays > 0) { "An event must occupy at least one day." }
         require(event.recurrence == null || event.dueDate != null)
         require(event.startTime == null || event.dueDate != null) { "Choose a date before setting a start time." }
         require(event.durationMinutes?.let { event.startTime != null && it > 0 } != false) { "A duration requires a start time and must be positive." }
         require(event.startTime?.let { it.second == 0 && it.nanosecond == 0 } != false) { "Event times use minute precision." }
-        require(runCatching { event.endDateTime }.isSuccess) { "The end date is outside the supported range." }
+        require(runCatching { event.endDate }.isSuccess) { "The end date is outside the supported range." }
         require(event.recurrence?.endDate?.let { it >= requireNotNull(event.dueDate) } != false)
         if (event.id == 0) {
             val id = dao.insert(EventEntity(name = name, dueDate = event.dueDate?.toEpochDays(), groupId = event.groupId,
                 createdAt = clock.now().toEpochMilliseconds(), recurring = event.recurrence != null,
-                description = event.description, startTimeMinutes = event.startTime?.minuteOfDay(), durationMinutes = event.durationMinutes)).toInt()
+                description = event.description, startTimeMinutes = event.startTime?.minuteOfDay(), durationMinutes = event.durationMinutes, durationDays = event.durationDays)).toInt()
             event.recurrence?.let {
                 require(nextRecurrenceDates(it, requireNotNull(event.dueDate), count = 1).isNotEmpty())
-                dao.insertSchedule(it.entity(id, requireNotNull(event.dueDate), event.startTime, event.durationMinutes))
+                dao.insertSchedule(it.entity(id, requireNotNull(event.dueDate), event.startTime, event.durationMinutes, event.durationDays))
             }
             return@withWriteTransaction id > 0
         }
@@ -69,10 +70,10 @@ internal class EventRepository(
             val schedule = record.schedules.find { it.id == occurrence.scheduleId } ?: return@withWriteTransaction false
             record.occurrence(schedule, occurrence.scheduledDate) ?: return@withWriteTransaction false
         }
-        val changedTiming = original.startTime != event.startTime || original.durationMinutes != event.durationMinutes
+        val changedTiming = original.startTime != event.startTime || original.durationMinutes != event.durationMinutes || original.durationDays != event.durationDays
         val changedSchedule = original.dueDate != event.dueDate || original.recurrence != event.recurrence || changedTiming
         if (!changedSchedule) return@withWriteTransaction dao.updateDetails(event.id, name, record.event.dueDate, event.groupId, event.description,
-            record.event.startTimeMinutes, normalizedEventDuration(record.event.startTimeMinutes, record.event.durationMinutes)) > 0
+            record.event.startTimeMinutes, normalizedEventDuration(record.event.startTimeMinutes, record.event.durationMinutes), record.event.durationDays) > 0
         if (occurrence != null && original.recurrence == event.recurrence) {
             val date = event.dueDate ?: return@withWriteTransaction false
             val timing = event.takeIf { changedTiming }
@@ -81,12 +82,12 @@ internal class EventRepository(
             if (moved) {
                 val current = requireNotNull(dao.getById(event.id))
                 dao.updateDetails(event.id, name, current.dueDate, event.groupId, event.description, current.startTimeMinutes,
-                    normalizedEventDuration(current.startTimeMinutes, current.durationMinutes))
+                    normalizedEventDuration(current.startTimeMinutes, current.durationMinutes), current.durationDays)
             }
             return@withWriteTransaction moved
         }
         if (!record.event.recurring && event.recurrence == null && occurrence == null) return@withWriteTransaction dao.updateDetails(event.id, name, event.dueDate?.toEpochDays(), event.groupId, event.description,
-            event.startTime?.minuteOfDay(), event.durationMinutes) > 0
+            event.startTime?.minuteOfDay(), event.durationMinutes, event.durationDays) > 0
         val today = clock.now().toLocalDateTime(timeZone()).date.toEpochDays()
         val boundary = occurrence?.scheduledDate?.toEpochDays() ?: today
         closeFrom(record, boundary)
@@ -96,9 +97,9 @@ internal class EventRepository(
             val start = requireNotNull(date)
             require(newRule.endDate?.let { it >= start } != false)
             require(nextRecurrenceDates(newRule, start, count = 1).isNotEmpty())
-            dao.insertSchedule(newRule.entity(event.id, start, event.startTime, event.durationMinutes))
+            dao.insertSchedule(newRule.entity(event.id, start, event.startTime, event.durationMinutes, event.durationDays))
         }
-        dao.updateDetails(event.id, name, date?.toEpochDays(), event.groupId, event.description, event.startTime?.minuteOfDay(), event.durationMinutes)
+        dao.updateDetails(event.id, name, date?.toEpochDays(), event.groupId, event.description, event.startTime?.minuteOfDay(), event.durationMinutes, event.durationDays)
         dao.setRecurring(event.id, event.recurrence != null)
         true
     }
@@ -138,8 +139,9 @@ internal class EventRepository(
         closeFrom(record, boundary)
         val time = if (timing == null) event.startTime else timing.startTime
         val duration = if (timing == null) event.durationMinutes else timing.durationMinutes
-        dao.insertSchedule(shifted.entity(id, newDate, time, duration))
-        dao.updateDetails(id, record.event.name, newDate.toEpochDays(), record.event.groupId, record.event.description, time?.minuteOfDay(), duration)
+        val days = timing?.durationDays ?: event.durationDays
+        dao.insertSchedule(shifted.entity(id, newDate, time, duration, days))
+        dao.updateDetails(id, record.event.name, newDate.toEpochDays(), record.event.groupId, record.event.description, time?.minuteOfDay(), duration, days)
         dao.setRecurring(id, true)
         return true
     }
@@ -169,6 +171,7 @@ internal class EventRepository(
             overridesTiming = timing != null || previous.overridesTiming,
             startTimeMinutes = if (timing == null) previous.startTimeMinutes else timing.startTime?.minuteOfDay(),
             durationMinutes = if (timing == null) normalizedEventDuration(previous.startTimeMinutes, previous.durationMinutes) else timing.durationMinutes,
+            durationDays = timing?.durationDays ?: previous.durationDays,
         ))
         return true
     }

@@ -28,6 +28,6 @@ fun Event.overlapsDates(from: LocalDate, through: LocalDate): Boolean {
     if (through < from) return false
     val start = dueDate ?: return false
     if (start > through) return false
-    val end = endDateTime ?: return start >= from
+    val end = endDateTime ?: return requireNotNull(endDate) >= from
     return end > LocalDateTime(from, LocalTime(0, 0))
 }

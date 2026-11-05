@@ -45,8 +45,8 @@ interface IEventDao {
     @Update
     suspend fun update(event: EventEntity): Int
 
-    @Query("UPDATE events SET name = :name, dueDate = :dueDate, groupId = :groupId, description = :description, startTimeMinutes = :startTimeMinutes, durationMinutes = :durationMinutes WHERE id = :id")
-    suspend fun updateDetails(id: Int, name: String, dueDate: Long?, groupId: Int?, description: String, startTimeMinutes: Int?, durationMinutes: Int?): Int
+    @Query("UPDATE events SET name = :name, dueDate = :dueDate, groupId = :groupId, description = :description, startTimeMinutes = :startTimeMinutes, durationMinutes = :durationMinutes, durationDays = :durationDays WHERE id = :id")
+    suspend fun updateDetails(id: Int, name: String, dueDate: Long?, groupId: Int?, description: String, startTimeMinutes: Int?, durationMinutes: Int?, durationDays: Int): Int
 
     @Query("UPDATE events SET dueDate = :dueDate, startTimeMinutes = CASE WHEN :dueDate IS NULL THEN NULL ELSE startTimeMinutes END, durationMinutes = CASE WHEN :dueDate IS NULL THEN NULL ELSE durationMinutes END WHERE id = :id AND dueDate IS :expectedDate")
     suspend fun reschedule(id: Int, expectedDate: Long?, dueDate: Long?): Int

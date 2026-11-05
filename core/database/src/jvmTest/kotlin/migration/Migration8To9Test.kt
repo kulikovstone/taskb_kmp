@@ -61,7 +61,7 @@ class Migration8To9Test {
                 assertEquals(TaskEntity(3, "Untimed", 20760, 7, 4000, 5000, false, "Still a task"), database.taskDao().getById(3))
                 assertEquals(TaskEntity(4, "No date", createdAt = 6000), database.taskDao().getById(4))
                 assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
-                assertEquals(10L, database.queryLong("PRAGMA user_version"))
+                assertEquals(11L, database.queryLong("PRAGMA user_version"))
                 database.assertForeignKeysValid()
             }
         }
@@ -165,7 +165,7 @@ class Migration8To9Test {
         AppDatabase.open(file).useDatabase { database ->
             assertEquals(3, database.eventDao().observeRecords().first().size)
             assertTrue(database.taskDao().observeTasks().first().isEmpty())
-            assertEquals(10L, database.queryLong("PRAGMA user_version"))
+            assertEquals(11L, database.queryLong("PRAGMA user_version"))
             database.assertForeignKeysValid()
         }
     }

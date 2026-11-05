@@ -6,13 +6,10 @@ import com.mkulikov.taskb.feature.event.api.model.EventRecurrence
 import com.mkulikov.taskb.feature.event.api.model.EventChangeScope
 
 internal sealed interface EventEditorIntent {
-    data class DateChanged(val date: LocalDate?) : EventEditorIntent
+    data class DateChanged(val date: LocalDate) : EventEditorIntent
     data class StartTimeChanged(val time: LocalTime?) : EventEditorIntent
     data class DurationChanged(val minutes: Int) : EventEditorIntent
     data object ChooseStartTime : EventEditorIntent
-    data object ChooseCustomDuration : EventEditorIntent
-    data class DurationModeChanged(val mode: EventDurationMode) : EventEditorIntent
-    data class DurationInputChanged(val days: String? = null, val hours: String? = null, val minutes: String? = null) : EventEditorIntent
     data object ChooseEventEndDate : EventEditorIntent
     data object ChooseEndTime : EventEditorIntent
     data class EventEndDateChanged(val date: LocalDate) : EventEditorIntent

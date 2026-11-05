@@ -94,7 +94,7 @@ class EventNavigationUiTest {
                 onNodeWithText("Work").performClick()
                 waitText("Create event")
                 onNodeWithContentDescription("Choose start time").performScrollTo().performClick()
-                waitText("Choose start time")
+                waitText("Choose time")
                 onNodeWithContentDescription("Apply time").performClick()
                 onNodeWithContentDescription("Choose repeat pattern").performScrollTo().performClick()
                 onNodeWithText("Daily").performScrollTo().performClick()
@@ -105,7 +105,7 @@ class EventNavigationUiTest {
                 val saved = runBlocking { events.observeCalendar(date, date).first().single() }
                 assertEquals(date, saved.dueDate)
                 assertEquals(LocalTime(9, 0), saved.startTime)
-                assertEquals(60, saved.durationMinutes)
+                assertEquals(30, saved.durationMinutes)
                 assertEquals(1, saved.groupId)
                 assertEquals(3, saved.recurrence?.occurrenceCount)
                 assertEquals("Discuss the release", saved.description)

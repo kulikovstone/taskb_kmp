@@ -36,7 +36,7 @@ internal class FakeEventRepository(private val clock: Clock = Clock.System) : IE
         if (event.id != 0 && values.value.none { it.id == event.id }) return false
         values.value = if (event.id == 0) values.value + event.copy(id = (values.value.maxOfOrNull { it.id } ?: 0) + 1)
             else values.value.map { if (it.id == event.id) it.copy(name = event.name, description = event.description, dueDate = event.dueDate,
-                groupId = event.groupId, recurrence = event.recurrence, startTime = event.startTime, durationMinutes = event.durationMinutes) else it }
+                groupId = event.groupId, recurrence = event.recurrence, startTime = event.startTime, durationMinutes = event.durationMinutes, durationDays = event.durationDays) else it }
         return true
     }
     override suspend fun delete(id: Int) { deletions++; onWrite(); values.value = values.value.filter { it.id != id } }

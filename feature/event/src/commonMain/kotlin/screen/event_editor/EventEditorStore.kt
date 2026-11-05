@@ -28,7 +28,7 @@ internal class EventEditorStore(
     private val occurrenceId: EventOccurrenceId? = null,
     private val onGroupSelected: (Int?) -> Unit = {},
 ) : CoroutineStore<EventEditorIntent, EventEditorState, EventEditorMessage>(
-    EventEditorState(isNew = eventId == null, isLoading = eventId != null, dueDate = initialDate, groupId = initialGroup, today = today()), ::reduceEventEditor, dispatcher,
+    EventEditorState(isNew = eventId == null, isLoading = eventId != null, dueDate = initialDate ?: today(), groupId = initialGroup, today = today()), ::reduceEventEditor, dispatcher,
 ) {
     private var loadRequested = false
     private var groupObservation: Job? = null
@@ -74,7 +74,7 @@ internal class EventEditorStore(
             is EventEditorIntent.RepeatEndDateChanged -> if (current.dialog == EventEditorDialog.RepeatEndDatePicker) current.editedRecurrence?.let {
                 reduce(EventEditorMessage.Recurrence(it.copy(endDate = intent.date, occurrenceCount = null)))
             }
-            is EventEditorIntent.StartTimeChanged -> if (!current.isBusy && current.loadError == null && current.dueDate != null &&
+            is EventEditorIntent.StartTimeChanged -> if (!current.isBusy && current.loadError == null &&
                 (current.dialog == null || current.dialog == EventEditorDialog.StartTimePicker)) reduce(EventEditorMessage.StartTime(intent.time))
             is EventEditorIntent.EventEndDateChanged -> if (current.dialog == EventEditorDialog.EventEndDatePicker)
                 reduce(EventEditorMessage.EndDate(intent.date))
@@ -88,22 +88,15 @@ internal class EventEditorStore(
             else -> {
                 if (current.isBusy || current.loadError != null || current.groupsLoadError != null || current.dialog != null) return
                 when (intent) {
-                    EventEditorIntent.ChooseStartTime -> if (current.dueDate != null) reduce(EventEditorMessage.Dialog(EventEditorDialog.StartTimePicker))
-                    is EventEditorIntent.DurationChanged -> if (current.startTime != null && intent.minutes > 0) reduce(EventEditorMessage.Duration(intent.minutes))
-                    EventEditorIntent.ChooseCustomDuration -> if (current.startTime != null) reduce(EventEditorMessage.CustomDuration)
-                    is EventEditorIntent.DurationModeChanged -> if (current.customDuration) reduce(EventEditorMessage.DurationMode(intent.mode))
-                    is EventEditorIntent.DurationInputChanged -> if (current.customDuration &&
-                        (intent.days == null || intent.days.length <= 7 && intent.days.all(Char::isDigit)) &&
-                        (intent.hours == null || intent.hours.length <= 2 && intent.hours.all(Char::isDigit)) &&
-                        (intent.minutes == null || intent.minutes.length <= 2 && intent.minutes.all(Char::isDigit)))
-                        reduce(EventEditorMessage.DurationInput(intent.days, intent.hours, intent.minutes))
-                    EventEditorIntent.ChooseEventEndDate -> if (current.startTime != null && current.customDuration) reduce(EventEditorMessage.Dialog(EventEditorDialog.EventEndDatePicker))
-                    EventEditorIntent.ChooseEndTime -> if (current.startTime != null && current.customDuration) reduce(EventEditorMessage.Dialog(EventEditorDialog.EndTimePicker))
+                    EventEditorIntent.ChooseStartTime -> reduce(EventEditorMessage.Dialog(EventEditorDialog.StartTimePicker))
+                    is EventEditorIntent.DurationChanged -> if (current.startTime != null && current.endDate == current.dueDate && intent.minutes > 0) reduce(EventEditorMessage.Duration(intent.minutes))
+                    EventEditorIntent.ChooseEventEndDate -> reduce(EventEditorMessage.Dialog(EventEditorDialog.EventEndDatePicker))
+                    EventEditorIntent.ChooseEndTime -> if (current.startTime != null) reduce(EventEditorMessage.Dialog(EventEditorDialog.EndTimePicker))
                     is EventEditorIntent.GroupChanged -> if (intent.id == null || current.groups.any { it.id == intent.id }) {
                         reduce(EventEditorMessage.GroupSelected(intent.id))
                         onGroupSelected(intent.id)
                     }
-                    is EventEditorIntent.RecurrenceChanged -> if (current.dueDate != null || intent.recurrence == null) reduce(EventEditorMessage.Recurrence(intent.recurrence))
+                    is EventEditorIntent.RecurrenceChanged -> reduce(EventEditorMessage.Recurrence(intent.recurrence))
                     is EventEditorIntent.RepeatIntervalChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 4) reduce(EventEditorMessage.RepeatInput(interval = intent.value))
                     is EventEditorIntent.RepeatDayChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 2) reduce(EventEditorMessage.RepeatInput(day = intent.value))
                     is EventEditorIntent.RepeatCountChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 7) reduce(EventEditorMessage.RepeatInput(count = intent.value))
@@ -111,8 +104,9 @@ internal class EventEditorStore(
                     EventEditorIntent.ChooseDate -> reduce(EventEditorMessage.Dialog(EventEditorDialog.DatePicker))
                     EventEditorIntent.PrepareDelete -> if (current.original != null) reduce(EventEditorMessage.Dialog(if (occurrenceId != null) EventEditorDialog.DeleteOccurrence else EventEditorDialog.ConfirmDelete))
                     EventEditorIntent.Save -> if (current.canSave) {
-                        if (occurrenceId != null && current.original?.recurrence == current.editedRecurrence &&
-                            (current.original?.dueDate != current.dueDate || current.original?.startTime != current.startTime || current.original?.durationMinutes != current.editedDurationMinutes))
+                        val original = current.original
+                        if (occurrenceId != null && original != null && original.recurrence == current.editedRecurrence &&
+                            (original.dueDate != current.dueDate || original.startTime != current.startTime || original.durationMinutes != current.editedDurationMinutes || original.durationDays != current.savedDurationDays))
                             reduce(EventEditorMessage.Dialog(EventEditorDialog.MoveOccurrence))
                         else save(current, EventChangeScope.ThisAndFollowing)
                     }
@@ -124,7 +118,7 @@ internal class EventEditorStore(
         reduce(EventEditorMessage.Saving)
         val event = (current.original ?: Event(name = "")).copy(name = current.normalizedName,
             description = current.description.text.toString(), dueDate = current.dueDate, groupId = current.groupId,
-            recurrence = current.editedRecurrence, startTime = current.startTime, durationMinutes = current.editedDurationMinutes)
+            recurrence = current.editedRecurrence, startTime = current.startTime, durationMinutes = current.editedDurationMinutes, durationDays = requireNotNull(current.savedDurationDays))
         launchEffect { recover("Couldn't save this event. Please try again.") {
             if (repository.saveOccurrence(event, scope)) EventEditorMessage.Finished else EventEditorMessage.Failed("This event has changed or no longer exists. Reopen it and try again.")
         } }

@@ -89,4 +89,10 @@ class CalendarEventTimeTest {
         drag.finish { id, date -> moves += id to date }
         assertEquals(listOf(1 to LocalDate(2026, 11, 11)), moves)
     }
+    @Test fun `all day first last intermediate and single day cells show the title without a clock`() {
+        val event = Event(name = "Vacation", dueDate = start, durationDays = 4)
+        for (day in 6..9) assertEquals("Vacation", calendarMonthEventText(event, LocalDate(2026, 11, day)))
+        assertEquals(LocalDate(2026, 11, 9), event.calendarLastDate)
+        assertEquals("Vacation", calendarMonthEventText(event.copy(durationDays = 1), start))
+    }
 }

@@ -18,8 +18,8 @@ internal fun EventEditorDialogs(state: EventEditorState, today: LocalDate, onInt
         is EventEditorDialog.Error -> TaskBMessageDialog("Event", dialog.message) { onIntent(EventEditorIntent.DismissDialog) }
         EventEditorDialog.DatePicker -> TaskBDatePicker(state.dueDate, today, { onIntent(EventEditorIntent.DateChanged(it)) }, { onIntent(EventEditorIntent.DismissDialog) }, availableHeight)
         EventEditorDialog.RepeatEndDatePicker -> TaskBDatePicker(state.recurrence?.endDate, today, { onIntent(EventEditorIntent.RepeatEndDateChanged(it)) }, { onIntent(EventEditorIntent.DismissDialog) }, availableHeight)
-        EventEditorDialog.EventEndDatePicker -> TaskBDatePicker(state.endDate ?: state.dueDate, today, { onIntent(EventEditorIntent.EventEndDateChanged(it)) }, { onIntent(EventEditorIntent.DismissDialog) }, availableHeight)
-        EventEditorDialog.StartTimePicker -> EventTimePickerDialog("Choose start time", state.startTime, availableHeight,
+        EventEditorDialog.EventEndDatePicker -> TaskBDatePicker(state.endDate, today, { onIntent(EventEditorIntent.EventEndDateChanged(it)) }, { onIntent(EventEditorIntent.DismissDialog) }, availableHeight)
+        EventEditorDialog.StartTimePicker -> EventTimePickerDialog("Choose time", state.startTime, availableHeight,
             { onIntent(EventEditorIntent.StartTimeChanged(it)) }, { onIntent(EventEditorIntent.DismissDialog) })
         EventEditorDialog.EndTimePicker -> EventTimePickerDialog("Choose end time", state.endTime ?: state.startTime, availableHeight,
             { onIntent(EventEditorIntent.EndTimeChanged(it)) }, { onIntent(EventEditorIntent.DismissDialog) })
