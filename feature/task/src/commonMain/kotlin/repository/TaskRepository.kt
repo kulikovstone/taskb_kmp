@@ -21,6 +21,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -29,6 +30,7 @@ import kotlin.time.Duration.Companion.hours
 internal class TaskRepository(
     private val database: Lazy<AppDatabase>,
     private val clock: Clock = Clock.System,
+    private val timeZone: () -> TimeZone = { TimeZone.currentSystemDefault() },
 ) : ITaskRepository {
     private val dao get() = database.value.taskDao()
     private val records get() = flow { emitAll(dao.observeRecords()) }
@@ -92,7 +94,7 @@ internal class TaskRepository(
         val oldDate = record.task.dueDate
         val lastCompleted = (record.occurrences.filter { it.completedAt != null }.map { maxOf(it.scheduledDate, it.movedDate ?: it.scheduledDate) } +
             listOfNotNull(oldDate.takeIf { record.task.completedAt != null })).maxOrNull()
-        val today = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toEpochDays()
+        val today = clock.now().toLocalDateTime(timeZone()).date.toEpochDays()
         val boundary = maxOf(occurrence?.scheduledDate?.toEpochDays() ?: today, lastCompleted?.plus(1) ?: Long.MIN_VALUE)
         closeFrom(record, boundary)
         val date = task.dueDate?.let { LocalDate.fromEpochDays(maxOf(it.toEpochDays(), lastCompleted?.plus(1) ?: Long.MIN_VALUE)) }
@@ -123,12 +125,12 @@ internal class TaskRepository(
         val record = dao.getRecord(id) ?: return@withWriteTransaction false
         if (occurrence == null) {
             if (record.task.recurring) return@withWriteTransaction false
-            dao.setCompletedAt(id, if (completed) clock.now().toEpochMilliseconds() else null)
+            dao.setCompletedAt(id, if (completed) completionTime(record.task.dueDate?.let(LocalDate::fromEpochDays)) else null)
         } else {
             val schedule = record.schedules.find { it.id == occurrence.scheduleId } ?: return@withWriteTransaction false
-            if (record.occurrence(schedule, occurrence.scheduledDate) == null) return@withWriteTransaction false
+            val event = record.occurrence(schedule, occurrence.scheduledDate) ?: return@withWriteTransaction false
             val previous = record.exception(occurrence)
-            dao.saveOccurrence(previous.copy(completedAt = if (completed) previous.completedAt ?: clock.now().toEpochMilliseconds() else null))
+            dao.saveOccurrence(previous.copy(completedAt = if (completed) previous.completedAt ?: completionTime(event.dueDate) else null))
             refreshSeriesCompletion(id)
         }
         true
@@ -192,12 +194,21 @@ internal class TaskRepository(
 
     override suspend fun delete(id: Int) = dao.deleteById(id)
 
+    private fun completionTime(date: LocalDate?): Long {
+        val now = clock.now()
+        val zone = timeZone()
+        return if (date != null && date < now.toLocalDateTime(zone).date) {
+            date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone).toEpochMilliseconds() - 1
+        } else now.toEpochMilliseconds()
+    }
+
     private suspend fun refreshSeriesCompletion(id: Int) {
         val record = dao.getRecord(id) ?: return
         if (!record.task.recurring) return
-        val today = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = clock.now().toLocalDateTime(timeZone()).date
         val pending = record.taskList(today, Long.MAX_VALUE).any { !it.isCompleted }
-        dao.setCompletedAt(id, if (pending) null else record.task.completedAt ?: clock.now().toEpochMilliseconds())
+        dao.setCompletedAt(id, if (pending) null else record.task.completedAt
+            ?: record.occurrences.mapNotNull { it.completedAt }.maxOrNull() ?: clock.now().toEpochMilliseconds())
     }
 
     private fun TaskRecord.exception(id: TaskOccurrenceId) = occurrences.find { it.scheduleId == id.scheduleId && it.scheduledDate == id.scheduledDate.toEpochDays() }
