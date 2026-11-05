@@ -71,7 +71,7 @@ class CalendarScreenUiTest {
         val target = onNodeWithTag("calendar-day-2026-10-08", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
         onRoot().performMouseInput { moveTo(source.center); press(); moveTo(source.center + Offset(28f, 0f)); moveTo(target) }
         val preview = onNodeWithTag("calendar-drag-preview", useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        assertEquals(source.width + 12f, preview.width, 0.5f)
+        assertEquals(source.width - 48f + 12f, preview.width, 0.5f)
         assertEquals(source.height + 4f, preview.height, 0.5f)
         onNode(hasText("Summarize progress and the next milestones.") and hasAnyAncestor(hasTestTag("calendar-drag-preview")), useUnmergedTree = true).assertIsDisplayed()
         onRoot().performMouseInput { release() }
@@ -279,7 +279,7 @@ class CalendarScreenUiTest {
 
     @Test
     fun `six week overflow uses all available space while reserving the more action`() {
-        for ((height, expectedVisible) in listOf(900f to 2, 864f to 1)) {
+        for ((height, expectedVisible) in listOf(900f to 2, 840f to 1)) {
             runSkikoComposeUiTest(size = Size(1440f, height)) {
                 val date = LocalDate(2026, 10, 30)
                 val title = "Проверить перенос длинного названия задачи"

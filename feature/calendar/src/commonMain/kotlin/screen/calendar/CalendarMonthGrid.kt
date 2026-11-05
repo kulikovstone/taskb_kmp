@@ -12,7 +12,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -42,7 +41,7 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
     val colors = TaskBTheme.colors
     val tasks = state.monthTasksByDate
     val weeks = state.days.chunked(7)
-    Column(modifier.calendarMonthGestures(onIntent).testTag("calendar-grid").clip(RoundedCornerShape(8.dp)).border(1.dp, colors.border, RoundedCornerShape(8.dp)).padding(1.dp)) {
+    Column(modifier.calendarMonthGestures(onIntent).testTag("calendar-grid").clipToBounds().border(1.dp, colors.border).padding(1.dp)) {
         Box(Modifier.fillMaxWidth().height(40.dp)) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday").forEach { name ->
@@ -108,22 +107,29 @@ private fun CalendarDayTasks(date: LocalDate, tasks: List<Task>, state: Calendar
     )
     val textMeasurer = rememberTextMeasurer()
     SubcomposeLayout(modifier) { constraints ->
-        val taskInsets = calendarTaskPadding.roundToPx() * 2 + calendarTaskCheckboxSize.roundToPx() + calendarTaskTitleGap.roundToPx()
-        val titleMaxWidth = (constraints.maxWidth - taskInsets).coerceAtLeast(0)
         val rows = buildList<Placeable> {
             var measuredHeight = 0
             for (task in tasks) {
                 val timed = task.startDateTime != null
-                val titleLayout = textMeasurer.measure(task.name, style = titleStyle, maxLines = 2,
+                val group = state.groups.find { it.id == task.groupId }
+                val taskInsets = when {
+                    !timed -> calendarTaskPadding.roundToPx() * 2 + calendarTaskCheckboxSize.roundToPx() + calendarTaskTitleGap.roundToPx()
+                    group != null -> 2.dp.roundToPx() + 4.dp.roundToPx()
+                    else -> 0
+                }
+                val titleMaxWidth = (constraints.maxWidth - taskInsets).coerceAtLeast(0)
+                val label = if (timed) calendarMonthTaskText(task, date) else task.name
+                val maxLines = if (timed && task.isMultiDayCalendarEvent) 1 else 2
+                val titleLayout = textMeasurer.measure(label, style = titleStyle, maxLines = maxLines,
                     overflow = TextOverflow.Ellipsis, constraints = Constraints(maxWidth = titleMaxWidth))
                 val titleWidth = if (titleLayout.multiParagraph.didExceedMaxLines) titleMaxWidth else {
                     ceil((0 until titleLayout.lineCount).maxOf { titleLayout.getLineRight(it) - titleLayout.getLineLeft(it) })
                         .toInt().coerceIn(0, titleMaxWidth)
                 }
-                val taskWidth = if (timed) constraints.maxWidth else (taskInsets + titleWidth).coerceAtMost(constraints.maxWidth)
+                val taskWidth = (taskInsets + titleWidth).coerceAtMost(constraints.maxWidth)
                 val row = subcompose(task.key) {
                     val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
-                    CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
+                    CalendarTaskRow(task, group, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
                         Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled, dense = true, sourceDate = date) { id, target -> onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId)) },
                         dense = true, enabled = enabled, dragging = drag.task?.key == task.key, date = date, now = state.now)
                 }.single().measure(Constraints.fixedWidth(taskWidth))

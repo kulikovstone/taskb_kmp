@@ -51,7 +51,8 @@ class CalendarDailyTasksUiTest {
             onNode(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()
             onAllNodes(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-grid")), useUnmergedTree = true).assertCountEquals(0)
         }
-        onNode(hasText("+1 more") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()
+        onNode(hasText("more", substring = true) and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertDoesNotExist()
+        onNode(hasTestTag("calendar-task-303") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()
         val morning = state.value.tasks.single { it.id == 310 }
         onNodeWithContentDescription("Complete Morning exercise", useUnmergedTree = true).performClick()
         onNodeWithContentDescription("Mark Morning exercise incomplete", useUnmergedTree = true).assertIsOn()

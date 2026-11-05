@@ -15,6 +15,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import com.mkulikov.taskb.ui.component.TaskBLoadError
@@ -58,7 +59,7 @@ internal fun CalendarScreen(
                         state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })
                         else -> Row(Modifier.weight(1f).fillMaxWidth()) {
                             CalendarSidebar(state, drag, onIntent, openTask)
-                            CalendarMonthGrid(state, drag, onIntent, openTask, Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp, bottom = 24.dp))
+                            CalendarMonthGrid(state, drag, onIntent, openTask, Modifier.weight(1f).fillMaxHeight())
                         }
                     }
                 }
@@ -92,11 +93,14 @@ internal fun CalendarScreen(
                         else -> calendarSidebarTaskTitleGap(task)
                     }
                     val verticalPadding = 2.dp
+                    val sourceHorizontalPadding = if (dense) 0.dp else
+                        calendarSidebarTaskPadding.calculateLeftPadding(LayoutDirection.Ltr) +
+                            calendarSidebarTaskPadding.calculateRightPadding(LayoutDirection.Ltr)
                     Surface(
                         modifier = Modifier
                             .offset { IntOffset((drag.position.x - origin.x + 12.dp.toPx()).roundToInt(), (drag.position.y - origin.y + 12.dp.toPx()).roundToInt()) }
                             .requiredSize(
-                                with(density) { drag.size.width.toDp() } + horizontalPadding * 2,
+                                with(density) { drag.size.width.toDp() } - sourceHorizontalPadding + horizontalPadding * 2,
                                 with(density) { drag.size.height.toDp() } + verticalPadding * 2,
                             )
                             .testTag("calendar-drag-preview"),

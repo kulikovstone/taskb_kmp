@@ -8,7 +8,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -63,9 +62,10 @@ internal fun CalendarTaskRow(
     dragging: Boolean = false,
     date: LocalDate? = task.dueDate,
     now: Instant = Clock.System.now(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     if (task.startDateTime != null) {
-        CalendarTimedTaskRow(task, group, onOpenTask, modifier, dense, enabled, dragging, date, now)
+        CalendarTimedTaskRow(task, group, onOpenTask, modifier, dense, enabled, dragging, date, now, contentPadding)
         return
     }
     val colors = TaskBTheme.colors
@@ -78,6 +78,7 @@ internal fun CalendarTaskRow(
                 .clip(if (dense) RoundedCornerShape(8.dp) else RectangleShape)
                 .hoverable(interactionSource, enabled = enabled)
                 .indication(interactionSource, LocalIndication.current)
+                .padding(contentPadding)
                 .then(
                     if (dense) Modifier.padding(calendarTaskPadding)
                     else Modifier.padding(vertical = 4.dp),
@@ -129,6 +130,5 @@ internal fun CalendarTaskRow(
                 }
             }
         }
-        if (!dense) Divider(color = colors.border)
     }
 }

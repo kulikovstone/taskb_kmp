@@ -26,6 +26,8 @@ import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
+internal val calendarSidebarTaskPadding = PaddingValues(horizontal = 24.dp)
+
 @Composable
 internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit) {
     val tasks = state.sidebarTasks
@@ -45,8 +47,8 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
         append(" · ")
         append(count)
     }
-    Column(Modifier.width(320.dp).fillMaxHeight().testTag("calendar-sidebar").padding(24.dp)) {
-        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.width(320.dp).fillMaxHeight().testTag("calendar-sidebar")) {
+        Row(Modifier.padding(calendarSidebarTaskPadding).fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(date?.let(calendarSidebarDateLabel::format) ?: "No date", modifier = Modifier.weight(1f).testTag("calendar-sidebar-title"),
                 style = TaskBTheme.typography.section.copy(lineHeightStyle = lineHeightStyle), color = colors.heading,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -57,17 +59,18 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
             }
         }
         Spacer(Modifier.height(4.dp))
-        Text(context, style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle), color = colors.muted)
+        Text(context, modifier = Modifier.padding(calendarSidebarTaskPadding),
+            style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle), color = colors.muted)
         Spacer(Modifier.height(16.dp))
         if (tasks.isEmpty()) Text(if (date == null) "No tasks without a date." else "No tasks for this day.",
-            color = colors.muted, style = TaskBTheme.typography.body)
+            modifier = Modifier.padding(calendarSidebarTaskPadding), color = colors.muted, style = TaskBTheme.typography.body)
         val scroll = rememberLazyListState()
         LaunchedEffect(date) { scroll.scrollToItem(0) }
         Row(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(state = scroll, modifier = Modifier.weight(1f).fillMaxHeight().testTag("calendar-sidebar-list")) {
                 if (daily.isNotEmpty()) item(key = "daily-heading") {
                     CalendarSidebarSectionHeader("Daily · ${daily.size}", dailyExpanded, { dailyExpanded = !dailyExpanded },
-                        Modifier.testTag("calendar-sidebar-daily-heading"))
+                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-daily-heading"))
                     if (dailyExpanded) Spacer(Modifier.height(8.dp))
                 }
                 if (dailyExpanded) items(daily, key = { it.key }) { task ->
@@ -77,12 +80,13 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
                             onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
-                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now)
+                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now,
+                        contentPadding = calendarSidebarTaskPadding)
                 }
                 if (timed.isNotEmpty()) item(key = "timed-heading") {
                     if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
                     CalendarSidebarSectionHeader("With time · ${timed.size}", timedExpanded, { timedExpanded = !timedExpanded },
-                        Modifier.testTag("calendar-sidebar-timed-heading"))
+                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-timed-heading"))
                     if (timedExpanded) Spacer(Modifier.height(4.dp))
                 }
                 if (timedExpanded) items(timed, key = { it.key }) { task ->
@@ -91,14 +95,15 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
                             onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
-                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now)
+                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now,
+                        contentPadding = calendarSidebarTaskPadding)
                     Spacer(Modifier.height(4.dp))
                 }
                 if (untimed.isNotEmpty() && date != null) item(key = "untimed-heading") {
                     if (timed.isNotEmpty()) Spacer(Modifier.height(if (timedExpanded) 12.dp else 16.dp))
                     else if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
                     CalendarSidebarSectionHeader("Without time · ${untimed.size}", untimedExpanded, { untimedExpanded = !untimedExpanded },
-                        Modifier.testTag("calendar-sidebar-untimed-heading"))
+                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-untimed-heading"))
                     if (untimedExpanded) Spacer(Modifier.height(8.dp))
                 }
                 if (date == null || untimedExpanded) items(untimed, key = { it.key }) { task ->
@@ -107,7 +112,8 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
                         Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, target ->
                             onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
-                        }, enabled = enabled, dragging = drag.task?.key == task.key)
+                        }, enabled = enabled, dragging = drag.task?.key == task.key,
+                        contentPadding = calendarSidebarTaskPadding)
                 }
             }
             if (scroll.canScrollForward || scroll.canScrollBackward) TaskBVerticalScrollbar(scroll, Modifier.fillMaxHeight())

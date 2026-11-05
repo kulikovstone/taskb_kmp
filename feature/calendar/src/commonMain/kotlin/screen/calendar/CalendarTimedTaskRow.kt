@@ -42,6 +42,7 @@ internal fun CalendarTimedTaskRow(
     dragging: Boolean,
     date: LocalDate?,
     now: Instant,
+    contentPadding: PaddingValues,
 ) {
     val colors = TaskBTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -57,6 +58,7 @@ internal fun CalendarTimedTaskRow(
             .hoverable(interaction, enabled = enabled)
             .indication(interaction, LocalIndication.current)
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button) { onOpenTask(task.id) }
+            .padding(contentPadding)
             .padding(top = 4.dp, bottom = 4.dp, end = if (dense) 0.dp else 8.dp),
         horizontalArrangement = Arrangement.spacedBy(if (dense) 4.dp else 10.dp),
     ) {
