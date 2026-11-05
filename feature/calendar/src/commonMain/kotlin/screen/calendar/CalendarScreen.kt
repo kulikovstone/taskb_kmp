@@ -23,8 +23,8 @@ import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
-import com.mkulikov.taskb.feature.task.api.model.startDateTime
 import com.mkulikov.taskb.ui.dialog.TaskBChoiceDialog
 import com.mkulikov.taskb.ui.dialog.TaskBDialogChoice
 import kotlinx.datetime.LocalDate
@@ -38,10 +38,16 @@ internal fun CalendarScreen(
     onOpenTask: (Int) -> Unit,
     onCreateTask: (LocalDate?) -> Unit,
     onOpenOccurrence: ((Task) -> Unit)? = null,
+    onCreateEvent: (LocalDate?) -> Unit = {},
+    onOpenEvent: (Event) -> Unit = {},
 ) {
     val drag = remember { CalendarDragState() }
     var origin by remember { mutableStateOf(Offset.Zero) }
     val openTask: (Task) -> Unit = { onOpenOccurrence?.invoke(it) ?: onOpenTask(it.id) }
+    val openItem: (CalendarItem) -> Unit = { item -> when (item) {
+        is CalendarItem.TaskItem -> openTask(item.task)
+        is CalendarItem.EventItem -> onOpenEvent(item.event)
+    } }
     Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
         BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
             if (maxWidth < 840.dp) {
@@ -53,13 +59,13 @@ internal fun CalendarScreen(
                 }
             } else {
                 Column(Modifier.fillMaxSize()) {
-                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(state.selectedDate) })
+                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(state.selectedDate) }, { onCreateEvent(state.selectedDate) })
                     when {
                         state.isLoading -> TaskBLoading(Modifier.weight(1f))
                         state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })
                         else -> Row(Modifier.weight(1f).fillMaxWidth()) {
-                            CalendarSidebar(state, drag, onIntent, openTask)
-                            CalendarMonthGrid(state, drag, onIntent, openTask, Modifier.weight(1f).fillMaxHeight())
+                            CalendarSidebar(state, drag, onIntent, openItem)
+                            CalendarMonthGrid(state, drag, onIntent, openItem, Modifier.weight(1f).fillMaxHeight())
                         }
                     }
                 }
@@ -77,14 +83,14 @@ internal fun CalendarScreen(
                         shape = RoundedCornerShape(8.dp), color = TaskBTheme.colors.inverseSurface, elevation = 4.dp,
                     ) {
                         Row(Modifier.heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                            Text("Task moved to ${calendarDateLabel.format(move.date)}", color = TaskBTheme.colors.onInverseSurface, style = TaskBTheme.typography.body)
+                            Text("${if (move.isEvent) "Event" else "Task"} moved to ${calendarDateLabel.format(move.date)}", color = TaskBTheme.colors.onInverseSurface, style = TaskBTheme.typography.body)
                             TextButton({ onIntent(CalendarIntent.UndoMove) }, enabled = state.pendingMove == null && move.taskId !in state.pendingCompletion) {
                                 Text("Undo", color = TaskBTheme.colors.inverseAccent, style = TaskBTheme.typography.button)
                             }
                         }
                     }
                 }
-                drag.task?.let { task ->
+                drag.item?.let { task ->
                     val density = LocalDensity.current
                     val dense = drag.dense
                     val horizontalPadding = when {
@@ -118,7 +124,7 @@ internal fun CalendarScreen(
         }
     }
     state.moveChoice?.let { move ->
-        TaskBChoiceDialog("Move repeating task", "Move only this event, or start the remaining schedule on ${move.date}? Completed events keep their dates.", listOf(
+        TaskBChoiceDialog(if (move.isEvent) "Move repeating event" else "Move repeating task", "Move only this event, or start the remaining schedule on ${move.date}?" + if (move.isEvent) "" else " Completed events keep their dates.", listOf(
             TaskBDialogChoice("Only this event", { onIntent(CalendarIntent.ConfirmMove(TaskChangeScope.ThisOccurrence)) }),
             TaskBDialogChoice("This and following events", { onIntent(CalendarIntent.ConfirmMove(TaskChangeScope.ThisAndFollowing)) }),
         ), { onIntent(CalendarIntent.DismissMoveChoice) })

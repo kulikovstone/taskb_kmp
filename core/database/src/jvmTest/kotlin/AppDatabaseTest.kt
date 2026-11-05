@@ -11,6 +11,7 @@ import com.mkulikov.taskb.core.database.migration.Migration5To6
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import kotlin.test.Test
 import kotlin.test.BeforeTest
 import kotlin.test.AfterTest
@@ -46,7 +47,7 @@ class AppDatabaseTest {
 
         AppDatabase.open(file).useDatabase { database ->
             assertEquals("saved", database.settingsDao().getValue("example"))
-            assertEquals(7L, database.queryLong("PRAGMA user_version"))
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
         }
     }
 
@@ -70,7 +71,7 @@ class AppDatabaseTest {
         AppDatabase.open(file).useDatabase { database ->
             assertEquals(GroupEntity(7, "Work", 123), database.groupDao().getById(7))
             assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(7L, database.queryLong("PRAGMA user_version"))
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
             assertEquals(0L, database.queryLong("SELECT COUNT(*) FROM tasks"))
             assertEquals(0, database.groupDao().getWithTaskCounts(7)?.planned)
         }
@@ -128,7 +129,7 @@ class AppDatabaseTest {
             assertEquals(0, empty.completed)
             assertEquals(GroupEntity(7, "Work", 123), database.groupDao().getById(7))
             assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(7L, database.queryLong("PRAGMA user_version"))
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
         }
 
         AppDatabase.open(file).useDatabase { database ->
@@ -173,7 +174,7 @@ class AppDatabaseTest {
             assertTrue(existing.schedules.isEmpty())
             assertTrue(existing.occurrences.isEmpty())
             assertNull(database.taskDao().getById(20)?.dueDate)
-            assertEquals(7L, database.queryLong("PRAGMA user_version"))
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
         }
     }
 
@@ -217,7 +218,7 @@ class AppDatabaseTest {
             val oneOff = assertNotNull(database.taskDao().getById(20))
             assertEquals("", oneOff.description)
             assertEquals(4000L, oneOff.completedAt)
-            assertEquals(7L, database.queryLong("PRAGMA user_version"))
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
             database.taskDao().update(recurring.task.copy(description = "First line\nSecond line"))
         }
         AppDatabase.open(file).useDatabase { database ->
@@ -253,19 +254,13 @@ class AppDatabaseTest {
             connection.execSQL("PRAGMA user_version = 6")
         }
         AppDatabase.open(file).useDatabase { database ->
-            assertEquals(7L, database.queryLong("PRAGMA user_version"))
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
             val record = assertNotNull(database.taskDao().getRecord(10))
             assertEquals("Existing description", record.task.description)
             assertEquals(7, record.task.groupId)
             assertEquals(1000L, record.task.createdAt)
-            assertNull(record.task.startTimeMinutes)
-            assertNull(record.task.durationMinutes)
             assertEquals(3, record.schedules.single().occurrenceCount)
-            assertNull(record.schedules.single().startTimeMinutes)
-            assertNull(record.schedules.single().durationMinutes)
             assertEquals(2, record.occurrences.size)
-            assertTrue(record.occurrences.none { it.overridesTiming })
-            assertTrue(record.occurrences.all { it.startTimeMinutes == null && it.durationMinutes == null })
             assertEquals(2000L, record.occurrences.single { it.scheduledDate == 20760L }.completedAt)
             assertEquals(20762L, record.occurrences.single { it.scheduledDate == 20761L }.movedDate)
             assertEquals("Saved note", database.taskDao().getById(20)?.description)
@@ -321,7 +316,7 @@ class AppDatabaseTest {
         driver.open(file.toString()).use { connection ->
             connection.execSQL("CREATE TABLE future_data (value TEXT NOT NULL)")
             connection.execSQL("INSERT INTO future_data VALUES ('preserved')")
-            connection.execSQL("PRAGMA user_version = 8")
+            connection.execSQL("PRAGMA user_version = 11")
         }
 
         AppDatabase.open(file).useDatabase { database ->
@@ -337,7 +332,7 @@ class AppDatabaseTest {
             }
             connection.prepare("PRAGMA user_version").use {
                 assertTrue(it.step())
-                assertEquals(8L, it.getLong(0))
+                assertEquals(11L, it.getLong(0))
             }
         }
     }
@@ -352,8 +347,51 @@ class AppDatabaseTest {
         }
         AppDatabase.open(file).useDatabase { database ->
             assertNull(database.settingsDao().getValue("welcomeCompleted"))
-            assertEquals(7L, database.queryLong("PRAGMA user_version"))
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
             assertEquals(0L, database.queryLong("SELECT COUNT(*) FROM `groups`"))
+        }
+    }
+
+    @Test
+    fun `version seven upgrade creates event storage and transfers timed tasks through the complete migration chain`() = runBlocking {
+        val file = temporaryDirectory.resolve("version-seven.db")
+        BundledSQLiteDriver().open(file.toString()).use { connection ->
+            connection.execSQL("CREATE TABLE IF NOT EXISTS `application_settings` (`key` TEXT NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))")
+            connection.execSQL("CREATE TABLE IF NOT EXISTS `groups` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL COLLATE NOCASE, `color` INTEGER NOT NULL)")
+            connection.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_groups_name` ON `groups` (`name`)")
+            connection.execSQL("CREATE TABLE IF NOT EXISTS `tasks` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `dueDate` INTEGER, `groupId` INTEGER, `createdAt` INTEGER NOT NULL, `completedAt` INTEGER, `recurring` INTEGER NOT NULL DEFAULT 0, `description` TEXT NOT NULL DEFAULT '', `startTimeMinutes` INTEGER, `durationMinutes` INTEGER, FOREIGN KEY(`groupId`) REFERENCES `groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_groupId` ON `tasks` (`groupId`)")
+            connection.execSQL("CREATE TABLE IF NOT EXISTS `task_schedules` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `taskId` INTEGER NOT NULL, `startDate` INTEGER NOT NULL, `frequency` TEXT NOT NULL, `interval` INTEGER NOT NULL, `weekdays` INTEGER NOT NULL, `dayOfMonth` INTEGER NOT NULL, `month` INTEGER NOT NULL, `endDate` INTEGER, `occurrenceCount` INTEGER, `closedBefore` INTEGER, `startTimeMinutes` INTEGER, `durationMinutes` INTEGER, FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_task_schedules_taskId` ON `task_schedules` (`taskId`)")
+            connection.execSQL("CREATE TABLE IF NOT EXISTS `task_occurrences` (`scheduleId` INTEGER NOT NULL, `scheduledDate` INTEGER NOT NULL, `taskId` INTEGER NOT NULL, `movedDate` INTEGER, `completedAt` INTEGER, `skipped` INTEGER NOT NULL, `overridesTiming` INTEGER NOT NULL DEFAULT 0, `startTimeMinutes` INTEGER, `durationMinutes` INTEGER, PRIMARY KEY(`scheduleId`, `scheduledDate`), FOREIGN KEY(`scheduleId`) REFERENCES `task_schedules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_task_occurrences_taskId` ON `task_occurrences` (`taskId`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_task_occurrences_scheduleId` ON `task_occurrences` (`scheduleId`)")
+            connection.execSQL("INSERT INTO application_settings VALUES ('welcomeCompleted', 'true')")
+            connection.execSQL("INSERT INTO groups VALUES (7, 'Work', 123)")
+            connection.execSQL("INSERT INTO tasks VALUES (10, 'Meeting', 20760, 7, 1000, 2000, 1, 'Notes', 540, 90)")
+            connection.execSQL("INSERT INTO task_schedules VALUES (30, 10, 20760, 'Daily', 1, 0, 1, 1, NULL, 3, NULL, 540, 90)")
+            connection.execSQL("INSERT INTO task_occurrences VALUES (30, 20760, 10, 20761, 2000, 0, 1, 600, 30)")
+            connection.execSQL("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+            connection.execSQL("INSERT INTO room_master_table VALUES (42, 'ebf3640ce9b83ba4ef80e0a6f0323469')")
+            connection.execSQL("PRAGMA user_version = 7")
+        }
+        AppDatabase.open(file).useDatabase { database ->
+            assertEquals(10L, database.queryLong("PRAGMA user_version"))
+            assertNull(database.taskDao().getRecord(10))
+            val migrated = database.eventDao().observeRecords().first().single()
+            assertEquals("Meeting", migrated.event.name)
+            assertEquals("Notes", migrated.event.description)
+            assertEquals(1000L, migrated.event.createdAt)
+            assertEquals(540, migrated.schedules.single().startTimeMinutes)
+            assertEquals(600, migrated.occurrences.single().startTimeMinutes)
+            assertEquals(20761L, migrated.occurrences.single().movedDate)
+            val id = database.eventDao().insert(com.mkulikov.taskb.feature.event.api.database.EventEntity(name = "Independent event", groupId = 7)).toInt()
+            assertEquals("Independent event", database.eventDao().getById(id)?.name)
+            assertEquals(0L, database.queryLong("SELECT COUNT(*) FROM tasks"))
+            assertEquals("true", database.settingsDao().getValue("welcomeCompleted"))
+            database.groupDao().deleteById(7)
+            assertNull(database.eventDao().getById(id)?.groupId)
+            assertNull(database.eventDao().getById(migrated.event.id)?.groupId)
         }
     }
 

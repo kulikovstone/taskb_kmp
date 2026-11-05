@@ -9,6 +9,9 @@ import com.mkulikov.taskb.core.database.migration.Migration3To4
 import com.mkulikov.taskb.core.database.migration.Migration4To5
 import com.mkulikov.taskb.core.database.migration.Migration5To6
 import com.mkulikov.taskb.core.database.migration.Migration6To7
+import com.mkulikov.taskb.core.database.migration.Migration7To8
+import com.mkulikov.taskb.core.database.migration.Migration9To10
+import com.mkulikov.taskb.core.database.migration.Migration8To9
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
 import com.mkulikov.taskb.feature.settings.api.database.IAppSettingsDao
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
@@ -17,11 +20,12 @@ import com.mkulikov.taskb.feature.task.api.database.ITaskDao
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
 import com.mkulikov.taskb.feature.task.api.database.TaskScheduleEntity
 import com.mkulikov.taskb.feature.task.api.database.TaskOccurrenceEntity
+import com.mkulikov.taskb.feature.event.api.database.*
 import kotlinx.coroutines.Dispatchers
 
 @Database(
-    entities = [ApplicationSetting::class, GroupEntity::class, TaskEntity::class, TaskScheduleEntity::class, TaskOccurrenceEntity::class],
-    version = 7,
+    entities = [ApplicationSetting::class, GroupEntity::class, TaskEntity::class, TaskScheduleEntity::class, TaskOccurrenceEntity::class, EventEntity::class, EventScheduleEntity::class, EventOccurrenceEntity::class],
+    version = 10,
     autoMigrations = [AutoMigration(from = 2, to = 3)],
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -29,13 +33,14 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): IAppSettingsDao
     abstract fun groupDao(): IGroupDao
     abstract fun taskDao(): ITaskDao
+    abstract fun eventDao(): IEventDao
 
     companion object {
         internal fun open(builder: Builder<AppDatabase>, driver: SQLiteDriver): AppDatabase =
             builder
                 .setDriver(driver)
                 .setQueryCoroutineContext(Dispatchers.Default)
-                .addMigrations(Migration3To4(), Migration4To5(), Migration5To6(), Migration6To7())
+                .addMigrations(Migration3To4(), Migration4To5(), Migration5To6(), Migration6To7(), Migration7To8(), Migration8To9(), Migration9To10())
                 .fallbackToDestructiveMigrationFrom(true, 1)
                 .build()
     }

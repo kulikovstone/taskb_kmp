@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
@@ -12,7 +13,7 @@ internal sealed interface CalendarMessage {
     data object Loading : CalendarMessage
     data object LoadFailed : CalendarMessage
     data object DismissError : CalendarMessage
-    data class Loaded(val tasks: List<Task>, val groups: List<Group>, val now: Instant) : CalendarMessage
+    data class Loaded(val tasks: List<Task>, val groups: List<Group>, val now: Instant, val events: List<Event> = emptyList()) : CalendarMessage
     data class Month(val value: YearMonth) : CalendarMessage
     data class SelectedDate(val value: LocalDate?) : CalendarMessage
     data class Today(val value: LocalDate, val now: Instant) : CalendarMessage
@@ -28,7 +29,7 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
     CalendarMessage.Loading -> state.copy(isLoading = true, loadError = null)
     CalendarMessage.LoadFailed -> state.copy(isLoading = false, loadError = "Couldn't load the calendar. Please try again.")
     CalendarMessage.DismissError -> state.copy(error = null)
-    is CalendarMessage.Loaded -> state.copy(tasks = message.tasks, groups = message.groups, now = message.now, isLoading = false, loadError = null)
+    is CalendarMessage.Loaded -> state.copy(tasks = message.tasks, events = message.events, groups = message.groups, now = message.now, isLoading = false, loadError = null)
     is CalendarMessage.Month -> state.copy(month = message.value)
     is CalendarMessage.SelectedDate -> state.copy(selectedDate = message.value)
     is CalendarMessage.Today -> state.copy(today = message.value, now = message.now)
@@ -37,8 +38,11 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
         pendingMove = null,
         error = message.error,
         undo = if (message.undoing || message.move.scope == TaskChangeScope.ThisAndFollowing) null else if (message.error == null) message.move else state.undo,
-        tasks = if (message.error != null || message.move.scope == TaskChangeScope.ThisAndFollowing) state.tasks else state.tasks.map { task ->
+        tasks = if (message.move.isEvent || message.error != null || message.move.scope == TaskChangeScope.ThisAndFollowing) state.tasks else state.tasks.map { task ->
             if (task.id == message.move.taskId && task.occurrenceId == message.move.occurrenceId) task.copy(dueDate = if (message.undoing) message.move.previousDate else message.move.date) else task
+        },
+        events = if (!message.move.isEvent || message.error != null || message.move.scope == TaskChangeScope.ThisAndFollowing) state.events else state.events.map { event ->
+            if (event.id == message.move.taskId && event.occurrenceId == message.move.eventOccurrenceId) event.copy(dueDate = if (message.undoing) message.move.previousDate else message.move.date) else event
         },
     )
     is CalendarMessage.ExpireUndo -> if (state.undo?.token == message.token) state.copy(undo = null) else state

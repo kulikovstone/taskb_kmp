@@ -6,6 +6,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.event.api.model.Event
+import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -20,9 +22,9 @@ class CalendarDailyTasksUiTest {
     @Test
     fun `daily routines are first without appearing in the month or duplicating the time sections`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
         val date = LocalDate(2026, 11, 6)
-        val timedDaily = Task(312, "Daily call", date, startTime = LocalTime(8, 0),
-            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = TaskOccurrenceId(3120, date))
-        val state = mutableStateOf(timedCalendarPreviewState().let { it.copy(tasks = it.tasks + timedDaily + Task(320, "Plan the weekend")) })
+        val timedDaily = Event(312, "Daily call", date, startTime = LocalTime(8, 0),
+            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = EventOccurrenceId(3120, date))
+        val state = mutableStateOf(timedCalendarPreviewState().let { it.copy(tasks = it.tasks + Task(320, "Plan the weekend"), events = it.events + timedDaily) })
         val intents = mutableListOf<CalendarIntent>()
         setContent {
             TaskBTheme(false) {
@@ -40,19 +42,19 @@ class CalendarDailyTasksUiTest {
                 }, {}, {}, {})
             }
         }
-        val dailyHeader = onNodeWithText("Daily · 3").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val timedHeader = onNodeWithText("With time · 3").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val dailyHeader = onNodeWithText("Daily · 2").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val timedHeader = onNodeWithText("With time · 4").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val untimedHeader = onNodeWithText("Without time · 1").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(dailyHeader.top < timedHeader.top && timedHeader.top < untimedHeader.top)
-        onNodeWithText("Friday · 7 tasks").assertIsDisplayed()
+        onNodeWithText("Friday · 3 tasks · 4 events").assertIsDisplayed()
         onNodeWithText("08:00–09:00 (1 hour)").assertIsDisplayed()
         onNodeWithContentDescription("Complete Daily call", useUnmergedTree = true).assertDoesNotExist()
         for (task in state.value.sidebarDailyTasks) {
             onNode(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()
             onAllNodes(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-grid")), useUnmergedTree = true).assertCountEquals(0)
         }
-        onNode(hasText("more", substring = true) and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertDoesNotExist()
-        onNode(hasTestTag("calendar-task-303") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()
+        onNode(hasText("+2 more") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()
+        onNode(hasTestTag("calendar-event:312:3120:2026-11-06") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()
         val morning = state.value.tasks.single { it.id == 310 }
         onNodeWithContentDescription("Complete Morning exercise", useUnmergedTree = true).performClick()
         onNodeWithContentDescription("Mark Morning exercise incomplete", useUnmergedTree = true).assertIsOn()
@@ -60,8 +62,8 @@ class CalendarDailyTasksUiTest {
         onNodeWithTag("calendar-sidebar-toggle").performClick()
         onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
         onNodeWithText("Plan the weekend", useUnmergedTree = true).assertIsDisplayed()
-        onNodeWithText("Daily · 3").assertDoesNotExist()
-        onNodeWithText("With time · 3").assertDoesNotExist()
+        onNodeWithText("Daily · 2").assertDoesNotExist()
+        onNodeWithText("With time · 4").assertDoesNotExist()
         onNodeWithText("Without time · 1").assertDoesNotExist()
     }
 }

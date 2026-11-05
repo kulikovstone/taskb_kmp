@@ -56,7 +56,7 @@ class CalendarScreenUiTest {
         onNodeWithTag("calendar-sidebar-toggle").performClick()
         onNodeWithTag("calendar-day-number-2026-10-10", useUnmergedTree = true).performClick()
         onNodeWithTag("calendar-sidebar-title").assertTextEquals("Oct 10, 2026")
-        onNodeWithText("No tasks for this day.").assertIsDisplayed()
+        onNodeWithText("No tasks or events for this day.").assertIsDisplayed()
         onNodeWithTag("calendar-today").performClick()
         onNodeWithTag("calendar-sidebar-title").assertTextEquals("Oct 29, 2026")
         onNode(hasText("Summarize progress and the next milestones.") and hasAnyAncestor(hasTestTag("calendar-sidebar")), useUnmergedTree = true).performClick()
@@ -151,7 +151,7 @@ class CalendarScreenUiTest {
             assertEquals(listOf(targetDate, targetDate, adjacentDate), selectedDays)
             assertTrue(createdDates.isEmpty())
         }
-        onNodeWithText("New task").performClick()
+        onNodeWithText("Task").performClick()
         runOnIdle { assertEquals(listOf<LocalDate?>(null), createdDates) }
     }
 
@@ -207,7 +207,7 @@ class CalendarScreenUiTest {
     fun `dark wide view keeps overflow and day actions accessible in short windows`() = runSkikoComposeUiTest(size = Size(1280f, 600f)) {
         val state = unscheduledPreviewState()
         setContent { TaskBTheme(true) { CalendarScreen(state, {}, {}, {}, {}) } }
-        onNodeWithText("New task").assertIsDisplayed()
+        onNodeWithText("Task").assertIsDisplayed()
         onNodeWithTag("calendar-day-2026-10-28", useUnmergedTree = true).assertIsDisplayed()
         onNode(hasText("more", substring = true) and hasAnyAncestor(hasTestTag("calendar-day-2026-10-28")), useUnmergedTree = true).assertIsDisplayed()
         screenshot("calendar-wide-dark-short")

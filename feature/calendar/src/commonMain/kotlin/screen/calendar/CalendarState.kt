@@ -1,11 +1,12 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import com.mkulikov.taskb.feature.event.api.model.Event
+import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
+import com.mkulikov.taskb.feature.event.api.model.occursOn
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
-import com.mkulikov.taskb.feature.task.api.model.occursOn
-import com.mkulikov.taskb.feature.task.api.model.startDateTime
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -24,6 +25,7 @@ internal data class CalendarState(
     val selectedDate: LocalDate? = today,
     val tasks: List<Task> = emptyList(),
     val groups: List<Group> = emptyList(),
+    val events: List<Event> = emptyList(),
     val isLoading: Boolean = true,
     val loadError: String? = null,
     val error: String? = null,
@@ -42,26 +44,31 @@ internal data class CalendarState(
         .mapNotNull { it.completedAt?.plus(24.hours) }
         .filter { it > now }
         .minOrNull()
-    val tasksByDate: Map<LocalDate?, List<Task>> get() {
-        val dated = tasks.filter { it.dueDate != null }
-        val timed = dated.filter { it.startDateTime != null }
-        val grouped = dated.filter { it.startDateTime == null }.groupBy { it.dueDate }.toMutableMap()
-        // Only expand the visible month and the selected day, even for events lasting many years.
-        for (date in (days + listOfNotNull(selectedDate)).distinct()) {
-            val events = timed.filter { it.occursOn(date) }
-            if (events.isNotEmpty()) grouped[date] = grouped[date].orEmpty() + events
-        }
-        return grouped.mapValues { (_, tasks) -> tasks.sortedWith(calendarTaskOrder) }
-    }
+    val tasksByDate: Map<LocalDate?, List<Task>> get() = tasks.filter { it.dueDate != null }
+        .groupBy { it.dueDate }.mapValues { (_, tasks) -> tasks.sortedWith(calendarTaskOrder) }
     val monthTasksByDate: Map<LocalDate?, List<Task>> get() = tasksByDate
         .mapValues { (_, tasks) -> tasks.filterNot { it.isDailyRoutine } }
         .filterValues { it.isNotEmpty() }
     val sidebarTasks: List<Task> get() = selectedDate?.let { tasksByDate[it].orEmpty().sortedWith(sidebarTaskOrder) } ?: undatedTasks
     val sidebarDailyTasks: List<Task> get() = if (selectedDate == null) emptyList() else sidebarTasks.filter { !it.isCompleted && it.isDailyRoutine }
-    val sidebarTimedTasks: List<Task> get() = sidebarTasks.filter { !it.isCompleted && it.startDateTime != null && (selectedDate == null || !it.isDailyRoutine) }
-    val sidebarUntimedTasks: List<Task> get() = sidebarTasks.filter { !it.isCompleted && it.startDateTime == null && (selectedDate == null || !it.isDailyRoutine) }
+    val sidebarUntimedTasks: List<Task> get() = sidebarTasks.filter { !it.isCompleted && (selectedDate == null || !it.isDailyRoutine) }
     val sidebarCompletedTasks: List<Task> get() = sidebarTasks.filter { it.isCompleted }
         .sortedWith(compareByDescending<Task> { it.completedAt }.thenByDescending { it.createdAt }.thenByDescending { it.id })
+    private fun eventItems(date: LocalDate?): List<CalendarItem.EventItem> = events
+        .filter { if (date == null) it.dueDate == null else it.occursOn(date) }
+        .map(CalendarItem::EventItem)
+    val monthItemsByDate: Map<LocalDate?, List<CalendarItem>> get() {
+        val tasksByDay = monthTasksByDate
+        return days.associateWith { date ->
+            (tasksByDay[date].orEmpty().map(CalendarItem::TaskItem) + eventItems(date)).sortedWith(calendarItemOrder)
+        }
+    }
+    val sidebarItems: List<CalendarItem> get() =
+        (sidebarTasks.map(CalendarItem::TaskItem) + eventItems(selectedDate)).sortedWith(calendarItemOrder)
+    val sidebarDailyItems get() = sidebarDailyTasks.map(CalendarItem::TaskItem)
+    val sidebarTimedItems get() = sidebarItems.filter { !it.isCompleted && it.startDateTime != null && !it.isDailyRoutine }
+    val sidebarUntimedItems get() = sidebarItems.filter { !it.isCompleted && it.startDateTime == null && !it.isDailyRoutine }
+    val sidebarCompletedItems get() = sidebarCompletedTasks.map(CalendarItem::TaskItem)
     val days: List<LocalDate> get() {
         val offset = month.firstDay.dayOfWeek.isoDayNumber - 1
         val first = month.firstDay.minus(offset, DateTimeUnit.DAY)
@@ -70,9 +77,7 @@ internal data class CalendarState(
     }
 }
 
-private val calendarTaskOrder = compareBy<Task> { it.startDateTime == null }
-    .thenBy { it.startDateTime }
-    .thenBy { it.isCompleted }
+private val calendarTaskOrder = compareBy<Task> { it.isCompleted }
     .thenByDescending { it.createdAt }
     .thenByDescending { it.id }
 
@@ -88,4 +93,10 @@ internal data class CalendarMove(
     val date: LocalDate,
     val occurrenceId: TaskOccurrenceId? = null,
     val scope: TaskChangeScope = TaskChangeScope.ThisOccurrence,
+    val isEvent: Boolean = false,
+    val eventOccurrenceId: EventOccurrenceId? = null,
 )
+
+private val calendarItemOrder = compareBy<CalendarItem> { it.startDateTime == null }
+    .thenBy { it.startDateTime }.thenBy { it.isCompleted }
+    .thenByDescending { it.createdAt }.thenByDescending { it.id }

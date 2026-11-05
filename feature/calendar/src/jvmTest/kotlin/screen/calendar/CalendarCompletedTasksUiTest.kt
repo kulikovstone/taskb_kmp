@@ -25,12 +25,12 @@ class CalendarCompletedTasksUiTest {
         val routine = preview.tasks.single { it.id == 310 }
         val active = preview.tasks.single { it.id == 303 }
         val completedRoutine = preview.tasks.single { it.id == 311 }.copy(completedAt = now - 1.hours)
-        val completedEvent = preview.tasks.single { it.id == 300 }.copy(completedAt = now - 2.hours)
+        val completedReview = Task(323, "Finished review", preview.selectedDate, completedAt = now - 2.hours)
         val completedTask = Task(320, "Finished planning", preview.selectedDate, completedAt = now - 3.hours)
         val undatedCompleted = Task(321, "Finished without a date", completedAt = now - 4.hours)
         val undatedActive = Task(322, "Plan the weekend")
-        val state = mutableStateOf(preview.copy(now = now, tasks = listOf(
-            routine, active, completedTask, completedEvent, completedRoutine, undatedCompleted, undatedActive,
+        val state = mutableStateOf(preview.copy(now = now, events = emptyList(), tasks = listOf(
+            routine, active, completedTask, completedReview, completedRoutine, undatedCompleted, undatedActive,
         )))
         setContent {
             TaskBTheme(false) {
@@ -69,18 +69,18 @@ class CalendarCompletedTasksUiTest {
         onNodeWithText("Completed · 3").assertIsDisplayed()
         assertTrue(onNodeWithTag("calendar-sidebar-completed-heading").fetchSemanticsNode().boundsInRoot.top >
             taskNode(active).fetchSemanticsNode().boundsInRoot.bottom)
-        assertCompletedOrder(listOf(completedRoutine, completedEvent, completedTask))
+        assertCompletedOrder(listOf(completedRoutine, completedReview, completedTask))
 
         onNodeWithContentDescription("Complete ${routine.name}", useUnmergedTree = true).performClick()
         onNodeWithTag("calendar-sidebar-daily-heading").assertDoesNotExist()
         onNodeWithText("Completed · 4").assertIsDisplayed()
-        assertCompletedOrder(listOf(routine, completedRoutine, completedEvent, completedTask))
+        assertCompletedOrder(listOf(routine, completedRoutine, completedReview, completedTask))
         val path = Path.of("build/reports/screenshots")
         Files.createDirectories(path)
         ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", path.resolve("calendar-completed-section.png").toFile())
 
         onNodeWithTag("calendar-sidebar-completed-heading").performClick()
-        for (task in listOf(routine, completedRoutine, completedEvent, completedTask)) taskNode(task).assertDoesNotExist()
+        for (task in listOf(routine, completedRoutine, completedReview, completedTask)) taskNode(task).assertDoesNotExist()
         taskNode(active).assertIsDisplayed()
         onNodeWithTag("calendar-sidebar-completed-heading").performClick()
         onNodeWithContentDescription("Mark ${routine.name} incomplete", useUnmergedTree = true).performClick()
@@ -99,6 +99,6 @@ class CalendarCompletedTasksUiTest {
         onNodeWithTag("calendar-day-number-${preview.selectedDate}", useUnmergedTree = true).performClick()
         onNodeWithTag("calendar-sidebar-completed-heading")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
-        assertCompletedOrder(listOf(completedRoutine, completedEvent, completedTask))
+        assertCompletedOrder(listOf(completedRoutine, completedReview, completedTask))
     }
 }

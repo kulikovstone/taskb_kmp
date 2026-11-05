@@ -21,6 +21,4 @@ data class TaskScheduleEntity(
     val occurrenceCount: Int? = null,
     /** Exclusive boundary of this revision. Null denotes the current schedule. */
     val closedBefore: Long? = null,
-    val startTimeMinutes: Int? = null,
-    val durationMinutes: Int? = null,
 )

@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.endDateTime
-import com.mkulikov.taskb.feature.task.api.model.startDateTime
+import com.mkulikov.taskb.feature.event.api.model.Event
+import com.mkulikov.taskb.feature.event.api.model.endDateTime
+import com.mkulikov.taskb.feature.event.api.model.startDateTime
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -22,19 +22,19 @@ private val eventDateLabel = LocalDate.Format {
 internal fun LocalTime.calendarTimeLabel(): String =
     hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0')
 
-internal val Task.calendarLastDate: LocalDate?
+internal val Event.calendarLastDate: LocalDate?
     get() {
         val end = endDateTime ?: return dueDate
         return if (end.time == LocalTime(0, 0)) end.date.minus(1, DateTimeUnit.DAY) else end.date
     }
 
-internal val Task.isMultiDayCalendarEvent: Boolean
+internal val Event.isMultiDayCalendarEvent: Boolean
     get() = startDateTime != null && calendarLastDate?.let { it > requireNotNull(dueDate) } == true
 
-internal fun Task.isPastCalendarEvent(now: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): Boolean =
+internal fun Event.isPastCalendarEvent(now: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): Boolean =
     (endDateTime ?: startDateTime)?.let { it <= now.toLocalDateTime(timeZone) } == true
 
-internal fun calendarMonthTaskText(task: Task, date: LocalDate?): String {
+internal fun calendarMonthEventText(task: Event, date: LocalDate?): String {
     val start = task.startDateTime ?: return task.name
     if (!task.isMultiDayCalendarEvent || date == null || date == start.date) {
         return "${start.time.calendarTimeLabel()} ${task.name}"
@@ -47,7 +47,7 @@ internal fun calendarMonthTaskText(task: Task, date: LocalDate?): String {
     return task.name
 }
 
-internal fun calendarTaskTimeRange(task: Task): String {
+internal fun calendarEventTimeRange(task: Event): String {
     val start = task.startDateTime ?: return ""
     val end = task.endDateTime
     val range = when {
@@ -59,10 +59,10 @@ internal fun calendarTaskTimeRange(task: Task): String {
             "${dateLabel(start.date)}, ${start.time.calendarTimeLabel()}–${dateLabel(end.date)}, ${end.time.calendarTimeLabel()}"
         }
     }
-    return "$range (${calendarTaskDuration(task.durationMinutes ?: 60)})"
+    return "$range (${calendarEventDuration(task.durationMinutes ?: 60)})"
 }
 
-internal fun calendarTaskDuration(minutes: Int): String {
+internal fun calendarEventDuration(minutes: Int): String {
     val days = minutes / 1440
     val hours = minutes % 1440 / 60
     val remainder = minutes % 60

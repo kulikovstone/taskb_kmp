@@ -23,20 +23,20 @@ class CalendarTimedTasksUiTest {
     @Test
     fun `timed rows match the calendar design and every selected-day task appears in the sidebar`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
         val opened = mutableListOf<Int>()
-        setContent { TaskBTheme(false) { CalendarScreen(timedCalendarPreviewState(), {}, {}, opened::add, {}) } }
+        setContent { TaskBTheme(false) { CalendarScreen(timedCalendarPreviewState(), {}, {}, {}, {}, onOpenEvent = { opened.add(it.id) }) } }
         onNodeWithText("Daily · 2").assertIsDisplayed()
         onNodeWithText("With time · 3").assertIsDisplayed()
         onNodeWithText("Without time · 1").assertIsDisplayed()
-        onNodeWithText("Friday · 6 tasks").assertIsDisplayed()
+        onNodeWithText("Friday · 3 tasks · 3 events").assertIsDisplayed()
         onNode(hasText("more", substring = true) and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertDoesNotExist()
         onNode(hasTestTag("calendar-task-303") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()
         onNodeWithText("12:00–13:00 (1 hour)").assertIsDisplayed()
         onNodeWithText("15:00–15:30 (30 min)").assertIsDisplayed()
         onNodeWithText("6 Nov, 18:00–9 Nov, 10:00 (2 days 16 hr)").assertIsDisplayed()
-        for (id in 300..303) onNode(hasTestTag("calendar-task-$id") and hasAnyAncestor(hasTestTag("calendar-sidebar")), useUnmergedTree = true).assertIsDisplayed()
+        for (id in 300..303) onNode(hasTestTag(if (id == 303) "calendar-task-$id" else "calendar-event:$id") and hasAnyAncestor(hasTestTag("calendar-sidebar")), useUnmergedTree = true).assertIsDisplayed()
         onNodeWithContentDescription("Complete Business trip", useUnmergedTree = true).assertDoesNotExist()
         onNode(hasContentDescription("Complete Pay utility bills") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertExists()
-        onAllNodesWithTag("calendar-task-marker-301", useUnmergedTree = true).assertCountEquals(0)
+        onAllNodesWithTag("calendar-event-marker-301", useUnmergedTree = true).assertCountEquals(0)
 
         for ((day, label) in listOf(6 to "18:00 Business trip", 7 to "Business trip", 8 to "Business trip", 9 to "Business trip 10:00")) {
             onNode(hasText(label) and hasAnyAncestor(hasTestTag("calendar-day-2026-11-${day.toString().padStart(2, '0')}")), useUnmergedTree = true).assertIsDisplayed()
@@ -54,11 +54,11 @@ class CalendarTimedTasksUiTest {
         assertEquals(2, onNodeWithText("11:00 Review mobile app design", useUnmergedTree = true).textLayout().lineCount)
         assertEquals(1, onNodeWithText("6 Nov, 18:00–9 Nov, 10:00 (2 days 16 hr)", useUnmergedTree = true).textLayout().lineCount)
 
-        val coffee = onNodeWithTag("calendar-task-time-301", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val team = onNodeWithTag("calendar-task-time-300", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val coffee = onNodeWithTag("calendar-event-time-301", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val team = onNodeWithTag("calendar-event-time-300", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertEquals(24f, coffee.left, 0.5f)
         assertEquals(36f, team.left, 0.5f)
-        val marker = onNode(hasTestTag("calendar-task-marker-300") and hasAnyAncestor(hasTestTag("calendar-sidebar")), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val marker = onNode(hasTestTag("calendar-event-marker-300") and hasAnyAncestor(hasTestTag("calendar-sidebar")), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertEquals(team.top + 3f, marker.top, 0.5f)
         assertEquals(52f, marker.height, 0.5f)
 
@@ -73,13 +73,13 @@ class CalendarTimedTasksUiTest {
     fun `dragging a continuing event shifts its start by the dragged day delta`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
         val intents = mutableListOf<CalendarIntent>()
         setContent { TaskBTheme(false) { CalendarScreen(timedCalendarPreviewState(), intents::add, {}, {}, {}) } }
-        val source = onNode(hasTestTag("calendar-task-302") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-07")), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
+        val source = onNode(hasTestTag("calendar-event:302") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-07")), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
         val target = onNodeWithTag("calendar-day-2026-11-12", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
         onRoot().performMouseInput { moveTo(source); press(); moveTo(source + Offset(28f, 0f)); moveTo(target) }
         onNode(hasText("Business trip") and hasAnyAncestor(hasTestTag("calendar-drag-preview")), useUnmergedTree = true).assertIsDisplayed()
         onRoot().performMouseInput { release() }
         runOnIdle {
-            assertEquals(listOf<CalendarIntent>(CalendarIntent.MoveTask(302, LocalDate(2026, 11, 11))), intents)
+            assertEquals(listOf<CalendarIntent>(CalendarIntent.MoveEvent(302, LocalDate(2026, 11, 11))), intents)
             assertTrue(intents.none { it is CalendarIntent.ToggleCompleted })
         }
     }

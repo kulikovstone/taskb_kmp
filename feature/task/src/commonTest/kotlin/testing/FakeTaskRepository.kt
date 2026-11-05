@@ -36,7 +36,7 @@ internal class FakeTaskRepository(private val clock: Clock = Clock.System) : ITa
         if (task.id != 0 && values.value.none { it.id == task.id }) return false
         values.value = if (task.id == 0) values.value + task.copy(id = (values.value.maxOfOrNull { it.id } ?: 0) + 1)
             else values.value.map { if (it.id == task.id) it.copy(name = task.name, description = task.description, dueDate = task.dueDate,
-                groupId = task.groupId, recurrence = task.recurrence, startTime = task.startTime, durationMinutes = task.durationMinutes) else it }
+                groupId = task.groupId, recurrence = task.recurrence) else it }
         return true
     }
     override suspend fun setCompleted(id: Int, completed: Boolean) {
@@ -51,8 +51,7 @@ internal class FakeTaskRepository(private val clock: Clock = Clock.System) : ITa
         onWrite()
         if (fail) error("Write failed")
         if (values.value.none { it.id == id && it.dueDate == expectedDate }) return false
-        values.value = values.value.map { if (it.id == id) it.copy(dueDate = date,
-            startTime = it.startTime.takeIf { date != null }, durationMinutes = it.durationMinutes.takeIf { date != null }) else it }
+        values.value = values.value.map { if (it.id == id) it.copy(dueDate = date) else it }
         return true
     }
 }

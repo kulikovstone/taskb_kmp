@@ -1,4 +1,4 @@
-package com.mkulikov.taskb.feature.task.screen.task_editor
+package com.mkulikov.taskb.feature.event.screen.event_editor
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,8 +13,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
-import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
+import com.mkulikov.taskb.feature.event.testing.FakeGroupRepository
+import com.mkulikov.taskb.feature.event.testing.FakeEventRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import com.mkulikov.taskb.ui.theme.Palette
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,14 +28,14 @@ import javax.imageio.ImageIO
 import kotlin.test.*
 
 @OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
-class TaskTimeEditorUiTest {
+class EventTimeEditorUiTest {
     @Test fun `selected clock hours and minutes are visible in both themes`() {
         for (dark in listOf(false, true)) for (hour in listOf(9, 21)) runSkikoComposeUiTest(size = Size(440f, 800f)) {
             var selected: LocalTime? = null
             setContent {
                 TaskBTheme(dark) {
                     Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-                        TaskTimePickerDialog("Choose start time", LocalTime(hour, 30), 800.dp, { selected = it }, {})
+                        EventTimePickerDialog("Choose start time", LocalTime(hour, 30), 800.dp, { selected = it }, {})
                     }
                 }
             }
@@ -67,16 +67,16 @@ class TaskTimeEditorUiTest {
 
     @Test fun `date and time reveal dependent fields and clearing time hides duration`() {
         val scheduler = TestCoroutineScheduler()
-        TaskEditorStore(FakeTaskRepository(), FakeGroupRepository(), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+        EventEditorStore(FakeEventRepository(), FakeGroupRepository(), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
             scheduler.runCurrent()
             runSkikoComposeUiTest(size = Size(1280f, 980f)) {
-                setContent { TaskBTheme(false) { TaskEditorContent(store.state.collectAsState().value, store::accept, true, {}, {}) } }
+                setContent { TaskBTheme(false) { EventEditorContent(store.state.collectAsState().value, store::accept, true, {}, {}) } }
                 onNodeWithContentDescription("Choose start time").assertDoesNotExist()
-                store.accept(TaskEditorIntent.DateChanged(LocalDate(2026, 11, 6)))
+                store.accept(EventEditorIntent.DateChanged(LocalDate(2026, 11, 6)))
                 scheduler.runCurrent(); waitForIdle()
                 onNodeWithContentDescription("Choose start time").assertIsDisplayed()
                 onNodeWithText("Duration").assertDoesNotExist()
-                store.accept(TaskEditorIntent.StartTimeChanged(LocalTime(12, 0)))
+                store.accept(EventEditorIntent.StartTimeChanged(LocalTime(12, 0)))
                 scheduler.runCurrent(); waitForIdle()
                 onNodeWithText("Duration").assertIsDisplayed()
                 onNodeWithText("1 hour").assertIsSelected()
@@ -98,8 +98,8 @@ class TaskTimeEditorUiTest {
     @Test fun `standard 24 hour picker and custom duration save at desktop and compact widths`() {
         for (wide in listOf(true, false)) {
             val scheduler = TestCoroutineScheduler()
-            val repo = FakeTaskRepository()
-            TaskEditorStore(repo, FakeGroupRepository(), initialDate = LocalDate(2026, 11, 6), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
+            val repo = FakeEventRepository()
+            EventEditorStore(repo, FakeGroupRepository(), initialDate = LocalDate(2026, 11, 6), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
                 scheduler.runCurrent()
                 runSkikoComposeUiTest(size = Size(if (wide) 1280f else 400f, 980f)) {
                     setContent {
@@ -107,13 +107,13 @@ class TaskTimeEditorUiTest {
                             val state = store.state.collectAsState().value
                             Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
                                 Box {
-                                    TaskEditorContent(state, store::accept, wide, {}, {})
-                                    TaskEditorDialogs(state, state.today, store::accept, 980.dp)
+                                    EventEditorContent(state, store::accept, wide, {}, {})
+                                    EventEditorDialogs(state, state.today, store::accept, 980.dp)
                                 }
                             }
                         }
                     }
-                    onNodeWithContentDescription("Task name").performTextReplacement("Business trip")
+                    onNodeWithContentDescription("Event name").performTextReplacement("Business trip")
                     onNodeWithContentDescription("Choose start time").performScrollTo().performClick()
                     scheduler.runCurrent(); waitForIdle()
                     onNodeWithContentDescription("Switch to keyboard input").performClick()
@@ -132,10 +132,10 @@ class TaskTimeEditorUiTest {
                     onNodeWithContentDescription("Duration hours").performScrollTo().performTextReplacement("16")
                     scheduler.runCurrent(); waitForIdle()
                     onNodeWithText("2 days 16 hr").performScrollTo().assertIsDisplayed()
-                    val output = Path.of("build/reports/screenshots/task-time-editor-${if (wide) "wide" else "compact"}.png")
+                    val output = Path.of("build/reports/screenshots/event-time-editor-${if (wide) "wide" else "compact"}.png")
                     Files.createDirectories(output.parent)
                     ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
-                    onNodeWithContentDescription("Save task").performClick()
+                    onNodeWithContentDescription("Save event").performClick()
                     scheduler.runCurrent()
                     assertEquals(LocalTime(9, 0), repo.lastWrite?.startTime)
                     assertEquals(3840, repo.lastWrite?.durationMinutes)

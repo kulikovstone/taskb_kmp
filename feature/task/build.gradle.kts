@@ -16,7 +16,6 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.compose.material)
-            implementation(libs.compose.material3)
             implementation(libs.kotlinx.datetime)
 
             implementation(project(":core:database"))

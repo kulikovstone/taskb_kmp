@@ -28,7 +28,8 @@ import kotlinx.datetime.plus
 
 @Stable
 internal class CalendarDragState {
-    var task: Task? by mutableStateOf(null)
+    val task: Task? get() = (item as? CalendarItem.TaskItem)?.task
+    var item: CalendarItem? by mutableStateOf(null)
         private set
     var position by mutableStateOf(Offset.Zero)
         private set
@@ -39,19 +40,21 @@ internal class CalendarDragState {
     var sourceDate: LocalDate? by mutableStateOf(null)
         private set
     val targets = mutableStateMapOf<LocalDate, Rect>()
-    val hoveredDay: LocalDate? get() = if (task == null) null else targets.entries.firstOrNull { it.value.contains(position) }?.key
+    val hoveredDay: LocalDate? get() = if (item == null) null else targets.entries.firstOrNull { it.value.contains(position) }?.key
 
-    fun begin(task: Task, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) {
-        this.task = task
+    fun begin(task: Task, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) =
+        begin(CalendarItem.TaskItem(task), position, size, dense, sourceDate)
+    fun begin(task: CalendarItem, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) {
+        this.item = task
         this.position = position
         this.size = size
         this.dense = dense
         this.sourceDate = sourceDate
     }
     fun update(position: Offset) { this.position = position }
-    fun cancel() { task = null }
+    fun cancel() { item = null }
     fun finish(onMove: (Int, LocalDate) -> Unit) {
-        val source = task
+        val source = item
         val date = hoveredDay
         val displayedDate = sourceDate
         cancel()
@@ -69,7 +72,7 @@ internal class CalendarDragState {
 /** Mouse dragging starts after slop; touch dragging starts after a long press, leaving swipes to the month grid. */
 @Composable
 internal fun Modifier.calendarTaskDrag(
-    task: Task,
+    task: CalendarItem,
     dragState: CalendarDragState,
     enabled: Boolean,
     dense: Boolean = false,
@@ -80,7 +83,7 @@ internal fun Modifier.calendarTaskDrag(
     val latestTask by rememberUpdatedState(task)
     val latestMove by rememberUpdatedState(onMove)
     val latestSourceDate by rememberUpdatedState(sourceDate)
-    return onGloballyPositioned { coordinates = it }.pointerInput(task.id, enabled, dragState, dense, sourceDate) {
+    return onGloballyPositioned { coordinates = it }.pointerInput(task.key, enabled, dragState, dense, sourceDate) {
         if (!enabled) return@pointerInput
         try {
             awaitEachGesture {
@@ -100,7 +103,7 @@ internal fun Modifier.calendarTaskDrag(
                 if (ended) dragState.finish(latestMove) else dragState.cancel()
             }
         } finally {
-            if (dragState.task?.id == task.id) dragState.cancel()
+            if (dragState.item?.key == task.key) dragState.cancel()
         }
     }
 }

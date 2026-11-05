@@ -19,8 +19,8 @@ class CalendarSidebarSectionsUiTest {
     fun `only the section header contents toggle tasks without highlighting on hover`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
         val state = timedCalendarPreviewState()
         setContent { TaskBTheme(false) { CalendarScreen(state, {}, {}, {}, {}) } }
-        fun taskNode(task: Task) = onNode(
-            hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
+        fun taskNode(task: CalendarItem) = onNode(
+            hasTestTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
             useUnmergedTree = true,
         )
         val daily = onNodeWithTag("calendar-sidebar-daily-heading")
@@ -38,7 +38,7 @@ class CalendarSidebarSectionsUiTest {
                 assertEquals(beforeHover[x, y], afterHover[x, y], "Header changed on hover at ($x, $y)")
             }
         }
-        for (task in state.sidebarTasks) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarItems) taskNode(task).assertIsDisplayed()
         val timedTopBefore = timed.fetchSemanticsNode().boundsInRoot.top
         val dailyBounds = daily.fetchSemanticsNode().boundsInRoot
         val listBounds = onNodeWithTag("calendar-sidebar-list").fetchSemanticsNode().boundsInRoot
@@ -48,33 +48,33 @@ class CalendarSidebarSectionsUiTest {
         val dailyTitleBounds = onNodeWithText("Daily · 2", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         onRoot().performMouseInput { click(Offset((dailyBounds.left + dailyTitleBounds.left) / 2f, dailyBounds.center.y)) }
         daily.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
-        for (task in state.sidebarDailyTasks) taskNode(task).assertDoesNotExist()
-        for (task in state.sidebarTimedTasks + state.sidebarUntimedTasks) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarDailyItems) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarTimedItems + state.sidebarUntimedItems) taskNode(task).assertIsDisplayed()
         assertTrue(timed.fetchSemanticsNode().boundsInRoot.top < timedTopBefore)
         onNodeWithText("Daily · 2").assertIsDisplayed()
-        onNodeWithText("Friday · 6 tasks").assertIsDisplayed()
+        onNodeWithText("Friday · 3 tasks · 3 events").assertIsDisplayed()
 
         timed.performClick()
         timed.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
-        for (task in state.sidebarTimedTasks) taskNode(task).assertDoesNotExist()
-        for (task in state.sidebarUntimedTasks) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarTimedItems) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarUntimedItems) taskNode(task).assertIsDisplayed()
         onNode(
-            hasTestTag("calendar-task-300") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")),
+            hasTestTag("calendar-event:300") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")),
             useUnmergedTree = true,
         ).assertIsDisplayed()
         untimed.performClick()
         untimed.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
-        for (task in state.sidebarTasks) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarItems) taskNode(task).assertDoesNotExist()
         for (heading in listOf(daily, timed, untimed)) heading.assertIsDisplayed()
 
         onNodeWithText("Daily · 2", useUnmergedTree = true).performMouseInput { click() }
-        for (task in state.sidebarDailyTasks) taskNode(task).assertIsDisplayed()
-        for (task in state.sidebarTimedTasks + state.sidebarUntimedTasks) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarDailyItems) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarTimedItems + state.sidebarUntimedItems) taskNode(task).assertDoesNotExist()
         timed.performClick()
-        for (task in state.sidebarTimedTasks) taskNode(task).assertIsDisplayed()
-        for (task in state.sidebarUntimedTasks) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarTimedItems) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarUntimedItems) taskNode(task).assertDoesNotExist()
         untimed.performClick()
-        for (task in state.sidebarTasks) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarItems) taskNode(task).assertIsDisplayed()
         for (heading in listOf(daily, timed, untimed)) {
             heading.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
         }
@@ -128,7 +128,7 @@ class CalendarSidebarSectionsUiTest {
         onNodeWithTag("calendar-sidebar-timed-heading")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
         onNode(
-            hasTestTag("calendar-task-304") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
+            hasTestTag("calendar-event:304") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
             useUnmergedTree = true,
         ).assertIsDisplayed()
         onNodeWithTag("calendar-day-number-2026-11-06", useUnmergedTree = true).performClick()
@@ -143,8 +143,8 @@ class CalendarSidebarSectionsUiTest {
         onNodeWithTag("calendar-day-number-2026-11-06", useUnmergedTree = true).performClick()
         for (tag in headingTags) onNodeWithTag(tag)
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
-        for (task in state.value.sidebarTasks) onNode(
-            hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
+        for (task in state.value.sidebarItems) onNode(
+            hasTestTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
             useUnmergedTree = true,
         ).assertIsDisplayed()
     }

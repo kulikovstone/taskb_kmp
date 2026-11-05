@@ -16,6 +16,7 @@ kotlin {
             implementation(project(":core:utils"))
             implementation(project(":feature:calendar:api"))
             implementation(project(":feature:task:api"))
+            implementation(project(":feature:event:api"))
             implementation(project(":feature:group:api"))
             implementation(project(":ui"))
         }

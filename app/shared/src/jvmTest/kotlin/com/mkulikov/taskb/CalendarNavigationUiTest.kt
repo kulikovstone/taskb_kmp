@@ -41,7 +41,7 @@ class CalendarNavigationUiTest {
                 setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
                 waitText("Calendar")
                 onNodeWithText("Calendar").performClick()
-                waitText("New task")
+                waitText("Task")
                 openNewTask("No group")
                 chooseTaskGroup("Work")
                 saveNewTask("First in Work")
@@ -85,14 +85,14 @@ class CalendarNavigationUiTest {
                 waitUntil(timeoutMillis = 10_000) { onAllNodes(personal).fetchSemanticsNodes().isNotEmpty() }
                 onNode(personal).performClick()
                 waitText("1 of 3 tasks")
-                openNewTask("Personal")
+                openNewTask("Personal", "New task")
                 onNodeWithContentDescription("Clear task group").performClick()
                 onNodeWithContentDescription("Back").performClick()
                 waitText("1 of 3 tasks")
                 onNodeWithContentDescription("Back").performClick()
                 waitText("Calendar")
                 onNodeWithText("Calendar").performClick()
-                waitText("New task")
+                waitText("Task")
                 openNewTask("Work")
                 onNodeWithContentDescription("Back").performClick()
                 waitText("First in Work")
@@ -109,7 +109,7 @@ class CalendarNavigationUiTest {
                 setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
                 waitText("Calendar")
                 onNodeWithText("Calendar").performClick()
-                waitText("New task")
+                waitText("Task")
                 openNewTask("No group")
             }
         }
@@ -166,7 +166,7 @@ class CalendarNavigationUiTest {
                 onNodeWithTag("calendar-day-${next.firstDay}", useUnmergedTree = true).assertIsSelected()
                 onNodeWithText(label).assertIsDisplayed()
                 onNodeWithText("Day view is coming soon.").assertDoesNotExist()
-                onNodeWithText("New task").performClick()
+                onNodeWithText("Task").performClick()
                 waitText("Create task")
                 onNodeWithContentDescription("Clear date").assertIsDisplayed()
                 onNodeWithContentDescription("Task name").performTextReplacement("Created from calendar")
@@ -177,7 +177,7 @@ class CalendarNavigationUiTest {
                 assertEquals(next.firstDay.toEpochDays(), runBlocking { db.taskDao().getById(4) }?.dueDate)
                 onNodeWithTag("calendar-sidebar-toggle").performClick()
                 onNode(hasText("Created from calendar") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertDoesNotExist()
-                onNodeWithText("New task").performClick()
+                onNodeWithText("Task").performClick()
                 waitText("Create task")
                 onNodeWithContentDescription("Clear date").assertDoesNotExist()
                 onNodeWithContentDescription("Task name").performTextReplacement("Created without date")
@@ -192,8 +192,8 @@ class CalendarNavigationUiTest {
         }
     }
 
-    private suspend fun SkikoComposeUiTest.openNewTask(group: String) {
-        onNodeWithText("New task").performClick()
+    private suspend fun SkikoComposeUiTest.openNewTask(group: String, label: String = "Task") {
+        onNodeWithText(label).performClick()
         val field = hasContentDescription("Choose task group") and hasText(group)
         waitUntil(timeoutMillis = 10_000) { onAllNodes(field).fetchSemanticsNodes().isNotEmpty() }
         onNode(field).assertIsDisplayed()

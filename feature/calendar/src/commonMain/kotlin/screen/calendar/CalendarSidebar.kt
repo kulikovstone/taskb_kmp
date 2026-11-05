@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -29,20 +28,25 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 internal val calendarSidebarTaskPadding = PaddingValues(horizontal = 24.dp)
 
 @Composable
-internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (Task) -> Unit) {
-    val tasks = state.sidebarTasks
+internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (CalendarItem) -> Unit) {
+    val tasks = state.sidebarItems
     val date = state.selectedDate
-    val daily = state.sidebarDailyTasks
-    val timed = state.sidebarTimedTasks
-    val untimed = state.sidebarUntimedTasks
-    val completed = state.sidebarCompletedTasks
+    val daily = state.sidebarDailyItems
+    val timed = state.sidebarTimedItems
+    val untimed = state.sidebarUntimedItems
+    val completed = state.sidebarCompletedItems
     var dailyExpanded by remember(date) { mutableStateOf(true) }
     var timedExpanded by remember(date) { mutableStateOf(true) }
     var untimedExpanded by remember(date) { mutableStateOf(true) }
     var completedExpanded by remember(date) { mutableStateOf(true) }
     val colors = TaskBTheme.colors
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
-    val count = "${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}"
+    val taskCount = tasks.count { !it.isEvent }
+    val eventCount = tasks.count { it.isEvent }
+    val count = buildList {
+        if (taskCount > 0 || eventCount == 0) add("$taskCount ${if (taskCount == 1) "task" else "tasks"}")
+        if (eventCount > 0) add("$eventCount ${if (eventCount == 1) "event" else "events"}")
+    }.joinToString(" · ")
     val context = if (date == null) count else buildString {
         if (date == state.today) append("Today · ")
         append(calendarWeekdayLabel.format(date))
@@ -64,7 +68,7 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
         Text(context, modifier = Modifier.padding(calendarSidebarTaskPadding),
             style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle), color = colors.muted)
         Spacer(Modifier.height(16.dp))
-        if (tasks.isEmpty()) Text(if (date == null) "No tasks without a date." else "No tasks for this day.",
+        if (tasks.isEmpty()) Text(if (date == null) "No tasks or events without a date." else "No tasks or events for this day.",
             modifier = Modifier.padding(calendarSidebarTaskPadding), color = colors.muted, style = TaskBTheme.typography.body)
         val scroll = rememberLazyListState()
         LaunchedEffect(date) { scroll.scrollToItem(0) }
@@ -76,13 +80,13 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                     if (dailyExpanded) Spacer(Modifier.height(8.dp))
                 }
                 if (dailyExpanded) items(daily, key = { it.key }) { task ->
-                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
                         { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
+                        Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
-                            onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
-                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now,
+                            onIntent(task.moveTo(target))
+                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now,
                         contentPadding = calendarSidebarTaskPadding)
                 }
                 if (timed.isNotEmpty()) item(key = "timed-heading") {
@@ -92,12 +96,12 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                     if (timedExpanded) Spacer(Modifier.height(4.dp))
                 }
                 if (timedExpanded) items(timed, key = { it.key }) { task ->
-                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, {},
-                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
+                        Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
-                            onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
-                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now,
+                            onIntent(task.moveTo(target))
+                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now,
                         contentPadding = calendarSidebarTaskPadding)
                     Spacer(Modifier.height(4.dp))
                 }
@@ -109,12 +113,12 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                     if (untimedExpanded) Spacer(Modifier.height(8.dp))
                 }
                 if (date == null || untimedExpanded) items(untimed, key = { it.key }) { task ->
-                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
                         { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, target ->
-                            onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
-                        }, enabled = enabled, dragging = drag.task?.key == task.key,
+                        Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled) { id, target ->
+                            onIntent(task.moveTo(target))
+                        }, enabled = enabled, dragging = drag.item?.key == task.key,
                         contentPadding = calendarSidebarTaskPadding)
                 }
                 if (completed.isNotEmpty()) item(key = "completed-heading") {
@@ -126,13 +130,13 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                     if (completedExpanded) Spacer(Modifier.height(8.dp))
                 }
                 if (completedExpanded) items(completed, key = { it.key }) { task ->
-                    val enabled = task.id !in state.pendingCompletion && state.pendingMove == null
+                    val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
                         { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag("calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
+                        Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
-                            onIntent(CalendarIntent.MoveTask(id, target, task.occurrenceId))
-                        }, enabled = enabled, dragging = drag.task?.key == task.key, now = state.now,
+                            onIntent(task.moveTo(target))
+                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now,
                         contentPadding = calendarSidebarTaskPadding)
                 }
             }

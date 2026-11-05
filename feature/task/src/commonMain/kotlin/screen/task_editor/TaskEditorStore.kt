@@ -76,12 +76,6 @@ internal class TaskEditorStore(
             is TaskEditorIntent.RepeatEndDateChanged -> if (current.dialog == TaskEditorDialog.RepeatEndDatePicker) current.editedRecurrence?.let {
                 reduce(TaskEditorMessage.Recurrence(it.copy(endDate = intent.date, occurrenceCount = null)))
             }
-            is TaskEditorIntent.StartTimeChanged -> if (!current.isBusy && current.loadError == null && current.dueDate != null &&
-                (current.dialog == null || current.dialog == TaskEditorDialog.StartTimePicker)) reduce(TaskEditorMessage.StartTime(intent.time))
-            is TaskEditorIntent.TaskEndDateChanged -> if (current.dialog == TaskEditorDialog.TaskEndDatePicker)
-                reduce(TaskEditorMessage.EndDate(intent.date))
-            is TaskEditorIntent.EndTimeChanged -> if (current.dialog == TaskEditorDialog.EndTimePicker)
-                reduce(TaskEditorMessage.EndTime(intent.time))
             TaskEditorIntent.ConfirmDelete -> if (current.dialog == TaskEditorDialog.ConfirmDelete && taskId != null) {
                 reduce(TaskEditorMessage.Saving)
                 launchEffect { recover("Couldn't delete this task. Please try again.") { repository.delete(taskId); TaskEditorMessage.Finished } }
@@ -90,17 +84,6 @@ internal class TaskEditorStore(
             else -> {
                 if (current.isBusy || current.loadError != null || current.groupsLoadError != null || current.dialog != null) return
                 when (intent) {
-                    TaskEditorIntent.ChooseStartTime -> if (current.dueDate != null) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.StartTimePicker))
-                    is TaskEditorIntent.DurationChanged -> if (current.startTime != null && intent.minutes > 0) reduce(TaskEditorMessage.Duration(intent.minutes))
-                    TaskEditorIntent.ChooseCustomDuration -> if (current.startTime != null) reduce(TaskEditorMessage.CustomDuration)
-                    is TaskEditorIntent.DurationModeChanged -> if (current.customDuration) reduce(TaskEditorMessage.DurationMode(intent.mode))
-                    is TaskEditorIntent.DurationInputChanged -> if (current.customDuration &&
-                        (intent.days == null || intent.days.length <= 7 && intent.days.all(Char::isDigit)) &&
-                        (intent.hours == null || intent.hours.length <= 2 && intent.hours.all(Char::isDigit)) &&
-                        (intent.minutes == null || intent.minutes.length <= 2 && intent.minutes.all(Char::isDigit)))
-                        reduce(TaskEditorMessage.DurationInput(intent.days, intent.hours, intent.minutes))
-                    TaskEditorIntent.ChooseTaskEndDate -> if (current.startTime != null && current.customDuration) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.TaskEndDatePicker))
-                    TaskEditorIntent.ChooseEndTime -> if (current.startTime != null && current.customDuration) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.EndTimePicker))
                     is TaskEditorIntent.GroupChanged -> if (intent.id == null || current.groups.any { it.id == intent.id }) {
                         reduce(TaskEditorMessage.GroupSelected(intent.id))
                         onGroupSelected(intent.id)
@@ -117,7 +100,7 @@ internal class TaskEditorStore(
                     TaskEditorIntent.PrepareDelete -> if (current.original != null) reduce(TaskEditorMessage.Dialog(if (occurrenceId != null) TaskEditorDialog.DeleteOccurrence else TaskEditorDialog.ConfirmDelete))
                     TaskEditorIntent.Save -> if (current.canSave) {
                         if (occurrenceId != null && current.original?.recurrence == current.editedRecurrence &&
-                            (current.original?.dueDate != current.dueDate || current.original?.startTime != current.startTime || current.original?.durationMinutes != current.editedDurationMinutes))
+                            current.original?.dueDate != current.dueDate)
                             reduce(TaskEditorMessage.Dialog(TaskEditorDialog.MoveOccurrence))
                         else save(current, TaskChangeScope.ThisAndFollowing)
                     }
@@ -129,7 +112,7 @@ internal class TaskEditorStore(
         reduce(TaskEditorMessage.Saving)
         val task = (current.original ?: Task(name = "")).copy(name = current.normalizedName,
             description = current.description.text.toString(), dueDate = current.dueDate, groupId = current.groupId,
-            recurrence = current.editedRecurrence, startTime = current.startTime, durationMinutes = current.editedDurationMinutes)
+            recurrence = current.editedRecurrence)
         launchEffect { recover("Couldn't save this task. Please try again.") {
             if (repository.saveOccurrence(task, scope)) TaskEditorMessage.Finished else TaskEditorMessage.Failed("This task has changed or no longer exists. Reopen it and try again.")
         } }

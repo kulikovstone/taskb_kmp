@@ -1,4 +1,4 @@
-package com.mkulikov.taskb.feature.task.screen.task_editor
+package com.mkulikov.taskb.feature.event.screen.event_editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -38,68 +38,68 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
 @Composable
-internal fun TaskTimeFields(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, enabled: Boolean, wide: Boolean) {
+internal fun EventTimeFields(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean, wide: Boolean) {
     if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-        Column(Modifier.weight(1f)) { TaskStartTimeField(state, onIntent, enabled) }
-        Column(Modifier.weight(1f)) { if (state.startTime != null) TaskDurationFields(state, onIntent, enabled) }
+        Column(Modifier.weight(1f)) { EventStartTimeField(state, onIntent, enabled) }
+        Column(Modifier.weight(1f)) { if (state.startTime != null) EventDurationFields(state, onIntent, enabled) }
     } else {
-        TaskStartTimeField(state, onIntent, enabled)
+        EventStartTimeField(state, onIntent, enabled)
         if (state.startTime != null) {
             Spacer(Modifier.height(24.dp))
-            TaskDurationFields(state, onIntent, enabled)
+            EventDurationFields(state, onIntent, enabled)
         }
     }
 }
 
 @Composable
-private fun TaskStartTimeField(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, enabled: Boolean) {
+private fun EventStartTimeField(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
     Text("Start time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
     Spacer(Modifier.height(8.dp))
-    TaskSelectionField(state.startTime?.let(::taskTimeLabel) ?: "Choose time", TaskBIcons.Schedule, TaskBTheme.colors.muted,
+    EventSelectionField(state.startTime?.let(::eventTimeLabel) ?: "Choose time", TaskBIcons.Schedule, TaskBTheme.colors.muted,
         state.startTime == null, "Choose start time", enabled,
-        { onIntent(TaskEditorIntent.ChooseStartTime) }, state.startTime?.let { { onIntent(TaskEditorIntent.StartTimeChanged(null)) } }, "Clear start time")
+        { onIntent(EventEditorIntent.ChooseStartTime) }, state.startTime?.let { { onIntent(EventEditorIntent.StartTimeChanged(null)) } }, "Clear start time")
     Spacer(Modifier.height(8.dp))
     Text("24-hour time", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted)
 }
 
 @Composable
-private fun TaskDurationFields(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, enabled: Boolean) {
+private fun EventDurationFields(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
     val colors = TaskBTheme.colors
     Text("Duration", Modifier.fillMaxWidth().height(18.dp), style = TaskBTheme.typography.label, color = colors.text)
     Spacer(Modifier.height(8.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TaskBSelectionButton("15 min", !state.customDuration && state.durationMinutes == 15,
-            { onIntent(TaskEditorIntent.DurationChanged(15)) }, Modifier.weight(1f), enabled)
+            { onIntent(EventEditorIntent.DurationChanged(15)) }, Modifier.weight(1f), enabled)
         TaskBSelectionButton("30 min", !state.customDuration && state.durationMinutes == 30,
-            { onIntent(TaskEditorIntent.DurationChanged(30)) }, Modifier.weight(1f), enabled)
+            { onIntent(EventEditorIntent.DurationChanged(30)) }, Modifier.weight(1f), enabled)
         TaskBSelectionButton("1 hour", !state.customDuration && state.durationMinutes == 60,
-            { onIntent(TaskEditorIntent.DurationChanged(60)) }, Modifier.weight(1f), enabled)
+            { onIntent(EventEditorIntent.DurationChanged(60)) }, Modifier.weight(1f), enabled)
         TaskBSelectionButton("Custom", state.customDuration,
-            { onIntent(TaskEditorIntent.ChooseCustomDuration) }, Modifier.weight(1f), enabled)
+            { onIntent(EventEditorIntent.ChooseCustomDuration) }, Modifier.weight(1f), enabled)
     }
     if (state.customDuration) {
         Spacer(Modifier.height(24.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TaskBSelectionButton("Duration", state.durationMode == TaskDurationMode.Duration,
-                { onIntent(TaskEditorIntent.DurationModeChanged(TaskDurationMode.Duration)) }, Modifier.weight(1f), enabled)
-            TaskBSelectionButton("End date & time", state.durationMode == TaskDurationMode.EndDateTime,
-                { onIntent(TaskEditorIntent.DurationModeChanged(TaskDurationMode.EndDateTime)) }, Modifier.weight(1f), enabled)
+            TaskBSelectionButton("Duration", state.durationMode == EventDurationMode.Duration,
+                { onIntent(EventEditorIntent.DurationModeChanged(EventDurationMode.Duration)) }, Modifier.weight(1f), enabled)
+            TaskBSelectionButton("End date & time", state.durationMode == EventDurationMode.EndDateTime,
+                { onIntent(EventEditorIntent.DurationModeChanged(EventDurationMode.EndDateTime)) }, Modifier.weight(1f), enabled)
         }
         Spacer(Modifier.height(16.dp))
-        if (state.durationMode == TaskDurationMode.Duration) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            DurationNumber("Days", state.durationDays, "Duration days", { onIntent(TaskEditorIntent.DurationInputChanged(days = it)) }, enabled, Modifier.weight(1f))
-            DurationNumber("Hours", state.durationHours, "Duration hours", { onIntent(TaskEditorIntent.DurationInputChanged(hours = it)) }, enabled, Modifier.weight(1f))
-            DurationNumber("Minutes", state.durationMinutePart, "Duration minutes", { onIntent(TaskEditorIntent.DurationInputChanged(minutes = it)) }, enabled, Modifier.weight(1f))
+        if (state.durationMode == EventDurationMode.Duration) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DurationNumber("Days", state.durationDays, "Duration days", { onIntent(EventEditorIntent.DurationInputChanged(days = it)) }, enabled, Modifier.weight(1f))
+            DurationNumber("Hours", state.durationHours, "Duration hours", { onIntent(EventEditorIntent.DurationInputChanged(hours = it)) }, enabled, Modifier.weight(1f))
+            DurationNumber("Minutes", state.durationMinutePart, "Duration minutes", { onIntent(EventEditorIntent.DurationInputChanged(minutes = it)) }, enabled, Modifier.weight(1f))
         } else {
             Text("End date", style = TaskBTheme.typography.label, color = colors.text)
             Spacer(Modifier.height(8.dp))
-            TaskSelectionField(state.endDate?.let(::taskTimingDateLabel) ?: "Choose end date", TaskBIcons.Calendar, colors.muted,
-                state.endDate == null, "Choose task end date", enabled, { onIntent(TaskEditorIntent.ChooseTaskEndDate) }, null, "")
+            EventSelectionField(state.endDate?.let(::eventTimingDateLabel) ?: "Choose end date", TaskBIcons.Calendar, colors.muted,
+                state.endDate == null, "Choose event end date", enabled, { onIntent(EventEditorIntent.ChooseEventEndDate) }, null, "")
             Spacer(Modifier.height(16.dp))
             Text("End time", style = TaskBTheme.typography.label, color = colors.text)
             Spacer(Modifier.height(8.dp))
-            TaskSelectionField(state.endTime?.let(::taskTimeLabel) ?: "Choose end time", TaskBIcons.Schedule, colors.muted,
-                state.endTime == null, "Choose end time", enabled, { onIntent(TaskEditorIntent.ChooseEndTime) }, null, "")
+            EventSelectionField(state.endTime?.let(::eventTimeLabel) ?: "Choose end time", TaskBIcons.Schedule, colors.muted,
+                state.endTime == null, "Choose end time", enabled, { onIntent(EventEditorIntent.ChooseEndTime) }, null, "")
         }
     }
     Spacer(Modifier.height(8.dp))
@@ -108,11 +108,11 @@ private fun TaskDurationFields(state: TaskEditorState, onIntent: (TaskEditorInte
     when {
         error != null -> Text(error, style = TaskBTheme.typography.small, color = colors.danger)
         end != null && state.customDuration -> Column(Modifier.fillMaxWidth().padding(top = 8.dp).background(colors.selected, RoundedCornerShape(8.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(taskDurationLabel(requireNotNull(state.editedDurationMinutes)), style = TaskBTheme.typography.button, color = colors.text)
-            Text("${taskTimingDateLabel(requireNotNull(state.dueDate))} · ${taskTimeLabel(requireNotNull(state.startTime))}–${taskTimingDateLabel(end.date)} · ${taskTimeLabel(end.time)}",
+            Text(eventDurationLabel(requireNotNull(state.editedDurationMinutes)), style = TaskBTheme.typography.button, color = colors.text)
+            Text("${eventTimingDateLabel(requireNotNull(state.dueDate))} · ${eventTimeLabel(requireNotNull(state.startTime))}–${eventTimingDateLabel(end.date)} · ${eventTimeLabel(end.time)}",
                 style = TaskBTheme.typography.small, color = colors.secondary)
         }
-        end != null -> Text(if (end.date == state.dueDate) "Ends at ${taskTimeLabel(end.time)} · same day" else "Ends ${taskTimingDateLabel(end.date)} · ${taskTimeLabel(end.time)}",
+        end != null -> Text(if (end.date == state.dueDate) "Ends at ${eventTimeLabel(end.time)} · same day" else "Ends ${eventTimingDateLabel(end.date)} · ${eventTimeLabel(end.time)}",
             style = TaskBTheme.typography.small, color = colors.muted)
     }
 }
@@ -127,7 +127,7 @@ private fun DurationNumber(label: String, value: String, description: String, on
 }
 
 @Composable
-internal fun TaskTimePickerDialog(title: String, initialTime: LocalTime?, availableHeight: Dp, onConfirm: (LocalTime) -> Unit, onDismiss: () -> Unit) {
+internal fun EventTimePickerDialog(title: String, initialTime: LocalTime?, availableHeight: Dp, onConfirm: (LocalTime) -> Unit, onDismiss: () -> Unit) {
     val colors = TaskBTheme.colors
     val type = TaskBTheme.typography
     val picker = rememberTimePickerState(initialHour = initialTime?.hour ?: 9, initialMinute = initialTime?.minute ?: 0, is24Hour = true)
@@ -181,12 +181,12 @@ internal fun TaskTimePickerDialog(title: String, initialTime: LocalTime?, availa
     }
 }
 
-internal fun taskTimeLabel(time: LocalTime): String = "${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}"
+internal fun eventTimeLabel(time: LocalTime): String = "${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}"
 
 private val timingMonths = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-internal fun taskTimingDateLabel(date: LocalDate): String = "${date.day} ${timingMonths[date.month.ordinal]} ${date.year}"
+internal fun eventTimingDateLabel(date: LocalDate): String = "${date.day} ${timingMonths[date.month.ordinal]} ${date.year}"
 
-internal fun taskDurationLabel(minutes: Int): String = buildList {
+internal fun eventDurationLabel(minutes: Int): String = buildList {
     val days = minutes / 1440
     val hours = minutes % 1440 / 60
     val rest = minutes % 60

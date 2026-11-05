@@ -28,8 +28,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.startDateTime
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
@@ -41,7 +39,7 @@ internal val calendarTaskCheckboxSize = 20.dp
 internal val calendarTaskTitleGap = 6.dp
 internal val calendarTaskTitleInset = calendarTaskPadding + calendarTaskCheckboxSize + calendarTaskTitleGap
 
-internal fun calendarSidebarTaskTitleGap(task: Task) = if (task.isDailyRoutine) 4.dp else 6.dp
+internal fun calendarSidebarTaskTitleGap(task: CalendarItem) = if (task.isDailyRoutine) 4.dp else 6.dp
 
 @Composable
 internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle =
@@ -52,7 +50,7 @@ internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle =
 
 @Composable
 internal fun CalendarTaskRow(
-    task: Task,
+    task: CalendarItem,
     group: Group?,
     onOpenTask: (Int) -> Unit,
     onToggle: (Int) -> Unit,
@@ -64,10 +62,11 @@ internal fun CalendarTaskRow(
     now: Instant = Clock.System.now(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    if (task.startDateTime != null) {
-        CalendarTimedTaskRow(task, group, onOpenTask, modifier, dense, enabled, dragging, date, now, contentPadding)
+    if (task is CalendarItem.EventItem && task.startDateTime != null) {
+        CalendarTimedEventRow(task.event, group, onOpenTask, modifier, dense, enabled, dragging, date, now, contentPadding)
         return
     }
+    val completionAllowed = !task.isEvent
     val colors = TaskBTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
@@ -86,7 +85,7 @@ internal fun CalendarTaskRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(if (dense) calendarTaskTitleGap else calendarSidebarTaskTitleGap(task)),
         ) {
-            Box(
+            if (completionAllowed) Box(
                 (if (dense) Modifier.size(calendarTaskCheckboxSize) else Modifier.width(24.dp))
                     .toggleable(task.isCompleted, interactionSource = interactionSource, indication = null,
                         enabled = enabled, role = Role.Checkbox, onValueChange = { onToggle(task.id) })
@@ -104,6 +103,9 @@ internal fun CalendarTaskRow(
                         .requiredSize(24.dp).offset(x = (-3).dp, y = (-3).dp),
                 )
             }
+            if (!completionAllowed) Icon(TaskBIcons.Calendar, null,
+                tint = group?.color?.color ?: colors.muted,
+                modifier = Modifier.size(if (dense) calendarTaskCheckboxSize else 24.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (dense) 4.dp else 2.dp)) {
                 Text(
                     task.name,

@@ -40,7 +40,7 @@ class TaskRecurrenceNavigationUiTest {
                 onNodeWithText("Calendar").performClick()
                 waitText("No date")
                 onNodeWithTag("calendar-sidebar-toggle").performClick()
-                onNodeWithText("New task").performClick()
+                onNodeWithText("Task").performClick()
                 waitText("Create task")
                 onNodeWithContentDescription("Task name").performTextReplacement("Recurring routine")
                 onNodeWithContentDescription("Choose date").performClick()

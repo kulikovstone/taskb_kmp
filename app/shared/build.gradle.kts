@@ -72,6 +72,7 @@ kotlin {
             implementation(project(":core:mvi"))
             implementation(project(":core:navigation"))
             implementation(project(":feature:calendar"))
+            implementation(project(":feature:event"))
             implementation(project(":feature:group"))
             implementation(project(":feature:hello"))
             implementation(project(":feature:hello:api"))
@@ -95,6 +96,8 @@ kotlin {
         jvmTest.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.compose.ui.test)
+            implementation(project(":feature:event:api"))
+            implementation(project(":feature:calendar:api"))
             implementation(project(":feature:group:api"))
             implementation(project(":feature:task:api"))
         }

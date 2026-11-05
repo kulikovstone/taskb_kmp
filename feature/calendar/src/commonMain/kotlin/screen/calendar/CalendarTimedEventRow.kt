@@ -25,15 +25,15 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 @Composable
-internal fun CalendarTimedTaskRow(
-    task: Task,
+internal fun CalendarTimedEventRow(
+    task: Event,
     group: Group?,
     onOpenTask: (Int) -> Unit,
     modifier: Modifier,
@@ -46,7 +46,7 @@ internal fun CalendarTimedTaskRow(
 ) {
     val colors = TaskBTheme.colors
     val interaction = remember { MutableInteractionSource() }
-    val subdued = task.isCompleted || task.isPastCalendarEvent(now)
+    val subdued = task.isPastCalendarEvent(now)
     val titleColor = if (subdued) colors.completedText else colors.text
     val timeColor = if (subdued) colors.completedText else colors.taskTime
     val secondaryColor = if (subdued) colors.completedText else colors.muted
@@ -65,10 +65,10 @@ internal fun CalendarTimedTaskRow(
         if (group != null) Box(
             Modifier.width(2.dp).fillMaxHeight()
                 .then(if (dense) Modifier else Modifier.padding(vertical = 3.dp))
-                .background(group.color.color).testTag("calendar-task-marker-${task.key}"),
+                .background(group.color.color).testTag("calendar-event-marker-${task.key}"),
         )
         if (dense) {
-            val label = calendarMonthTaskText(task, date)
+            val label = calendarMonthEventText(task, date)
             val text = buildAnnotatedString {
                 append(label)
                 val clockStart = when {
@@ -83,14 +83,14 @@ internal fun CalendarTimedTaskRow(
                 maxLines = if (task.isMultiDayCalendarEvent) 1 else 2, overflow = TextOverflow.Ellipsis)
         } else {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                val range = calendarTaskTimeRange(task)
+                val range = calendarEventTimeRange(task)
                 val text = buildAnnotatedString {
                     append(range)
                     for (clock in Regex("\\b\\d{1,2}:\\d{2}\\b").findAll(range)) {
                         addStyle(SpanStyle(color = timeColor), clock.range.first, clock.range.last + 1)
                     }
                 }
-                Text(text, modifier = Modifier.fillMaxWidth().testTag("calendar-task-time-${task.key}"),
+                Text(text, modifier = Modifier.fillMaxWidth().testTag("calendar-event-time-${task.key}"),
                     color = secondaryColor, style = TaskBTheme.typography.label.copy(lineHeightStyle = lineHeight),
                     textDecoration = TextDecoration.None)
                 Text(task.name, color = titleColor, style = calendarTaskTitleStyle(dense = false),

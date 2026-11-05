@@ -2,6 +2,7 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import kotlinx.datetime.LocalDate
@@ -20,7 +21,7 @@ class CalendarCompletedTasksTest {
     @Test
     fun `completed tasks leave all active sections and sort by completion instead of creation or start time`() {
         val routine = Task(1, "Routine", date, createdAt = now, recurrence = daily)
-        val event = Task(2, "Meeting", date, createdAt = now, startTime = LocalTime(12, 0))
+        val event = Task(2, "Meeting", date, createdAt = now)
         val task = Task(3, "Bills", date, createdAt = now)
         val completedRoutine = routine.copy(id = 4, completedAt = now - 2.hours, occurrenceId = TaskOccurrenceId(4, date))
         val completedEvent = event.copy(id = 5, createdAt = now - 100.hours, completedAt = now - 1.hours)
@@ -32,10 +33,10 @@ class CalendarCompletedTasksTest {
         ))
 
         assertEquals(listOf(routine), state.sidebarDailyTasks)
-        assertEquals(listOf(event), state.sidebarTimedTasks)
-        assertEquals(listOf(task), state.sidebarUntimedTasks)
+        assertTrue(state.sidebarTimedItems.isEmpty())
+        assertEquals(listOf(task, event), state.sidebarUntimedTasks)
         assertEquals(listOf(completedEvent, completedRoutine, completedTask), state.sidebarCompletedTasks)
-        val sections = state.sidebarDailyTasks + state.sidebarTimedTasks + state.sidebarUntimedTasks + state.sidebarCompletedTasks
+        val sections = state.sidebarDailyTasks + state.sidebarUntimedTasks + state.sidebarCompletedTasks
         assertEquals(state.sidebarTasks.map { it.key }.toSet(), sections.map { it.key }.toSet())
         assertEquals(sections.size, sections.distinctBy { it.key }.size)
         assertTrue(state.monthTasksByDate[date].orEmpty().containsAll(listOf(completedEvent, completedTask)))
@@ -54,7 +55,7 @@ class CalendarCompletedTasksTest {
         ))
 
         assertTrue(state.sidebarDailyTasks.isEmpty())
-        assertTrue(state.sidebarTimedTasks.isEmpty())
+        assertTrue(state.sidebarTimedItems.isEmpty())
         assertEquals(listOf(active), state.sidebarUntimedTasks)
         assertEquals(listOf(recent, older), state.sidebarCompletedTasks)
         assertEquals(listOf(recent), state.copy(now = now + 1.hours).sidebarCompletedTasks)

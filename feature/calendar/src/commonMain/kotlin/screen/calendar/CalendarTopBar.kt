@@ -15,7 +15,7 @@ import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
-internal fun CalendarTopBar(state: CalendarState, onIntent: (CalendarIntent) -> Unit, onBack: () -> Unit, onCreateTask: () -> Unit) {
+internal fun CalendarTopBar(state: CalendarState, onIntent: (CalendarIntent) -> Unit, onBack: () -> Unit, onCreateTask: () -> Unit, onCreateEvent: () -> Unit) {
     val colors = TaskBTheme.colors
     Row(Modifier.fillMaxWidth().height(96.dp).padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onBack, Modifier.size(48.dp)) { Icon(TaskBIcons.Back, "Back", tint = colors.heading) }
@@ -39,6 +39,8 @@ internal fun CalendarTopBar(state: CalendarState, onIntent: (CalendarIntent) -> 
             }
         }
         Spacer(Modifier.width(16.dp))
-        TaskBEditorButton("New task", TaskBIcons.Add, onCreateTask)
+        TaskBEditorButton("Task", TaskBIcons.Add, onCreateTask)
+        Spacer(Modifier.width(8.dp))
+        TaskBEditorButton("Event", TaskBIcons.Add, onCreateEvent)
     }
 }
