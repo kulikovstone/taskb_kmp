@@ -63,8 +63,7 @@ class TaskEditorStoreTest {
             store.state.value.name.setTextAndPlaceCursorAtEnd(" Task ")
             val description = "  First line\n\nSecond line with trailing spaces  \n"
             store.state.value.description.setTextAndPlaceCursorAtEnd(description)
-            store.accept(TaskEditorIntent.DateChanged(LocalDate(2026, 1, 31)))
-            store.accept(TaskEditorIntent.ShiftDate(months = 1))
+            store.accept(TaskEditorIntent.DateChanged(LocalDate(2026, 2, 28)))
             store.accept(TaskEditorIntent.GroupChanged(7))
             repeat(3) { store.accept(TaskEditorIntent.Save) }
             runCurrent()

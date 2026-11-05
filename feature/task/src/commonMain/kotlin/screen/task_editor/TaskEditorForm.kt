@@ -77,14 +77,6 @@ private fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: 
             TaskBSelectionButton("Today", state.dueDate == today, { onIntent(TaskEditorIntent.DateChanged(today)) }, Modifier.weight(1f), enabled)
             TaskBSelectionButton("Tomorrow", state.dueDate == today.plus(1, DateTimeUnit.DAY), { onIntent(TaskEditorIntent.DateChanged(today.plus(1, DateTimeUnit.DAY))) }, Modifier.weight(1f), enabled)
         }
-        if (state.dueDate != null) {
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TaskBSelectionButton("day", false, { onIntent(TaskEditorIntent.ShiftDate(days = 1)) }, Modifier.weight(1f).semantics { contentDescription = "Add one day" }, enabled, TaskBIcons.Add)
-                TaskBSelectionButton("week", false, { onIntent(TaskEditorIntent.ShiftDate(days = 7)) }, Modifier.weight(1f).semantics { contentDescription = "Add one week" }, enabled, TaskBIcons.Add)
-                TaskBSelectionButton("month", false, { onIntent(TaskEditorIntent.ShiftDate(months = 1)) }, Modifier.weight(1f).semantics { contentDescription = "Add one month" }, enabled, TaskBIcons.Add)
-            }
-        }
     }
 }
 

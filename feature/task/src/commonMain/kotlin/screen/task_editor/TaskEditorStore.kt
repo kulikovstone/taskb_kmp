@@ -15,9 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 
 internal class TaskEditorStore(
     private val repository: ITaskRepository,
@@ -93,9 +91,6 @@ internal class TaskEditorStore(
                     is TaskEditorIntent.RepeatDayChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 2) reduce(TaskEditorMessage.RepeatInput(day = intent.value))
                     is TaskEditorIntent.RepeatCountChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 7) reduce(TaskEditorMessage.RepeatInput(count = intent.value))
                     TaskEditorIntent.ChooseRepeatEndDate -> if (current.recurrence != null) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.RepeatEndDatePicker))
-                    is TaskEditorIntent.ShiftDate -> current.dueDate?.let {
-                        reduce(TaskEditorMessage.Date(it.plus(intent.days, DateTimeUnit.DAY).plus(intent.months, DateTimeUnit.MONTH)))
-                    }
                     TaskEditorIntent.ChooseDate -> reduce(TaskEditorMessage.Dialog(TaskEditorDialog.DatePicker))
                     TaskEditorIntent.PrepareDelete -> if (current.original != null) reduce(TaskEditorMessage.Dialog(if (occurrenceId != null) TaskEditorDialog.DeleteOccurrence else TaskEditorDialog.ConfirmDelete))
                     TaskEditorIntent.Save -> if (current.canSave) {

@@ -26,7 +26,6 @@ internal sealed interface EventEditorIntent {
     data object ChooseRepeatEndDate : EventEditorIntent
     data class SaveOccurrence(val scope: EventChangeScope) : EventEditorIntent
     data class DeleteOccurrence(val scope: EventChangeScope) : EventEditorIntent
-    data class ShiftDate(val days: Long = 0, val months: Long = 0) : EventEditorIntent
     data object ChooseDate : EventEditorIntent
     data object RetryGroups : EventEditorIntent
     data object Save : EventEditorIntent

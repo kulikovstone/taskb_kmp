@@ -15,9 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 
 internal class EventEditorStore(
     private val repository: IEventRepository,
@@ -110,9 +108,6 @@ internal class EventEditorStore(
                     is EventEditorIntent.RepeatDayChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 2) reduce(EventEditorMessage.RepeatInput(day = intent.value))
                     is EventEditorIntent.RepeatCountChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 7) reduce(EventEditorMessage.RepeatInput(count = intent.value))
                     EventEditorIntent.ChooseRepeatEndDate -> if (current.recurrence != null) reduce(EventEditorMessage.Dialog(EventEditorDialog.RepeatEndDatePicker))
-                    is EventEditorIntent.ShiftDate -> current.dueDate?.let {
-                        reduce(EventEditorMessage.Date(it.plus(intent.days, DateTimeUnit.DAY).plus(intent.months, DateTimeUnit.MONTH)))
-                    }
                     EventEditorIntent.ChooseDate -> reduce(EventEditorMessage.Dialog(EventEditorDialog.DatePicker))
                     EventEditorIntent.PrepareDelete -> if (current.original != null) reduce(EventEditorMessage.Dialog(if (occurrenceId != null) EventEditorDialog.DeleteOccurrence else EventEditorDialog.ConfirmDelete))
                     EventEditorIntent.Save -> if (current.canSave) {

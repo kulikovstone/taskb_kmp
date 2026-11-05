@@ -15,7 +15,6 @@ internal sealed interface TaskEditorIntent {
     data object ChooseRepeatEndDate : TaskEditorIntent
     data class SaveOccurrence(val scope: TaskChangeScope) : TaskEditorIntent
     data class DeleteOccurrence(val scope: TaskChangeScope) : TaskEditorIntent
-    data class ShiftDate(val days: Long = 0, val months: Long = 0) : TaskEditorIntent
     data object ChooseDate : TaskEditorIntent
     data object RetryGroups : TaskEditorIntent
     data object Save : TaskEditorIntent
