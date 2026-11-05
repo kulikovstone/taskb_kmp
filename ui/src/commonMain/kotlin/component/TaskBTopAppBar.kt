@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.ui.component
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -33,6 +34,7 @@ fun TaskBTopAppBar(
     backIcon: ImageVector = TaskBIcons.Back,
     backContentDescription: String = "Back",
     titleSpacing: Dp? = null,
+    subtitle: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     if (titleSpacing == null) {
@@ -42,12 +44,15 @@ fun TaskBTopAppBar(
             contentColor = TaskBTheme.colors.heading,
             elevation = 0.dp,
             title = {
-                Text(
-                    text = title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.h6.copy(fontSize = 22.sp, fontWeight = FontWeight.Normal),
-                )
+                Column {
+                    Text(
+                        text = title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.h6.copy(fontSize = 22.sp, fontWeight = FontWeight.Normal),
+                    )
+                    subtitle?.invoke()
+                }
             },
             navigationIcon = {
                 IconButton(onClick = onBack, enabled = backEnabled) {
@@ -70,13 +75,15 @@ fun TaskBTopAppBar(
                 Icon(backIcon, contentDescription = backContentDescription)
             }
             Spacer(Modifier.width(titleSpacing))
-            Text(
-                text = title,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.h6.copy(fontSize = 22.sp, fontWeight = FontWeight.Normal),
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.h6.copy(fontSize = 22.sp, fontWeight = FontWeight.Normal),
+                )
+                subtitle?.invoke()
+            }
             actions()
         }
     }

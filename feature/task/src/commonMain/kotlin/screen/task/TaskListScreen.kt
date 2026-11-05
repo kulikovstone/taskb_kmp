@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBTextField
@@ -41,28 +43,42 @@ internal fun TaskListScreen(
         } else IconButton(onNewTask) { Icon(TaskBIcons.Add, "Add task", tint = TaskBTheme.colors.accent) }
     }
     Column(Modifier.fillMaxSize()) {
-        if (wide) Row(Modifier.fillMaxWidth().height(96.dp).padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (wide) Row(Modifier.fillMaxWidth().height(96.dp).testTag("task-toolbar").padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onBack) { Icon(TaskBIcons.Back, "Back", tint = TaskBTheme.colors.heading) }
             Spacer(Modifier.width(8.dp))
-            Text("Tasks", style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
+            Text("Tasks", modifier = Modifier.offset(y = (-2).dp),
+                style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
+            Spacer(Modifier.width(16.dp))
+            TaskSummary(state, wide)
             Spacer(Modifier.weight(1f))
             actions()
-        } else TaskBTopAppBar("Tasks", onBack, titleSpacing = 4.dp, actions = actions)
-        Column(Modifier.weight(1f).padding(start = if (wide) 32.dp else 24.dp, end = if (wide) 32.dp else 24.dp, top = if (wide) 16.dp else 24.dp)) {
-            if (wide) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        } else TaskBTopAppBar("Tasks", onBack, modifier = Modifier.testTag("task-toolbar"), titleSpacing = 4.dp,
+            subtitle = { TaskSummary(state, wide) }, actions = actions)
+        Column(Modifier.weight(1f).padding(top = if (wide) 8.dp else 12.dp)) {
+            if (wide) Row(Modifier.fillMaxWidth().padding(horizontal = taskListHorizontalPadding(wide)),
+                verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.width(300.dp))
                 ActiveTaskFilters(state, onIntent, onChooseGroup, Modifier.weight(1f))
             } else {
-                TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.fillMaxWidth())
-                if (state.filter != null || state.groupFilter != TaskGroupFilter.All) {
-                    Spacer(Modifier.height(16.dp))
-                    ActiveTaskFilters(state, onIntent, onChooseGroup)
+                Column(Modifier.padding(horizontal = taskListHorizontalPadding(wide))) {
+                    TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.fillMaxWidth())
+                    if (state.filter != null || state.groupFilter != TaskGroupFilter.All) {
+                        Spacer(Modifier.height(8.dp))
+                        ActiveTaskFilters(state, onIntent, onChooseGroup)
+                    }
                 }
             }
-            Spacer(Modifier.height(if (wide) 24.dp else 16.dp))
+            Spacer(Modifier.height(if (wide) 12.dp else 8.dp))
             TaskDirectory(state, onIntent, wide, onOpenTask, Modifier.weight(1f).fillMaxWidth(), onOpenOccurrence)
         }
     }
+}
+
+@Composable
+private fun TaskSummary(state: TaskState, wide: Boolean) {
+    Text(state.summary, modifier = Modifier.testTag("task-summary"), color = TaskBTheme.colors.muted,
+        style = if (wide) TaskBTheme.typography.body else TaskBTheme.typography.small,
+        maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable

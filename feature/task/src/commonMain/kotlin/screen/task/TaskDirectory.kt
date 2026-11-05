@@ -1,6 +1,9 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,8 +14,10 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -29,30 +34,35 @@ import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
+internal fun taskListHorizontalPadding(wide: Boolean) = if (wide) 32.dp else 24.dp
+
+private val taskRowGap = 12.dp
+private val taskCheckboxSize = 44.dp
+
 @Composable
 internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wide: Boolean, onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier, onOpenOccurrence: ((Task) -> Unit)? = null) {
     val colors = TaskBTheme.colors
     Column(modifier) {
-        Text(state.summary, color = colors.muted, style = TaskBTheme.typography.body, modifier = Modifier.fillMaxWidth().height(28.dp).wrapContentHeight(Alignment.CenterVertically))
-        Spacer(Modifier.height(if (wide) 16.dp else 8.dp))
         if (wide) {
-            Row(Modifier.fillMaxWidth().height(49.dp).padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Spacer(Modifier.width(44.dp))
-                TaskColumnHeading("Name", TaskSort.Name, state, onIntent, Modifier.weight(1f))
-                TaskColumnHeading("Group", TaskSort.Group, state, onIntent, Modifier.width(164.dp))
-                TaskColumnHeading("Date", TaskSort.Date, state, onIntent, Modifier.width(112.dp), true)
+            Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+                TaskColumnHeading("Name", TaskSort.Name, state, onIntent,
+                    Modifier.weight(0.5f).padding(start = taskCheckboxSize + taskRowGap * 2, end = taskRowGap))
+                TaskColumnHeading("Group", TaskSort.Group, state, onIntent, Modifier.weight(0.2f).padding(horizontal = taskRowGap))
+                TaskColumnHeading("Date", TaskSort.Date, state, onIntent, Modifier.weight(0.15f).padding(horizontal = taskRowGap))
+                Text("Repeat", modifier = Modifier.weight(0.15f).padding(horizontal = taskRowGap), color = colors.secondary, style = TaskBTheme.typography.label)
             }
-            Divider(color = colors.border)
+            Divider(Modifier.fillMaxWidth().testTag("task-columns-divider"), color = colors.border)
         }
         when {
             state.isLoading -> TaskBLoading(Modifier.weight(1f))
             state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(TaskIntent.RetryLoad) })
             state.visibleTasks.isEmpty() -> Text(if (state.taskCount == 0) "No tasks yet." else "No tasks match your search or filters.",
-                color = colors.muted, style = TaskBTheme.typography.body, modifier = Modifier.padding(vertical = 24.dp))
+                color = colors.muted, style = TaskBTheme.typography.body,
+                modifier = Modifier.padding(horizontal = taskListHorizontalPadding(wide), vertical = 24.dp))
             else -> {
                 val scroll = rememberLazyListState()
                 Box(Modifier.weight(1f).fillMaxWidth()) {
-                    LazyColumn(state = scroll, modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().testTag("task-list")) {
                         items(state.visibleTasks, key = { it.key }) { task ->
                             TaskRow(task, state.groups.find { it.id == task.groupId }, state, wide, onIntent, { onOpenOccurrence?.invoke(task) ?: onOpenTask(it) })
                         }
@@ -65,47 +75,71 @@ internal fun TaskDirectory(state: TaskState, onIntent: (TaskIntent) -> Unit, wid
 }
 
 @Composable
-private fun TaskColumnHeading(label: String, sort: TaskSort, state: TaskState, onIntent: (TaskIntent) -> Unit, modifier: Modifier, end: Boolean = false) {
+private fun TaskColumnHeading(label: String, sort: TaskSort, state: TaskState, onIntent: (TaskIntent) -> Unit, modifier: Modifier) {
     TaskBSortHeader(
         label = label,
         isActive = state.sort == sort,
         reverseSort = state.reverseSort,
         onClick = { onIntent(TaskIntent.Sort(sort)) },
         modifier = modifier.fillMaxHeight(),
-        horizontalArrangement = if (end) Arrangement.End else Arrangement.Start,
     )
 }
 
 @Composable
 private fun TaskRow(task: Task, group: Group?, state: TaskState, wide: Boolean, onIntent: (TaskIntent) -> Unit, onOpenTask: (Int) -> Unit) {
     val colors = TaskBTheme.colors
-    Column(Modifier.fillMaxWidth().background(colors.surface)) {
-        Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = { onOpenTask(task.id) })
-            .then(if (wide) Modifier.height(63.dp).padding(horizontal = 20.dp) else Modifier.padding(vertical = 16.dp)),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(44.dp).toggleable(task.isCompleted, enabled = task.id !in state.pendingCompletion, role = Role.Checkbox,
+    val interactionSource = remember { MutableInteractionSource() }
+    val verticalPadding = if (wide) 4.dp else 8.dp
+    Row(
+        Modifier.fillMaxWidth().background(colors.surface).testTag("task-row-${task.key}")
+            .indication(interactionSource, LocalIndication.current)
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = { onOpenTask(task.id) })
+            .padding(start = if (wide) 0.dp else taskRowGap, end = if (wide) 0.dp else taskListHorizontalPadding(wide),
+                top = verticalPadding, bottom = verticalPadding),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(if (wide) Modifier.weight(0.5f).padding(horizontal = taskRowGap) else Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(taskRowGap)) {
+            Box(Modifier.size(taskCheckboxSize).toggleable(task.isCompleted, interactionSource = interactionSource, indication = null,
+                enabled = task.id !in state.pendingCompletion, role = Role.Checkbox,
                 onValueChange = { onIntent(TaskIntent.ToggleCompleted(task.id, task.occurrenceId)) })
                 .semantics { contentDescription = if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}" }, contentAlignment = Alignment.Center) {
                 Icon(if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked, null, tint = if (task.isCompleted) colors.accent else colors.muted, modifier = Modifier.size(24.dp))
             }
-            val title: @Composable () -> Unit = {
-                Text(task.name, color = if (task.isCompleted) colors.completedText else colors.text, style = TaskBTheme.typography.body,
-                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null, maxLines = if (wide) 1 else 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.heightIn(min = 22.dp))
-            }
-            if (wide) {
-                Box(Modifier.weight(1f)) { title() }
-                TaskGroupLabel(group, Modifier.width(164.dp), false)
-                Box(Modifier.width(112.dp), contentAlignment = Alignment.CenterEnd) { TaskDueDate(task, state, true) }
-            } else Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                title()
+            if (wide) TaskTitle(task, wide, Modifier.weight(1f))
+            else Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                TaskTitle(task, wide)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TaskGroupLabel(group, Modifier.weight(1f), true)
                     TaskDueDate(task, state, false)
                 }
             }
         }
-        Divider(color = colors.border)
+        if (wide) {
+            TaskGroupLabel(group, Modifier.weight(0.2f).padding(horizontal = taskRowGap), false)
+            Box(Modifier.weight(0.15f).padding(horizontal = taskRowGap), contentAlignment = Alignment.CenterStart) { TaskDueDate(task, state, true) }
+            TaskRepeatLabel(task, Modifier.weight(0.15f).padding(horizontal = taskRowGap))
+        }
     }
+}
+
+@Composable
+private fun TaskTitle(task: Task, wide: Boolean, modifier: Modifier = Modifier) {
+    val colors = TaskBTheme.colors
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(task.name, color = if (task.isCompleted) colors.completedText else colors.text, style = TaskBTheme.typography.body,
+            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null, maxLines = if (wide) 1 else 3,
+            overflow = TextOverflow.Ellipsis, modifier = Modifier.heightIn(min = 22.dp))
+        if (task.description.isNotBlank()) Text(task.description, color = colors.muted, style = TaskBTheme.typography.small,
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun TaskRepeatLabel(task: Task, modifier: Modifier) {
+    Text(task.recurrence?.frequency?.name.orEmpty(), modifier = modifier.testTag("task-repeat-${task.key}"),
+        color = TaskBTheme.colors.muted, style = TaskBTheme.typography.body,
+        maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable
