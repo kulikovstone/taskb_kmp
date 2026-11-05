@@ -21,6 +21,37 @@ import kotlin.time.Instant
 class TaskEditorStoreTest {
     private fun groups() = FakeGroupRepository().apply { values.value = listOf(Group(7, "Work", GroupColor.Blue)) }
     @Test
+    fun `group selection callback only receives accepted explicit choices including clearing`() = runTest {
+        val selected = mutableListOf<Int?>()
+        val gate = CompletableDeferred<Unit>()
+        val repo = FakeTaskRepository().apply { onWrite = { gate.await() } }
+        TaskEditorStore(repo, groups(), initialGroup = 7, dispatcher = StandardTestDispatcher(testScheduler),
+            onGroupSelected = selected::add).use { store ->
+            runCurrent()
+            assertTrue(selected.isEmpty())
+            store.accept(TaskEditorIntent.GroupChanged(999))
+            runCurrent()
+            assertTrue(selected.isEmpty())
+            store.accept(TaskEditorIntent.GroupChanged(null))
+            store.accept(TaskEditorIntent.GroupChanged(7))
+            runCurrent()
+            assertEquals(listOf(null, 7), selected)
+            assertEquals(7, store.state.value.groupId)
+            store.state.value.name.setTextAndPlaceCursorAtEnd("Task")
+            store.accept(TaskEditorIntent.Save)
+            runCurrent()
+            store.accept(TaskEditorIntent.GroupChanged(null))
+            runCurrent()
+            assertEquals(listOf(null, 7), selected)
+            gate.complete(Unit)
+            runCurrent()
+            store.accept(TaskEditorIntent.GroupChanged(null))
+            runCurrent()
+            assertEquals(listOf(null, 7), selected)
+        }
+    }
+
+    @Test
     fun `creation validates trims dates and group while preventing duplicate writes`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val repo = FakeTaskRepository().apply { onWrite = { gate.await() } }

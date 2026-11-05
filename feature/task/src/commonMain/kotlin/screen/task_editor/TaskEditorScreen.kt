@@ -34,10 +34,14 @@ internal fun TaskEditorScreen(
     taskId: Int? = null, initialDate: LocalDate? = null, initialGroupId: Int? = null,
     onBack: () -> Unit, groupResults: Flow<GroupSelectionResult>, onChooseGroup: (Int?) -> Unit,
     occurrenceId: TaskOccurrenceId? = null,
+    onGroupSelected: (Int?) -> Unit = {},
 ) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
-    val store = rememberNavEntryResource("task-editor") { TaskEditorStore(repository, groups, taskId, initialDate, initialGroupId, occurrenceId = occurrenceId) }
+    val store = rememberNavEntryResource("task-editor") {
+        TaskEditorStore(repository, groups, taskId, initialDate, initialGroupId,
+            occurrenceId = occurrenceId, onGroupSelected = onGroupSelected)
+    }
     val state by store.state.collectAsState()
     LaunchedEffect(store, state.isFinished) { if (state.isFinished) onBack() }
     LaunchedEffect(store, groupResults) {

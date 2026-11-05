@@ -9,6 +9,8 @@ sealed interface TaskEditorRoute : NavKey {
     data class Create(
         val initialDate: LocalDate? = null,
         val initialGroupId: Int? = null,
+        /** Reuse the last explicitly selected group for the current app session. */
+        val rememberGroupSelection: Boolean = false,
     ) : TaskEditorRoute
 
     data class Edit(val taskId: Int, val occurrenceId: TaskOccurrenceId? = null) : TaskEditorRoute

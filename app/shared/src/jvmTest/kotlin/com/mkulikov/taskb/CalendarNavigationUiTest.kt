@@ -2,11 +2,15 @@ package com.mkulikov.taskb
 
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
+import com.mkulikov.taskb.feature.group.api.database.GroupEntity
+import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
@@ -21,6 +25,95 @@ import kotlin.time.Clock
 class CalendarNavigationUiTest {
     @get:Rule
     val directory = TemporaryFolder()
+
+    @Test
+    fun `calendar remembers explicitly chosen groups for the app session including cancelled drafts and clearing`() {
+        val file = directory.root.toPath().resolve("calendar-create-group.db")
+        withAppKoin(file) { app ->
+            val db = app.koin.get<AppDatabase>()
+            val groupIds = runBlocking {
+                app.koin.get<IAppSettings>().completeWelcome()
+                listOf("Work", "Personal").associateWith { name ->
+                    db.groupDao().insert(GroupEntity(name = name, color = Palette.Blue.s400.toArgb())).toInt()
+                }
+            }
+            runSkikoComposeUiTest(size = Size(1440f, 1000f)) {
+                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
+                waitText("Calendar")
+                onNodeWithText("Calendar").performClick()
+                waitText("New task")
+                openNewTask("No group")
+                chooseTaskGroup("Work")
+                saveNewTask("First in Work")
+                assertEquals(groupIds.getValue("Work"), runBlocking { db.taskDao().getById(1) }?.groupId)
+
+                openNewTask("Work")
+                chooseTaskGroup("Personal")
+                onNodeWithContentDescription("Back").performClick()
+                waitText("First in Work")
+                onNodeWithTag("calendar-sidebar-toggle").performClick()
+                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
+                openNewTask("Personal")
+                saveNewTask("Second in Personal")
+                assertEquals(groupIds.getValue("Personal"), runBlocking { db.taskDao().getById(2) }?.groupId)
+
+                onNodeWithTag("calendar-sidebar-toggle").performClick()
+                waitText("First in Work")
+                onNode(hasText("First in Work") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).performClick()
+                waitText("Edit task")
+                onNodeWithContentDescription("Clear task group").performClick()
+                onNodeWithContentDescription("Save task").performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(hasText("First in Work") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
+                        useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+                }
+                openNewTask("Personal")
+                onNodeWithContentDescription("Clear task group").performClick()
+                saveNewTask("No group task")
+                assertNull(runBlocking { db.taskDao().getById(3) }?.groupId)
+
+                openNewTask("No group")
+                chooseTaskGroup("Work")
+                onNodeWithContentDescription("Back").performClick()
+                waitText("First in Work")
+                onNodeWithContentDescription("Back").performClick()
+                waitText("Tasks")
+                onNodeWithText("Tasks").performClick()
+                waitText("3 tasks")
+                onNodeWithContentDescription("Choose group").performClick()
+                val personal = hasText("Personal") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
+                waitUntil(timeoutMillis = 10_000) { onAllNodes(personal).fetchSemanticsNodes().isNotEmpty() }
+                onNode(personal).performClick()
+                waitText("1 of 3 tasks")
+                openNewTask("Personal")
+                onNodeWithContentDescription("Clear task group").performClick()
+                onNodeWithContentDescription("Back").performClick()
+                waitText("1 of 3 tasks")
+                onNodeWithContentDescription("Back").performClick()
+                waitText("Calendar")
+                onNodeWithText("Calendar").performClick()
+                waitText("New task")
+                openNewTask("Work")
+                onNodeWithContentDescription("Back").performClick()
+                waitText("First in Work")
+
+                runBlocking { db.groupDao().deleteById(groupIds.getValue("Work")) }
+                openNewTask("No group")
+                chooseTaskGroup("Personal")
+                onNodeWithContentDescription("Back").performClick()
+                waitText("First in Work")
+            }
+        }
+        withAppKoin(file) { app ->
+            runSkikoComposeUiTest(size = Size(1440f, 1000f)) {
+                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
+                waitText("Calendar")
+                onNodeWithText("Calendar").performClick()
+                waitText("New task")
+                openNewTask("No group")
+            }
+        }
+    }
 
     @Test
     fun `calendar keeps day selection and month when editing and uses the sidebar instead of navigation`() {
@@ -96,6 +189,31 @@ class CalendarNavigationUiTest {
                 onNodeWithText("Tasks").assertIsDisplayed()
             }
             assertEquals("Updated from calendar", runBlocking { db.taskDao().getById(1) }?.name)
+        }
+    }
+
+    private suspend fun SkikoComposeUiTest.openNewTask(group: String) {
+        onNodeWithText("New task").performClick()
+        val field = hasContentDescription("Choose task group") and hasText(group)
+        waitUntil(timeoutMillis = 10_000) { onAllNodes(field).fetchSemanticsNodes().isNotEmpty() }
+        onNode(field).assertIsDisplayed()
+    }
+
+    private suspend fun SkikoComposeUiTest.chooseTaskGroup(group: String) {
+        onNodeWithContentDescription("Choose task group").performClick()
+        val row = hasText(group) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
+        waitUntil(timeoutMillis = 10_000) { onAllNodes(row).fetchSemanticsNodes().isNotEmpty() }
+        onNode(row).performClick()
+        val field = hasContentDescription("Choose task group") and hasText(group)
+        waitUntil(timeoutMillis = 10_000) { onAllNodes(field).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private suspend fun SkikoComposeUiTest.saveNewTask(name: String) {
+        onNodeWithContentDescription("Task name").performTextReplacement(name)
+        onNodeWithContentDescription("Save task").performClick()
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodes(hasText(name) and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
+                useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

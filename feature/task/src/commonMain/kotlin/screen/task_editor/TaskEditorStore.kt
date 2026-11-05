@@ -28,6 +28,7 @@ internal class TaskEditorStore(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     today: () -> LocalDate = ::currentDate,
     private val occurrenceId: TaskOccurrenceId? = null,
+    private val onGroupSelected: (Int?) -> Unit = {},
 ) : CoroutineStore<TaskEditorIntent, TaskEditorState, TaskEditorMessage>(
     TaskEditorState(isNew = taskId == null, isLoading = taskId != null, dueDate = initialDate, groupId = initialGroup, today = today()), ::reduceTaskEditor, dispatcher,
 ) {
@@ -100,7 +101,10 @@ internal class TaskEditorStore(
                         reduce(TaskEditorMessage.DurationInput(intent.days, intent.hours, intent.minutes))
                     TaskEditorIntent.ChooseTaskEndDate -> if (current.startTime != null && current.customDuration) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.TaskEndDatePicker))
                     TaskEditorIntent.ChooseEndTime -> if (current.startTime != null && current.customDuration) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.EndTimePicker))
-                    is TaskEditorIntent.GroupChanged -> if (intent.id == null || current.groups.any { it.id == intent.id }) reduce(TaskEditorMessage.GroupSelected(intent.id))
+                    is TaskEditorIntent.GroupChanged -> if (intent.id == null || current.groups.any { it.id == intent.id }) {
+                        reduce(TaskEditorMessage.GroupSelected(intent.id))
+                        onGroupSelected(intent.id)
+                    }
                     is TaskEditorIntent.RecurrenceChanged -> if (current.dueDate != null || intent.recurrence == null) reduce(TaskEditorMessage.Recurrence(intent.recurrence))
                     is TaskEditorIntent.RepeatIntervalChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 4) reduce(TaskEditorMessage.RepeatInput(interval = intent.value))
                     is TaskEditorIntent.RepeatDayChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 2) reduce(TaskEditorMessage.RepeatInput(day = intent.value))

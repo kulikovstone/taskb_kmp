@@ -11,8 +11,11 @@ import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
 import com.mkulikov.taskb.feature.task.api.TaskRoute
 import com.mkulikov.taskb.feature.task.screen.task.TaskScreen
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorScreen
+import kotlinx.coroutines.flow.MutableStateFlow
 
 internal class TaskNavEntry : INavEntry {
+    private val calendarTaskGroupId = MutableStateFlow<Int?>(null)
+
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
         scope.entry<TaskRoute> {
             val groups = rememberNavEntryResource("group-result") { navigator.createResultReceiver<GroupSelectionResult>() }
@@ -29,8 +32,11 @@ internal class TaskNavEntry : INavEntry {
         }
         scope.entry<TaskEditorRoute.Create> { route ->
             val groups = rememberNavEntryResource("group-result") { navigator.createResultReceiver<GroupSelectionResult>() }
-            TaskEditorScreen(initialDate = route.initialDate, initialGroupId = route.initialGroupId, onBack = navigator::back,
+            TaskEditorScreen(initialDate = route.initialDate,
+                initialGroupId = route.initialGroupId ?: if (route.rememberGroupSelection) calendarTaskGroupId.value else null,
+                onBack = navigator::back,
                 groupResults = groups.results,
+                onGroupSelected = { if (route.rememberGroupSelection) calendarTaskGroupId.value = it },
                 onChooseGroup = { navigator.navigate(GroupSelectionRoute(groups.key, it, showNoGroup = false)) })
         }
         scope.entry<TaskEditorRoute.Edit> { route ->
