@@ -25,8 +25,8 @@ class CalendarTimedTasksUiTest {
         val opened = mutableListOf<Int>()
         setContent { TaskBTheme(false) { CalendarScreen(timedCalendarPreviewState(), {}, {}, {}, {}, onOpenEvent = { opened.add(it.id) }) } }
         onNodeWithText("Daily · 2").assertIsDisplayed()
-        onNodeWithText("With time · 3").assertIsDisplayed()
-        onNodeWithText("Without time · 1").assertIsDisplayed()
+        onNodeWithText("Events · 3").assertIsDisplayed()
+        onNodeWithText("Tasks · 1").assertIsDisplayed()
         onNodeWithText("Friday · 3 tasks · 3 events").assertIsDisplayed()
         onNode(hasText("more", substring = true) and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertDoesNotExist()
         onNode(hasTestTag("calendar-task-303") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")), useUnmergedTree = true).assertIsDisplayed()

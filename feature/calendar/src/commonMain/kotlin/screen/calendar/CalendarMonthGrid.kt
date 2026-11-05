@@ -111,7 +111,7 @@ private fun CalendarDayTasks(date: LocalDate, tasks: List<CalendarItem>, state: 
                 val timed = task.startDateTime != null
                 val group = state.groups.find { it.id == task.groupId }
                 val taskInsets = when {
-                    !timed -> calendarTaskPadding.roundToPx() * 2 + calendarTaskCheckboxSize.roundToPx() + calendarTaskTitleGap.roundToPx()
+                    !task.isEvent -> calendarTaskPadding.roundToPx() * 2 + calendarTaskCheckboxSize.roundToPx() + calendarTaskTitleGap.roundToPx()
                     group != null -> 2.dp.roundToPx() + 4.dp.roundToPx()
                     else -> 0
                 }

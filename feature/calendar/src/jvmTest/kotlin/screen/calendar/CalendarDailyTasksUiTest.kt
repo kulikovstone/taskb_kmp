@@ -43,8 +43,8 @@ class CalendarDailyTasksUiTest {
             }
         }
         val dailyHeader = onNodeWithText("Daily · 2").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val timedHeader = onNodeWithText("With time · 4").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val untimedHeader = onNodeWithText("Without time · 1").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val timedHeader = onNodeWithText("Events · 4").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val untimedHeader = onNodeWithText("Tasks · 1").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(dailyHeader.top < timedHeader.top && timedHeader.top < untimedHeader.top)
         onNodeWithText("Friday · 3 tasks · 4 events").assertIsDisplayed()
         onNodeWithText("08:00–08:30 (30 min)").assertIsDisplayed()
@@ -63,7 +63,7 @@ class CalendarDailyTasksUiTest {
         onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
         onNodeWithText("Plan the weekend", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithText("Daily · 2").assertDoesNotExist()
-        onNodeWithText("With time · 4").assertDoesNotExist()
-        onNodeWithText("Without time · 1").assertDoesNotExist()
+        onNodeWithText("Events · 4").assertDoesNotExist()
+        onNodeWithText("Tasks · 1").assertDoesNotExist()
     }
 }

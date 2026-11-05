@@ -64,8 +64,8 @@ class CalendarCompletedTasksUiTest {
         }
 
         onNodeWithText("Daily · 1").assertIsDisplayed()
-        onNodeWithText("Without time · 1").assertIsDisplayed()
-        onNodeWithTag("calendar-sidebar-timed-heading").assertDoesNotExist()
+        onNodeWithText("Tasks · 1").assertIsDisplayed()
+        onNodeWithTag("calendar-sidebar-events-heading").assertDoesNotExist()
         onNodeWithText("Completed · 3").assertIsDisplayed()
         assertTrue(onNodeWithTag("calendar-sidebar-completed-heading").fetchSemanticsNode().boundsInRoot.top >
             taskNode(active).fetchSemanticsNode().boundsInRoot.bottom)

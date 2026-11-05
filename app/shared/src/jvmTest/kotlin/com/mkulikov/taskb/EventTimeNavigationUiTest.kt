@@ -63,8 +63,8 @@ class EventTimeNavigationUiTest {
                 waitText("Calendar")
                 onNodeWithText("Calendar").performClick()
                 onNodeWithTag("calendar-day-number-$start", useUnmergedTree = true).performClick()
-                waitText("With time · 3")
-                onNodeWithText("Without time · 1").assertIsDisplayed()
+                waitText("Events · 3")
+                onNodeWithText("Tasks · 1").assertIsDisplayed()
                 val sidebar = hasAnyAncestor(hasTestTag("calendar-sidebar-list"))
                 for (name in listOf("Business trip", "Team sync", "Coffee break", "Pay utility bills")) {
                     onNode(hasText(name) and sidebar, useUnmergedTree = true).assertIsDisplayed()

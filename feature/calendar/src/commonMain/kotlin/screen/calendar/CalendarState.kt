@@ -66,8 +66,8 @@ internal data class CalendarState(
     val sidebarItems: List<CalendarItem> get() =
         (sidebarTasks.map(CalendarItem::TaskItem) + eventItems(selectedDate)).sortedWith(calendarItemOrder)
     val sidebarDailyItems get() = sidebarDailyTasks.map(CalendarItem::TaskItem)
-    val sidebarTimedItems get() = sidebarItems.filter { !it.isCompleted && it.startDateTime != null && !it.isDailyRoutine }
-    val sidebarUntimedItems get() = sidebarItems.filter { !it.isCompleted && it.startDateTime == null && !it.isDailyRoutine }
+    val sidebarEventItems get() = eventItems(selectedDate).sortedWith(calendarItemOrder)
+    val sidebarMainTaskItems get() = sidebarUntimedTasks.map(CalendarItem::TaskItem)
     val sidebarCompletedItems get() = sidebarCompletedTasks.map(CalendarItem::TaskItem)
     val days: List<LocalDate> get() {
         val offset = month.firstDay.dayOfWeek.isoDayNumber - 1
@@ -97,6 +97,12 @@ internal data class CalendarMove(
     val eventOccurrenceId: EventOccurrenceId? = null,
 )
 
-private val calendarItemOrder = compareBy<CalendarItem> { it.startDateTime == null }
+private val calendarItemOrder = compareBy<CalendarItem> {
+    when {
+        !it.isEvent -> 2
+        it.startDateTime == null -> 0
+        else -> 1
+    }
+}
     .thenBy { it.startDateTime }.thenBy { it.isCompleted }
     .thenByDescending { it.createdAt }.thenByDescending { it.id }

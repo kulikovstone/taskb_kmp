@@ -32,12 +32,13 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
     val tasks = state.sidebarItems
     val date = state.selectedDate
     val daily = state.sidebarDailyItems
-    val timed = state.sidebarTimedItems
-    val untimed = state.sidebarUntimedItems
+    val events = state.sidebarEventItems
+    val mainTasks = state.sidebarMainTaskItems
     val completed = state.sidebarCompletedItems
+    val showTaskHeading = date != null || events.isNotEmpty()
     var dailyExpanded by remember(date) { mutableStateOf(true) }
-    var timedExpanded by remember(date) { mutableStateOf(true) }
-    var untimedExpanded by remember(date) { mutableStateOf(true) }
+    var eventsExpanded by remember(date) { mutableStateOf(true) }
+    var tasksExpanded by remember(date) { mutableStateOf(true) }
     var completedExpanded by remember(date) { mutableStateOf(true) }
     val colors = TaskBTheme.colors
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
@@ -89,13 +90,13 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now,
                         contentPadding = calendarSidebarTaskPadding)
                 }
-                if (timed.isNotEmpty()) item(key = "timed-heading") {
+                if (events.isNotEmpty()) item(key = "events-heading") {
                     if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
-                    CalendarSidebarSectionHeader("With time · ${timed.size}", timedExpanded, { timedExpanded = !timedExpanded },
-                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-timed-heading"))
-                    if (timedExpanded) Spacer(Modifier.height(4.dp))
+                    CalendarSidebarSectionHeader("Events · ${events.size}", eventsExpanded, { eventsExpanded = !eventsExpanded },
+                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-events-heading"))
+                    if (eventsExpanded) Spacer(Modifier.height(4.dp))
                 }
-                if (timedExpanded) items(timed, key = { it.key }) { task ->
+                if (eventsExpanded) items(events, key = { it.key }) { task ->
                     val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) }, {},
                         Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
@@ -105,14 +106,14 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         contentPadding = calendarSidebarTaskPadding)
                     Spacer(Modifier.height(4.dp))
                 }
-                if (untimed.isNotEmpty() && date != null) item(key = "untimed-heading") {
-                    if (timed.isNotEmpty()) Spacer(Modifier.height(if (timedExpanded) 12.dp else 16.dp))
+                if (mainTasks.isNotEmpty() && showTaskHeading) item(key = "tasks-heading") {
+                    if (events.isNotEmpty()) Spacer(Modifier.height(if (eventsExpanded) 12.dp else 16.dp))
                     else if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
-                    CalendarSidebarSectionHeader("Without time · ${untimed.size}", untimedExpanded, { untimedExpanded = !untimedExpanded },
-                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-untimed-heading"))
-                    if (untimedExpanded) Spacer(Modifier.height(8.dp))
+                    CalendarSidebarSectionHeader("Tasks · ${mainTasks.size}", tasksExpanded, { tasksExpanded = !tasksExpanded },
+                        Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-tasks-heading"))
+                    if (tasksExpanded) Spacer(Modifier.height(8.dp))
                 }
-                if (date == null || untimedExpanded) items(untimed, key = { it.key }) { task ->
+                if (!showTaskHeading || tasksExpanded) items(mainTasks, key = { it.key }) { task ->
                     val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, state.groups.find { it.id == task.groupId }, { onOpenTask(task) },
                         { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
@@ -123,8 +124,8 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         contentPadding = calendarSidebarTaskPadding)
                 }
                 if (completed.isNotEmpty()) item(key = "completed-heading") {
-                    if (untimed.isNotEmpty()) Spacer(Modifier.height(16.dp))
-                    else if (timed.isNotEmpty()) Spacer(Modifier.height(if (timedExpanded) 12.dp else 16.dp))
+                    if (mainTasks.isNotEmpty()) Spacer(Modifier.height(16.dp))
+                    else if (events.isNotEmpty()) Spacer(Modifier.height(if (eventsExpanded) 12.dp else 16.dp))
                     else if (daily.isNotEmpty()) Spacer(Modifier.height(16.dp))
                     CalendarSidebarSectionHeader("Completed · ${completed.size}", completedExpanded, { completedExpanded = !completedExpanded },
                         Modifier.padding(calendarSidebarTaskPadding).testTag("calendar-sidebar-completed-heading"))

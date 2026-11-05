@@ -33,7 +33,7 @@ class CalendarCompletedTasksTest {
         ))
 
         assertEquals(listOf(routine), state.sidebarDailyTasks)
-        assertTrue(state.sidebarTimedItems.isEmpty())
+        assertTrue(state.sidebarEventItems.isEmpty())
         assertEquals(listOf(task, event), state.sidebarUntimedTasks)
         assertEquals(listOf(completedEvent, completedRoutine, completedTask), state.sidebarCompletedTasks)
         val sections = state.sidebarDailyTasks + state.sidebarUntimedTasks + state.sidebarCompletedTasks
@@ -55,7 +55,7 @@ class CalendarCompletedTasksTest {
         ))
 
         assertTrue(state.sidebarDailyTasks.isEmpty())
-        assertTrue(state.sidebarTimedItems.isEmpty())
+        assertTrue(state.sidebarEventItems.isEmpty())
         assertEquals(listOf(active), state.sidebarUntimedTasks)
         assertEquals(listOf(recent, older), state.sidebarCompletedTasks)
         assertEquals(listOf(recent), state.copy(now = now + 1.hours).sidebarCompletedTasks)

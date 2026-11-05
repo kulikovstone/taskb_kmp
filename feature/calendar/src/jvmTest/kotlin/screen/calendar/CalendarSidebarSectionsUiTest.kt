@@ -24,8 +24,8 @@ class CalendarSidebarSectionsUiTest {
             useUnmergedTree = true,
         )
         val daily = onNodeWithTag("calendar-sidebar-daily-heading")
-        val timed = onNodeWithTag("calendar-sidebar-timed-heading")
-        val untimed = onNodeWithTag("calendar-sidebar-untimed-heading")
+        val timed = onNodeWithTag("calendar-sidebar-events-heading")
+        val untimed = onNodeWithTag("calendar-sidebar-tasks-heading")
         for (heading in listOf(daily, timed, untimed)) {
             heading.assertIsDisplayed().assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
             val beforeHover = heading.captureToImage().toPixelMap()
@@ -49,15 +49,15 @@ class CalendarSidebarSectionsUiTest {
         onRoot().performMouseInput { click(Offset((dailyBounds.left + dailyTitleBounds.left) / 2f, dailyBounds.center.y)) }
         daily.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
         for (task in state.sidebarDailyItems) taskNode(task).assertDoesNotExist()
-        for (task in state.sidebarTimedItems + state.sidebarUntimedItems) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarEventItems + state.sidebarMainTaskItems) taskNode(task).assertIsDisplayed()
         assertTrue(timed.fetchSemanticsNode().boundsInRoot.top < timedTopBefore)
         onNodeWithText("Daily · 2").assertIsDisplayed()
         onNodeWithText("Friday · 3 tasks · 3 events").assertIsDisplayed()
 
         timed.performClick()
         timed.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
-        for (task in state.sidebarTimedItems) taskNode(task).assertDoesNotExist()
-        for (task in state.sidebarUntimedItems) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarEventItems) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarMainTaskItems) taskNode(task).assertIsDisplayed()
         onNode(
             hasTestTag("calendar-event:300") and hasAnyAncestor(hasTestTag("calendar-day-2026-11-06")),
             useUnmergedTree = true,
@@ -69,10 +69,10 @@ class CalendarSidebarSectionsUiTest {
 
         onNodeWithText("Daily · 2", useUnmergedTree = true).performMouseInput { click() }
         for (task in state.sidebarDailyItems) taskNode(task).assertIsDisplayed()
-        for (task in state.sidebarTimedItems + state.sidebarUntimedItems) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarEventItems + state.sidebarMainTaskItems) taskNode(task).assertDoesNotExist()
         timed.performClick()
-        for (task in state.sidebarTimedItems) taskNode(task).assertIsDisplayed()
-        for (task in state.sidebarUntimedItems) taskNode(task).assertDoesNotExist()
+        for (task in state.sidebarEventItems) taskNode(task).assertIsDisplayed()
+        for (task in state.sidebarMainTaskItems) taskNode(task).assertDoesNotExist()
         untimed.performClick()
         for (task in state.sidebarItems) taskNode(task).assertIsDisplayed()
         for (heading in listOf(daily, timed, untimed)) {
@@ -99,9 +99,9 @@ class CalendarSidebarSectionsUiTest {
         onNodeWithText("Daily · 2", useUnmergedTree = true).performMouseInput { click() }
         daily.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
         onNodeWithText("Daily · 2").assertIsDisplayed()
-        onNodeWithTag("calendar-sidebar-timed-heading")
+        onNodeWithTag("calendar-sidebar-events-heading")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
-        onNodeWithText("With time · 3").assertIsDisplayed()
+        onNodeWithText("Events · 3").assertIsDisplayed()
     }
 
     @Test
@@ -120,12 +120,12 @@ class CalendarSidebarSectionsUiTest {
         }
         val headingTags = listOf(
             "calendar-sidebar-daily-heading",
-            "calendar-sidebar-timed-heading",
-            "calendar-sidebar-untimed-heading",
+            "calendar-sidebar-events-heading",
+            "calendar-sidebar-tasks-heading",
         )
         for (tag in headingTags) onNodeWithTag(tag).performClick()
         onNodeWithTag("calendar-day-number-2026-11-04", useUnmergedTree = true).performClick()
-        onNodeWithTag("calendar-sidebar-timed-heading")
+        onNodeWithTag("calendar-sidebar-events-heading")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
         onNode(
             hasTestTag("calendar-event:304") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),

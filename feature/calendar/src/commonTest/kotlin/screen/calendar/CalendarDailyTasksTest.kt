@@ -33,7 +33,7 @@ class CalendarDailyTasksTest {
         val state = CalendarState(date, tasks = listOf(previous, today, tomorrow, bills), events = listOf(event))
         assertEquals(listOf(today, bills), state.sidebarTasks)
         assertEquals(listOf(today), state.sidebarDailyTasks)
-        assertEquals(listOf(CalendarItem.EventItem(event)), state.sidebarTimedItems)
+        assertEquals(listOf(CalendarItem.EventItem(event)), state.sidebarEventItems)
         assertTrue(state.copy(selectedDate = previous.dueDate).sidebarDailyTasks.isEmpty())
         assertEquals(listOf(previous), state.copy(selectedDate = previous.dueDate).sidebarCompletedTasks)
         assertTrue(state.copy(selectedDate = LocalDate(2026, 11, 8)).sidebarDailyTasks.isEmpty())
@@ -41,7 +41,7 @@ class CalendarDailyTasksTest {
     }
 
     @Test
-    fun `daily tasks stay in Daily while timed events including daily events stay in With time and the grid`() {
+    fun `daily tasks stay in Daily while events including daily events stay in Event and the grid`() {
         val routine = daily(1)
         val alternate = Task(2, "Every other day", date, recurrence = dailyRule.copy(interval = 2))
         val weekly = Event(3, "Weekly review", date,
@@ -51,9 +51,9 @@ class CalendarDailyTasksTest {
         val dailyEvent = Event(5, "Daily call", date, recurrence = dailyRule, startTime = LocalTime(8, 0))
         val state = CalendarState(date, tasks = listOf(routine, alternate), events = listOf(weekly, meeting, dailyEvent))
         assertEquals(listOf(routine), state.sidebarDailyTasks)
-        assertEquals(listOf(5, 3, 4), state.sidebarTimedItems.map { it.id })
+        assertEquals(listOf(5, 3, 4), state.sidebarEventItems.map { it.id })
         assertEquals(listOf(alternate), state.sidebarUntimedTasks)
-        val sections = state.sidebarDailyItems + state.sidebarTimedItems + state.sidebarUntimedItems
+        val sections = state.sidebarDailyItems + state.sidebarEventItems + state.sidebarMainTaskItems
         assertEquals(state.sidebarItems.map { it.key }.toSet(), sections.map { it.key }.toSet())
         assertEquals(sections.size, sections.distinctBy { it.key }.size)
         assertEquals(listOf(5, 3, 4, 2), state.monthItemsByDate[date]?.map { it.id })
@@ -70,7 +70,7 @@ class CalendarDailyTasksTest {
         val noDate = state.copy(selectedDate = null)
         assertEquals(listOf(undated), noDate.sidebarTasks)
         assertTrue(noDate.sidebarDailyTasks.isEmpty())
-        assertTrue(noDate.sidebarTimedItems.isEmpty())
+        assertTrue(noDate.sidebarEventItems.isEmpty())
         assertEquals(listOf(undated), noDate.sidebarUntimedTasks)
     }
 }
