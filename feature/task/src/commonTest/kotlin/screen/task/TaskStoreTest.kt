@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.task.api.model.Task
@@ -58,7 +59,7 @@ class TaskStoreTest {
         expected.forEach { (filter, ids) -> assertEquals(ids, state.copy(filter = filter).visibleTasks.map { it.id }, filter.label) }
         assertEquals(listOf(1, 2, 6), state.copy(groupFilter = TaskGroupFilter.Selected(1)).visibleTasks.map { it.id })
         assertEquals(listOf(3, 4, 5), state.copy(groupFilter = TaskGroupFilter.NoGroup).visibleTasks.map { it.id })
-        assertEquals(listOf(2), state.copy(groupFilter = TaskGroupFilter.Selected(1), query = " TODAY ", filter = TaskFilter.Scheduled).visibleTasks.map { it.id })
+        assertEquals(listOf(2), state.copy(groupFilter = TaskGroupFilter.Selected(1), query = TextFieldState(" TODAY "), filter = TaskFilter.Scheduled).visibleTasks.map { it.id })
         assertEquals(6, state.copy(sort = TaskSort.Name, reverseSort = true).visibleTasks.last().id)
         assertEquals(listOf(1, 2), state.copy(filter = TaskFilter.Overdue, today = today.plus(1, DateTimeUnit.DAY)).visibleTasks.map { it.id })
     }

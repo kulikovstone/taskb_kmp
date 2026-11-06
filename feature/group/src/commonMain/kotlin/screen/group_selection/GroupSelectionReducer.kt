@@ -4,7 +4,6 @@ import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.model.Group
 
 internal sealed interface GroupSelectionMessage {
-    data class QueryChanged(val query: String) : GroupSelectionMessage
     data class Loaded(val groups: List<Group>) : GroupSelectionMessage
     data class Selected(val result: GroupSelectionResult) : GroupSelectionMessage
     data object Loading : GroupSelectionMessage
@@ -12,7 +11,6 @@ internal sealed interface GroupSelectionMessage {
 }
 
 internal fun reduceGroupSelection(state: GroupSelectionState, message: GroupSelectionMessage): GroupSelectionState = when (message) {
-    is GroupSelectionMessage.QueryChanged -> state.copy(query = message.query)
     is GroupSelectionMessage.Loaded -> state.copy(groups = message.groups, isLoading = false, loadError = null)
     is GroupSelectionMessage.Selected -> state.copy(result = message.result)
     GroupSelectionMessage.Loading -> state.copy(isLoading = true, loadError = null)

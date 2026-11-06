@@ -6,8 +6,8 @@ import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -35,37 +35,6 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
 fun TaskBTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    description: String,
-    modifier: Modifier = Modifier,
-    placeholder: String = "",
-    search: Boolean = false,
-    enabled: Boolean = true,
-    autoFocus: Boolean = false,
-    showClear: Boolean = true,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    onDone: () -> Unit = {},
-) {
-    val colors = TaskBTheme.colors
-    TaskBTextFieldContainer(value, { onValueChange("") }, description, modifier, placeholder, search, enabled, autoFocus, showClear) { fieldModifier, decoration ->
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            enabled = enabled,
-            singleLine = true,
-            textStyle = TaskBTheme.typography.body.copy(color = colors.text),
-            cursorBrush = SolidColor(colors.accent),
-            keyboardOptions = KeyboardOptions(imeAction = if (search) ImeAction.Search else ImeAction.Done, keyboardType = keyboardType),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
-            modifier = fieldModifier,
-            decorationBox = decoration,
-        )
-    }
-}
-
-@Composable
-fun TaskBTextField(
     state: TextFieldState,
     description: String,
     modifier: Modifier = Modifier,
@@ -76,11 +45,13 @@ fun TaskBTextField(
     showClear: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     onDone: () -> Unit = {},
+    inputTransformation: InputTransformation? = null,
 ) {
     val colors = TaskBTheme.colors
     TaskBTextFieldContainer(state.text.toString(), state::clearText, description, modifier, placeholder, search, enabled, autoFocus, showClear) { fieldModifier, decoration ->
         BasicTextField(
             state = state,
+            inputTransformation = inputTransformation,
             enabled = enabled,
             lineLimits = TextFieldLineLimits.SingleLine,
             textStyle = TaskBTheme.typography.body.copy(color = colors.text),
@@ -186,10 +157,8 @@ private fun TaskBTextFieldPreview(darkTheme: Boolean) {
                     description = "Focused task name",
                     autoFocus = true,
                 )
-                var query by remember { mutableStateOf("release") }
                 TaskBTextField(
-                    value = query,
-                    onValueChange = { query = it },
+                    state = rememberTextFieldState("release"),
                     description = "Search tasks",
                     placeholder = "Search tasks",
                     search = true,

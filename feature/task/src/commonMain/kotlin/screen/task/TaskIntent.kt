@@ -3,7 +3,6 @@ package com.mkulikov.taskb.feature.task.screen.task
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 
 internal sealed interface TaskIntent {
-    data class Search(val query: String) : TaskIntent
     data class Filter(val filter: TaskFilter?) : TaskIntent
     data class FilterGroup(val filter: TaskGroupFilter) : TaskIntent
     data class Sort(val sort: TaskSort) : TaskIntent

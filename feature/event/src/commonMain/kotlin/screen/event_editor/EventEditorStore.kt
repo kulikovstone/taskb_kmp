@@ -97,9 +97,6 @@ internal class EventEditorStore(
                         onGroupSelected(intent.id)
                     }
                     is EventEditorIntent.RecurrenceChanged -> reduce(EventEditorMessage.Recurrence(intent.recurrence))
-                    is EventEditorIntent.RepeatIntervalChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 4) reduce(EventEditorMessage.RepeatInput(interval = intent.value))
-                    is EventEditorIntent.RepeatDayChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 2) reduce(EventEditorMessage.RepeatInput(day = intent.value))
-                    is EventEditorIntent.RepeatCountChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 7) reduce(EventEditorMessage.RepeatInput(count = intent.value))
                     EventEditorIntent.ChooseRepeatEndDate -> if (current.recurrence != null) reduce(EventEditorMessage.Dialog(EventEditorDialog.RepeatEndDatePicker))
                     EventEditorIntent.ChooseDate -> reduce(EventEditorMessage.Dialog(EventEditorDialog.DatePicker))
                     EventEditorIntent.PrepareDelete -> if (current.original != null) reduce(EventEditorMessage.Dialog(if (occurrenceId != null) EventEditorDialog.DeleteOccurrence else EventEditorDialog.ConfirmDelete))

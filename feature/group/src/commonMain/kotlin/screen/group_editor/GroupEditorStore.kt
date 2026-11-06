@@ -25,9 +25,6 @@ internal class GroupEditorStore(
         val current = state.value
         if (current.isFinished) return
         when (intent) {
-            is GroupEditorIntent.NameChanged -> if (!current.isBusy && current.loadError == null && current.dialog == null) {
-                reduce(GroupEditorMessage.NameChanged(intent.name))
-            }
             is GroupEditorIntent.ColorChanged -> if (!current.isBusy && current.loadError == null && current.dialog == null) {
                 reduce(GroupEditorMessage.ColorChanged(intent.color))
             }

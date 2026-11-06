@@ -1,10 +1,11 @@
 package com.mkulikov.taskb.feature.group.screen.groups
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.group.api.model.Group
 
 internal data class GroupsState(
     val groups: List<Group> = emptyList(),
-    val query: String = "",
+    val query: TextFieldState = TextFieldState(),
     val filter: GroupFilter = GroupFilter.All,
     val sort: GroupSort = GroupSort.Name,
     val reverseSort: Boolean = false,
@@ -15,7 +16,7 @@ internal data class GroupsState(
     val emptyCount: Int get() = groups.size - withTasksCount
     val visibleGroups: List<Group> get() {
         val matching = groups.filter {
-            it.name.contains(query.trim(), ignoreCase = true) && when (filter) {
+            it.name.contains(query.text.toString().trim(), ignoreCase = true) && when (filter) {
                 GroupFilter.All -> true
                 GroupFilter.WithTasks -> it.tasks.planned > 0
                 GroupFilter.Empty -> it.tasks.planned == 0
@@ -28,7 +29,7 @@ internal data class GroupsState(
         }
         return matching.sortedWith(if (reverseSort) comparator.reversed() else comparator)
     }
-    val summary: String get() = if (query.isBlank() && filter == GroupFilter.All) {
+    val summary: String get() = if (query.text.isBlank() && filter == GroupFilter.All) {
         "${groups.size} ${if (groups.size == 1) "group" else "groups"}"
     } else "${visibleGroups.size} of ${groups.size} groups"
 }

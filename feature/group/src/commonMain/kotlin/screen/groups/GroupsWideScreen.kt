@@ -40,7 +40,7 @@ internal fun GroupsWideScreen(
         }
         Column(Modifier.weight(1f).padding(start = 32.dp, end = 32.dp, top = 16.dp)) {
             Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                TaskBTextField(state.query, { onIntent(GroupsIntent.Search(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.width(300.dp))
+                TaskBTextField(state.query, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.width(300.dp))
                 GroupsFilters(state, onIntent)
             }
             Spacer(Modifier.height(24.dp))

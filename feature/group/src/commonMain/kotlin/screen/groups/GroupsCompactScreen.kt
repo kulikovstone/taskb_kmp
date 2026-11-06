@@ -25,7 +25,7 @@ internal fun GroupsCompactScreen(state: GroupsState, onIntent: (GroupsIntent) ->
             }
         }
         Column(Modifier.weight(1f).padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
-            TaskBTextField(state.query, { onIntent(GroupsIntent.Search(it)) }, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
+            TaskBTextField(state.query, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(16.dp))
             GroupsFilters(state, onIntent)
             Spacer(Modifier.height(16.dp))

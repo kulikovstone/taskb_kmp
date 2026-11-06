@@ -40,7 +40,7 @@ internal fun GroupEditorForm(
             Text("Group name", modifier = Modifier.height(18.dp), style = TaskBTheme.typography.label, color = colors.text)
             Spacer(Modifier.height(8.dp))
             TaskBTextField(
-                value = state.name, onValueChange = { onIntent(GroupEditorIntent.NameChanged(it)) }, description = "Group name",
+                state = state.name, description = "Group name",
                 placeholder = "Enter group name", enabled = enabled, modifier = Modifier.fillMaxWidth(),
                 autoFocus = autoFocusName,
                 onDone = { onIntent(GroupEditorIntent.Save) },

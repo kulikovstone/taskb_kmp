@@ -57,11 +57,11 @@ internal fun TaskListScreen(
         Column(Modifier.weight(1f).padding(top = if (wide) 8.dp else 12.dp)) {
             if (wide) Row(Modifier.fillMaxWidth().padding(horizontal = taskListHorizontalPadding(wide)),
                 verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.width(300.dp))
+                TaskBTextField(state.query, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.width(300.dp))
                 ActiveTaskFilters(state, onIntent, onChooseGroup, Modifier.weight(1f))
             } else {
                 Column(Modifier.padding(horizontal = taskListHorizontalPadding(wide))) {
-                    TaskBTextField(state.query, { onIntent(TaskIntent.Search(it)) }, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.fillMaxWidth())
+                    TaskBTextField(state.query, "Search tasks", placeholder = "Search tasks", search = true, modifier = Modifier.fillMaxWidth())
                     if (state.filter != null || state.groupFilter != TaskGroupFilter.All) {
                         Spacer(Modifier.height(8.dp))
                         ActiveTaskFilters(state, onIntent, onChooseGroup)

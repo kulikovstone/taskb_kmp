@@ -1,11 +1,11 @@
 package com.mkulikov.taskb.feature.group.screen.group_editor
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.group.api.repository.GroupWriteResult
 
 internal sealed interface GroupEditorMessage {
-    data class NameChanged(val name: String) : GroupEditorMessage
     data class ColorChanged(val color: GroupColor) : GroupEditorMessage
     data object Loading : GroupEditorMessage
     data class Loaded(val group: Group?) : GroupEditorMessage
@@ -21,12 +21,11 @@ internal sealed interface GroupEditorMessage {
 }
 
 internal fun reduceGroupEditor(state: GroupEditorState, message: GroupEditorMessage): GroupEditorState = when (message) {
-    is GroupEditorMessage.NameChanged -> state.copy(name = message.name)
     is GroupEditorMessage.ColorChanged -> state.copy(color = message.color)
     GroupEditorMessage.Loading -> state.copy(isLoading = true, loadError = null)
     is GroupEditorMessage.Loaded -> if (message.group == null) {
         state.copy(isLoading = false, loadError = "This group no longer exists.")
-    } else state.copy(isLoading = false, original = message.group, name = message.group.name, color = message.group.color)
+    } else state.copy(isLoading = false, original = message.group, name = TextFieldState(message.group.name), color = message.group.color)
     GroupEditorMessage.LoadFailed -> state.copy(isLoading = false, loadError = "Couldn't load this group. Please try again.")
     GroupEditorMessage.Saving -> state.copy(isSaving = true, dialog = null)
     is GroupEditorMessage.Saved -> when (message.result) {

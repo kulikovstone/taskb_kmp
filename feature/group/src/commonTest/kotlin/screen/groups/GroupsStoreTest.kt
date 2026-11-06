@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.group.screen.groups
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.group.api.model.GroupTaskSummary
@@ -33,11 +34,11 @@ class GroupsStoreTest {
             store.accept(GroupsIntent.Filter(GroupFilter.Empty))
             advanceUntilIdle()
             assertEquals(listOf("Ideas", "Reading"), store.state.value.visibleGroups.map { it.name })
-            store.accept(GroupsIntent.Search("  IDEA "))
+            store.state.value.query.setTextAndPlaceCursorAtEnd("  IDEA ")
             advanceUntilIdle()
             assertEquals(listOf("Ideas"), store.state.value.visibleGroups.map { it.name })
             assertEquals("1 of 4 groups", store.state.value.summary)
-            store.accept(GroupsIntent.Search(""))
+            store.state.value.query.setTextAndPlaceCursorAtEnd("")
             store.accept(GroupsIntent.Filter(GroupFilter.All))
             store.accept(GroupsIntent.Sort(GroupSort.Tasks))
             advanceUntilIdle()
@@ -61,11 +62,11 @@ class GroupsStoreTest {
             store.accept(GroupsIntent.RetryLoad)
             advanceUntilIdle()
             assertNull(store.state.value.loadError)
-            store.accept(GroupsIntent.Search("wor"))
+            store.state.value.query.setTextAndPlaceCursorAtEnd("wor")
             advanceUntilIdle()
             repository.values.value = sample.dropLast(1)
             advanceUntilIdle()
-            assertEquals("wor", store.state.value.query)
+            assertEquals("wor", store.state.value.query.text.toString())
             assertEquals(listOf("Work"), store.state.value.visibleGroups.map { it.name })
             assertEquals(3, store.state.value.groups.size)
         }

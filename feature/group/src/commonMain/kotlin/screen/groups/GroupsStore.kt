@@ -20,7 +20,6 @@ internal class GroupsStore(
 
     override fun handleIntent(intent: GroupsIntent) {
         when (intent) {
-            is GroupsIntent.Search -> reduce(GroupsMessage.QueryChanged(intent.query))
             is GroupsIntent.Filter -> reduce(GroupsMessage.FilterChanged(intent.filter))
             is GroupsIntent.Sort -> reduce(GroupsMessage.SortChanged(intent.sort))
             GroupsIntent.RetryLoad -> if (observation?.isActive != true) {

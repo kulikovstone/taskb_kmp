@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.ui.component.TaskBTextField
+import com.mkulikov.taskb.ui.input.digitsOnlyInputTransformation
 import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -73,7 +75,7 @@ internal fun TaskRecurrenceFields(state: TaskEditorState, onIntent: (TaskEditorI
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Every", Modifier.width(46.dp), style = TaskBTheme.typography.body, color = TaskBTheme.colors.text)
-                    RepeatNumber(state.repeatInterval, "Repeat interval", { onIntent(TaskEditorIntent.RepeatIntervalChanged(it)) }, enabled)
+                    RepeatNumber(state.repeatInterval, "Repeat interval", 4, enabled)
                     val unit = when (rule.frequency) { RecurrenceFrequency.Daily -> "day"; RecurrenceFrequency.Weekly -> "week"; RecurrenceFrequency.Monthly -> "month"; RecurrenceFrequency.Yearly -> "year" }
                     Text(unit + if (rule.interval == 1) "" else "s", style = TaskBTheme.typography.body, color = TaskBTheme.colors.text)
                 }
@@ -93,7 +95,7 @@ internal fun TaskRecurrenceFields(state: TaskEditorState, onIntent: (TaskEditorI
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("On", Modifier.width(46.dp), style = TaskBTheme.typography.body, color = TaskBTheme.colors.text)
                             if (rule.frequency == RecurrenceFrequency.Yearly) RepeatMonth(rule.month, enabled, { change(rule.copy(month = it)) }, if (wide) Modifier.width(180.dp) else Modifier.weight(1f))
-                            RepeatNumber(state.repeatDay, "Repeat day", { onIntent(TaskEditorIntent.RepeatDayChanged(it)) }, enabled)
+                            RepeatNumber(state.repeatDay, "Repeat day", 2, enabled)
                             if (rule.frequency == RecurrenceFrequency.Monthly) Text("of the month", style = TaskBTheme.typography.body, color = TaskBTheme.colors.text)
                         }
                         if (rule.dayOfMonth > 28) Text("If this date is missing, use the last day of the month.", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted)
@@ -126,7 +128,7 @@ internal fun TaskRecurrenceFields(state: TaskEditorState, onIntent: (TaskEditorI
             } else if (rule.occurrenceCount != null) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RepeatNumber(state.repeatCount, "Repeat occurrence count", { onIntent(TaskEditorIntent.RepeatCountChanged(it)) }, enabled)
+                    RepeatNumber(state.repeatCount, "Repeat occurrence count", 7, enabled)
                     Text("occurrences", style = TaskBTheme.typography.body, color = TaskBTheme.colors.text)
                 }
                 Text("Includes the first occurrence.", style = TaskBTheme.typography.small, color = TaskBTheme.colors.muted, modifier = Modifier.padding(top = 8.dp))
@@ -136,8 +138,10 @@ internal fun TaskRecurrenceFields(state: TaskEditorState, onIntent: (TaskEditorI
 }
 
 @Composable
-private fun RepeatNumber(value: String, description: String, onChange: (String) -> Unit, enabled: Boolean) {
-    TaskBTextField(value, onChange, description, Modifier.width(72.dp), enabled = enabled, showClear = false, keyboardType = KeyboardType.Number)
+private fun RepeatNumber(state: TextFieldState, description: String, maxLength: Int, enabled: Boolean) {
+    val transformation = remember(maxLength) { digitsOnlyInputTransformation(maxLength) }
+    TaskBTextField(state, description, Modifier.width(72.dp), enabled = enabled, showClear = false,
+        keyboardType = KeyboardType.Number, inputTransformation = transformation)
 }
 
 @Composable

@@ -3,7 +3,6 @@ package com.mkulikov.taskb.feature.group.screen.group_editor
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 
 internal sealed interface GroupEditorIntent {
-    data class NameChanged(val name: String) : GroupEditorIntent
     data class ColorChanged(val color: GroupColor) : GroupEditorIntent
     data object Save : GroupEditorIntent
     data object PrepareDelete : GroupEditorIntent

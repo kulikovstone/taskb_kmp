@@ -1,5 +1,7 @@
 package com.mkulikov.taskb.ui.component.date_picker
 
+import androidx.compose.runtime.saveable.SaverScope
+import androidx.compose.ui.text.TextRange
 import kotlinx.datetime.YearMonth
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -7,6 +9,23 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class DatePickerStateTest {
+    @Test
+    fun `restoring the year picker retains the draft and selection`() {
+        val state = DatePickerState(YearMonth(2026, 11))
+        state.toggleYears()
+        state.yearText.edit {
+            replace(0, length, "2036")
+            selection = TextRange(1, 3)
+        }
+        val saved = with(DatePickerState.Saver) { SaverScope { true }.save(state) }
+        val restored = requireNotNull(DatePickerState.Saver.restore(requireNotNull(saved)))
+        assertEquals(DatePickerState.View.Years, restored.view)
+        assertEquals("2036", restored.yearText.text.toString())
+        assertEquals(TextRange(1, 3), restored.yearText.selection)
+        restored.applyYear()
+        assertEquals(YearMonth(2036, 11), restored.month)
+    }
+
     @Test
     fun `year and month can be changed independently`() {
         val state = DatePickerState(YearMonth(2026, 11))

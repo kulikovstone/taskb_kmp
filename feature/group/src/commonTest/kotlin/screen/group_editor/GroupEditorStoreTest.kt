@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.group.screen.group_editor
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.group.api.model.GroupTaskSummary
 import com.mkulikov.taskb.feature.group.api.repository.GroupWriteResult
@@ -19,22 +20,20 @@ import kotlinx.coroutines.test.runTest
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupEditorStoreTest {
     @Test
-    fun `creation validates trims and prevents double submissions and editing during a write`() = runTest {
+    fun `creation validates trims and prevents double submissions`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val repository = FakeGroupRepository().apply { onWrite = { gate.await() } }
         GroupEditorStore(repository, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            store.accept(GroupEditorIntent.NameChanged("  "))
+            store.state.value.name.setTextAndPlaceCursorAtEnd("  ")
             store.accept(GroupEditorIntent.Save)
             runCurrent()
             assertEquals(0, repository.writes)
-            store.accept(GroupEditorIntent.NameChanged(" Work "))
+            store.state.value.name.setTextAndPlaceCursorAtEnd(" Work ")
             store.accept(GroupEditorIntent.ColorChanged(GroupColor.Green))
             repeat(4) { store.accept(GroupEditorIntent.Save) }
             runCurrent()
             assertEquals(1, repository.writes)
-            store.accept(GroupEditorIntent.NameChanged("Lost edit"))
-            runCurrent()
-            assertEquals(" Work ", store.state.value.name)
+            assertEquals(" Work ", store.state.value.name.text.toString())
             gate.complete(Unit)
             advanceUntilIdle()
             assertEquals("Work", repository.lastWrite?.name)
@@ -49,7 +48,7 @@ class GroupEditorStoreTest {
         GroupEditorStore(repository, 7, StandardTestDispatcher(testScheduler)).use { store ->
             advanceUntilIdle()
             assertFalse(store.state.value.canSave)
-            store.accept(GroupEditorIntent.NameChanged("Personal"))
+            store.state.value.name.setTextAndPlaceCursorAtEnd("Personal")
             repository.result = GroupWriteResult.NameConflict
             store.accept(GroupEditorIntent.Save)
             advanceUntilIdle()
@@ -59,7 +58,7 @@ class GroupEditorStoreTest {
             store.accept(GroupEditorIntent.Save)
             advanceUntilIdle()
             assertTrue(store.state.value.dialog is GroupEditorDialog.Error)
-            assertEquals("Personal", store.state.value.name)
+            assertEquals("Personal", store.state.value.name.text.toString())
             store.accept(GroupEditorIntent.DismissDialog)
             repository.onWrite = {}
             repository.result = GroupWriteResult.Saved
@@ -102,7 +101,7 @@ class GroupEditorStoreTest {
             onWrite = { try { awaitCancellation() } finally { cancelled = true } }
         }
         val store = GroupEditorStore(repository, dispatcher = StandardTestDispatcher(testScheduler))
-        store.accept(GroupEditorIntent.NameChanged("Work"))
+        store.state.value.name.setTextAndPlaceCursorAtEnd("Work")
         store.accept(GroupEditorIntent.Save)
         runCurrent()
         store.close()

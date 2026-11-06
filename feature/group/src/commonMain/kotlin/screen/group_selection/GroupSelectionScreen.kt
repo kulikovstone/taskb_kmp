@@ -69,7 +69,7 @@ internal fun GroupSelectionContent(
             }
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = 768.dp).fillMaxSize().padding(24.dp)) {
-                    TaskBTextField(state.query, { onIntent(GroupSelectionIntent.Search(it)) }, "Search groups",
+                    TaskBTextField(state.query, "Search groups",
                         placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(16.dp))
                     val modifier = Modifier.weight(1f).fillMaxWidth()
@@ -99,7 +99,7 @@ private fun GroupSelectionList(state: GroupSelectionState, onIntent: (GroupSelec
                     { onIntent(GroupSelectionIntent.Select(group.id)) }, group.color.color)
             }
             if (state.matchingGroups.isEmpty() && !state.isNoGroupVisible) item {
-                Text(if (state.query.isBlank()) "No groups yet." else "No groups match your search.",
+                Text(if (state.query.text.isBlank()) "No groups yet." else "No groups match your search.",
                     color = TaskBTheme.colors.muted, modifier = Modifier.padding(vertical = 24.dp))
             }
         }

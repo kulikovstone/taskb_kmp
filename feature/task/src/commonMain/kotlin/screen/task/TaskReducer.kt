@@ -9,7 +9,6 @@ internal sealed interface TaskMessage {
     data class Loaded(val tasks: List<Task>, val groups: List<Group>, val now: Instant) : TaskMessage
     data object Loading : TaskMessage
     data object LoadFailed : TaskMessage
-    data class Query(val value: String) : TaskMessage
     data class Filter(val value: TaskFilter?) : TaskMessage
     data class GroupFilter(val value: TaskGroupFilter) : TaskMessage
     data class Sort(val value: TaskSort) : TaskMessage
@@ -27,7 +26,6 @@ internal fun reduceTask(state: TaskState, message: TaskMessage): TaskState = whe
     )
     TaskMessage.Loading -> state.copy(isLoading = true, loadError = null)
     TaskMessage.LoadFailed -> state.copy(isLoading = false, loadError = "Couldn't load tasks. Please try again.")
-    is TaskMessage.Query -> state.copy(query = message.value)
     is TaskMessage.Filter -> state.copy(filter = message.value, selection = null)
     is TaskMessage.GroupFilter -> state.copy(groupFilter = message.value, selection = null)
     is TaskMessage.Sort -> state.copy(sort = message.value, reverseSort = state.sort == message.value && !state.reverseSort)

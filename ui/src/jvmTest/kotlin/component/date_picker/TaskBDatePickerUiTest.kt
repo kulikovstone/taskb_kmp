@@ -75,6 +75,7 @@ class TaskBDatePickerUiTest {
             onNodeWithText("Go").performClick()
             onNodeWithText("Enter a year between 1 and 9999.").assertIsDisplayed()
             onNodeWithContentDescription("Year").performTextReplacement("2036")
+            onNodeWithText("Enter a year between 1 and 9999.").assertDoesNotExist()
             onNodeWithContentDescription("Year").performImeAction()
             onNodeWithContentDescription("Choose year").assert(hasText("2036"))
             onNodeWithContentDescription("Choose year").performClick()

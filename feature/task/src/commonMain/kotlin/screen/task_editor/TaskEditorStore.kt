@@ -87,9 +87,6 @@ internal class TaskEditorStore(
                         onGroupSelected(intent.id)
                     }
                     is TaskEditorIntent.RecurrenceChanged -> if (current.dueDate != null || intent.recurrence == null) reduce(TaskEditorMessage.Recurrence(intent.recurrence))
-                    is TaskEditorIntent.RepeatIntervalChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 4) reduce(TaskEditorMessage.RepeatInput(interval = intent.value))
-                    is TaskEditorIntent.RepeatDayChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 2) reduce(TaskEditorMessage.RepeatInput(day = intent.value))
-                    is TaskEditorIntent.RepeatCountChanged -> if (intent.value.all(Char::isDigit) && intent.value.length <= 7) reduce(TaskEditorMessage.RepeatInput(count = intent.value))
                     TaskEditorIntent.ChooseRepeatEndDate -> if (current.recurrence != null) reduce(TaskEditorMessage.Dialog(TaskEditorDialog.RepeatEndDatePicker))
                     TaskEditorIntent.ChooseDate -> reduce(TaskEditorMessage.Dialog(TaskEditorDialog.DatePicker))
                     TaskEditorIntent.PrepareDelete -> if (current.original != null) reduce(TaskEditorMessage.Dialog(if (occurrenceId != null) TaskEditorDialog.DeleteOccurrence else TaskEditorDialog.ConfirmDelete))

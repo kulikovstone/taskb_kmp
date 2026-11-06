@@ -21,9 +21,9 @@ internal data class EventEditorState(
     val startTime: LocalTime? = null,
     val endTime: LocalTime? = null,
     val recurrence: EventRecurrence? = null,
-    val repeatInterval: String = "1",
-    val repeatDay: String = "1",
-    val repeatCount: String = "10",
+    val repeatInterval: TextFieldState = TextFieldState("1"),
+    val repeatDay: TextFieldState = TextFieldState("1"),
+    val repeatCount: TextFieldState = TextFieldState("10"),
     val groupId: Int? = null,
     val groups: List<Group> = emptyList(),
     val isLoadingGroups: Boolean = true,
@@ -54,17 +54,17 @@ internal data class EventEditorState(
     }
     val recurrenceError: String? get() = recurrence?.let {
         when {
-            repeatInterval.toIntOrNull()?.let { value -> value in 1..9999 } != true -> "Enter an interval between 1 and 9999."
-            repeatDay.toIntOrNull()?.let { value -> value in 1..31 } != true -> "Enter a day between 1 and 31."
-            it.occurrenceCount != null && repeatCount.toIntOrNull()?.let { value -> value in 1..1_000_000 } != true -> "Enter between 1 and 1000000 occurrences."
+            repeatInterval.text.toString().toIntOrNull()?.let { value -> value in 1..9999 } != true -> "Enter an interval between 1 and 9999."
+            repeatDay.text.toString().toIntOrNull()?.let { value -> value in 1..31 } != true -> "Enter a day between 1 and 31."
+            it.occurrenceCount != null && repeatCount.text.toString().toIntOrNull()?.let { value -> value in 1..1_000_000 } != true -> "Enter between 1 and 1000000 occurrences."
             it.endDate?.let { end -> end < dueDate } == true -> "The end date must not be before the start date."
             else -> null
         }
     }
     val editedRecurrence: EventRecurrence? get() = recurrence?.copy(
-        interval = repeatInterval.toIntOrNull()?.takeIf { it in 1..9999 } ?: recurrence.interval,
-        dayOfMonth = repeatDay.toIntOrNull()?.takeIf { it in 1..31 } ?: recurrence.dayOfMonth,
-        occurrenceCount = if (recurrence.occurrenceCount == null) null else repeatCount.toIntOrNull()?.takeIf { it in 1..1_000_000 } ?: recurrence.occurrenceCount,
+        interval = repeatInterval.text.toString().toIntOrNull()?.takeIf { it in 1..9999 } ?: recurrence.interval,
+        dayOfMonth = repeatDay.text.toString().toIntOrNull()?.takeIf { it in 1..31 } ?: recurrence.dayOfMonth,
+        occurrenceCount = if (recurrence.occurrenceCount == null) null else repeatCount.text.toString().toIntOrNull()?.takeIf { it in 1..1_000_000 } ?: recurrence.occurrenceCount,
     )
     val upcomingDates: List<LocalDate> get() = editedRecurrence?.let { rule -> nextRecurrenceDates(rule, dueDate) }.orEmpty()
     val canSave get() = !isBusy && !isFinished && loadError == null && groupsLoadError == null && dialog == null && normalizedName.isNotEmpty() &&

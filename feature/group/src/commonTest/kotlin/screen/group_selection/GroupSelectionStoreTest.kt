@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.group.screen.group_selection
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
@@ -29,7 +30,7 @@ class GroupSelectionStoreTest {
             assertFalse(store.state.value.isNoGroupVisible)
             store.accept(GroupSelectionIntent.Select(null))
             store.accept(GroupSelectionIntent.Select(99))
-            store.accept(GroupSelectionIntent.Search(" WOr "))
+            store.state.value.query.setTextAndPlaceCursorAtEnd(" WOr ")
             advanceUntilIdle()
             assertNull(store.state.value.result)
             assertEquals(listOf(7), store.state.value.matchingGroups.map { it.id })
@@ -49,10 +50,10 @@ class GroupSelectionStoreTest {
             advanceUntilIdle()
             assertTrue(store.state.value.isNoGroupVisible)
             assertTrue(store.state.value.noGroupSelected)
-            store.accept(GroupSelectionIntent.Search("missing"))
+            store.state.value.query.setTextAndPlaceCursorAtEnd("missing")
             advanceUntilIdle()
             assertFalse(store.state.value.isNoGroupVisible)
-            store.accept(GroupSelectionIntent.Search("  NO GR "))
+            store.state.value.query.setTextAndPlaceCursorAtEnd("  NO GR ")
             advanceUntilIdle()
             assertTrue(store.state.value.isNoGroupVisible)
             store.accept(GroupSelectionIntent.Select(null))
@@ -71,13 +72,13 @@ class GroupSelectionStoreTest {
             repository.failRead = false
             repository.values.value = sample
             store.accept(GroupSelectionIntent.RetryLoad)
-            store.accept(GroupSelectionIntent.Search("wor"))
+            store.state.value.query.setTextAndPlaceCursorAtEnd("wor")
             advanceUntilIdle()
             assertNull(store.state.value.loadError)
             assertEquals(listOf(7), store.state.value.matchingGroups.map { it.id })
             repository.values.value = emptyList()
             advanceUntilIdle()
-            assertEquals("wor", store.state.value.query)
+            assertEquals("wor", store.state.value.query.text.toString())
             store.accept(GroupSelectionIntent.Select(7))
             advanceUntilIdle()
             assertNull(store.state.value.result)

@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.core.utils.time.currentDate
@@ -13,7 +14,7 @@ import kotlin.time.Instant
 internal data class TaskState(
     val tasks: List<Task> = emptyList(),
     val groups: List<Group> = emptyList(),
-    val query: String = "",
+    val query: TextFieldState = TextFieldState(),
     val groupFilter: TaskGroupFilter = TaskGroupFilter.All,
     val filter: TaskFilter? = null,
     val sort: TaskSort = TaskSort.Date,
@@ -39,7 +40,7 @@ internal data class TaskState(
 
     val visibleTasks: List<Task> get() {
         val matching = unexpiredTasks.filter { task ->
-            task.name.contains(query.trim(), ignoreCase = true) && when (val group = groupFilter) {
+            task.name.contains(query.text.toString().trim(), ignoreCase = true) && when (val group = groupFilter) {
                 TaskGroupFilter.All -> true
                 TaskGroupFilter.NoGroup -> task.groupId == null
                 is TaskGroupFilter.Selected -> task.groupId == group.id
@@ -69,7 +70,7 @@ internal data class TaskState(
     }
     val summary: String get() {
         val total = taskCount
-        return if (query.isBlank() && filter == null && groupFilter == TaskGroupFilter.All) {
+        return if (query.text.isBlank() && filter == null && groupFilter == TaskGroupFilter.All) {
             "$total ${if (total == 1) "task" else "tasks"}"
         } else "${visibleTasks.size} of $total tasks"
     }

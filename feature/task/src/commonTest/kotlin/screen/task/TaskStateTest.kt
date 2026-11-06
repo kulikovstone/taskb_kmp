@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.task.api.model.Task
@@ -119,7 +120,7 @@ class TaskStateTest {
 
         assertEquals(1, state.taskCount)
         assertEquals("1 task", state.summary)
-        assertEquals("1 of 1 tasks", state.copy(query = "Active").summary)
+        assertEquals("1 of 1 tasks", state.copy(query = TextFieldState("Active")).summary)
         assertEquals("0 of 1 tasks", state.copy(filter = TaskFilter.Completed).summary)
         assertEquals("0 tasks", state.copy(tasks = listOf(old)).summary)
         assertEquals(2, state.tasks.size)

@@ -16,9 +16,6 @@ internal sealed interface EventEditorIntent {
     data class EndTimeChanged(val time: LocalTime) : EventEditorIntent
     data class GroupChanged(val id: Int?) : EventEditorIntent
     data class RecurrenceChanged(val recurrence: EventRecurrence?) : EventEditorIntent
-    data class RepeatIntervalChanged(val value: String) : EventEditorIntent
-    data class RepeatDayChanged(val value: String) : EventEditorIntent
-    data class RepeatCountChanged(val value: String) : EventEditorIntent
     data class RepeatEndDateChanged(val date: LocalDate) : EventEditorIntent
     data object ChooseRepeatEndDate : EventEditorIntent
     data class SaveOccurrence(val scope: EventChangeScope) : EventEditorIntent

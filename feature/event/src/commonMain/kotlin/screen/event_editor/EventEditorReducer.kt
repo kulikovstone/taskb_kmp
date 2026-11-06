@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.feature.event.screen.event_editor
 
 import androidx.compose.foundation.text.input.TextFieldState
+import com.mkulikov.taskb.ui.input.withTextIfChanged
 import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.group.api.model.Group
 import kotlinx.datetime.LocalDate
@@ -19,7 +20,6 @@ internal sealed interface EventEditorMessage {
     data class EndDate(val value: LocalDate) : EventEditorMessage
     data class EndTime(val value: LocalTime) : EventEditorMessage
     data class Recurrence(val value: EventRecurrence?) : EventEditorMessage
-    data class RepeatInput(val interval: String? = null, val day: String? = null, val count: String? = null) : EventEditorMessage
     data class GroupSelected(val value: Int?) : EventEditorMessage
     data class GroupsLoaded(val groups: List<Group>) : EventEditorMessage
     data object GroupsLoading : EventEditorMessage
@@ -42,9 +42,9 @@ internal fun reduceEventEditor(state: EventEditorState, message: EventEditorMess
             description = TextFieldState(event.description), dueDate = event.dueDate ?: state.today,
             endDate = event.endDate ?: event.dueDate ?: state.today,
             startTime = event.startTime, endTime = event.endDateTime?.time,
-            recurrence = event.recurrence, repeatInterval = (event.recurrence?.interval ?: 1).toString(),
-            repeatDay = (event.recurrence?.dayOfMonth ?: event.dueDate?.day ?: 1).toString(),
-            repeatCount = (event.recurrence?.occurrenceCount ?: 10).toString(),
+            recurrence = event.recurrence, repeatInterval = TextFieldState((event.recurrence?.interval ?: 1).toString()),
+            repeatDay = TextFieldState((event.recurrence?.dayOfMonth ?: event.dueDate?.day ?: 1).toString()),
+            repeatCount = TextFieldState((event.recurrence?.occurrenceCount ?: 10).toString()),
             groupId = event.groupId?.takeIf { id -> state.isLoadingGroups || state.groupsLoadError != null || state.groups.any { it.id == id } })
     }
     is EventEditorMessage.Date -> state.copy(dueDate = message.value,
@@ -60,9 +60,8 @@ internal fun reduceEventEditor(state: EventEditorState, message: EventEditorMess
     }
     is EventEditorMessage.EndDate -> state.copy(endDate = message.value, dialog = null)
     is EventEditorMessage.EndTime -> state.copy(endTime = message.value, dialog = null)
-    is EventEditorMessage.Recurrence -> state.copy(recurrence = message.value, repeatInterval = (message.value?.interval ?: 1).toString(),
-        repeatDay = (message.value?.dayOfMonth ?: state.dueDate.day).toString(), repeatCount = (message.value?.occurrenceCount ?: 10).toString(), dialog = null)
-    is EventEditorMessage.RepeatInput -> state.copy(repeatInterval = message.interval ?: state.repeatInterval, repeatDay = message.day ?: state.repeatDay, repeatCount = message.count ?: state.repeatCount)
+    is EventEditorMessage.Recurrence -> state.copy(recurrence = message.value, repeatInterval = state.repeatInterval.withTextIfChanged((message.value?.interval ?: 1).toString()),
+        repeatDay = state.repeatDay.withTextIfChanged((message.value?.dayOfMonth ?: state.dueDate.day).toString()), repeatCount = state.repeatCount.withTextIfChanged((message.value?.occurrenceCount ?: 10).toString()), dialog = null)
     is EventEditorMessage.GroupSelected -> state.copy(groupId = message.value)
     is EventEditorMessage.GroupsLoaded -> state.copy(groups = message.groups, isLoadingGroups = false, groupsLoadError = null,
         groupId = state.groupId?.takeIf { id -> message.groups.any { it.id == id } })

@@ -1,12 +1,14 @@
 package com.mkulikov.taskb.feature.group.screen.group_editor
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 
 internal data class GroupEditorState(
     val isNew: Boolean,
     val original: Group? = null,
-    val name: String = "",
+    // Keep text, selection and IME composition synchronous, outside the Store's intent queue.
+    val name: TextFieldState = TextFieldState(),
     val color: GroupColor = GroupColor.Grey,
     val isLoading: Boolean = !isNew,
     val isSaving: Boolean = false,
@@ -16,7 +18,7 @@ internal data class GroupEditorState(
     val dialog: GroupEditorDialog? = null,
 ) {
     val isBusy: Boolean get() = isLoading || isSaving || isDeleting
-    val normalizedName: String get() = name.trim()
+    val normalizedName: String get() = name.text.toString().trim()
     val canSave: Boolean get() = !isBusy && !isFinished && loadError == null && normalizedName.isNotEmpty() &&
         (isNew || original?.let { it.name != normalizedName || it.color != color } == true)
 }

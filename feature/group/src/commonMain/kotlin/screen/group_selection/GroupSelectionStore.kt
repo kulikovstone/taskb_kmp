@@ -28,7 +28,6 @@ internal class GroupSelectionStore(
         val current = state.value
         if (current.result != null) return
         when (intent) {
-            is GroupSelectionIntent.Search -> reduce(GroupSelectionMessage.QueryChanged(intent.query))
             is GroupSelectionIntent.Select -> {
                 if (current.isLoading || current.loadError != null) return
                 val valid = if (intent.groupId == null) current.isNoGroupVisible

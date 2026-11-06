@@ -1,8 +1,10 @@
 package com.mkulikov.taskb.ui.component.date_picker
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -36,9 +38,11 @@ internal fun DatePickerMonths(state: DatePickerState) {
 
 @Composable
 internal fun DatePickerYears(state: DatePickerState) {
+    val clearError = remember(state) { InputTransformation { state.clearYearError() } }
     Column(Modifier.fillMaxWidth().heightIn(min = 340.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TaskBTextField(state.yearText, state::editYear, "Year", Modifier.weight(1f), showClear = false, keyboardType = KeyboardType.Number, onDone = state::applyYear)
+            TaskBTextField(state.yearText, "Year", Modifier.weight(1f), showClear = false, keyboardType = KeyboardType.Number,
+                onDone = state::applyYear, inputTransformation = clearError)
             TaskBSelectionButton("Go", false, state::applyYear, Modifier.width(64.dp))
         }
         if (state.yearError) Text("Enter a year between 1 and 9999.", color = TaskBTheme.colors.danger, style = TaskBTheme.typography.small)

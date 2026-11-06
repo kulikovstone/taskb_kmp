@@ -1,10 +1,13 @@
 package com.mkulikov.taskb.ui.component.date_picker
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextRange
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minusMonth
 import kotlinx.datetime.plusMonth
@@ -17,8 +20,7 @@ internal class DatePickerState(initialMonth: YearMonth) {
         private set
     var view by mutableStateOf(View.Days)
         private set
-    var yearText by mutableStateOf(initialMonth.year.toString())
-        private set
+    val yearText = TextFieldState(initialMonth.year.toString())
     var yearError by mutableStateOf(false)
         private set
     var yearRangeStart by mutableStateOf(initialMonth.year / 20 * 20)
@@ -39,7 +41,7 @@ internal class DatePickerState(initialMonth: YearMonth) {
         if (view == View.Years) {
             view = View.Days
         } else {
-            yearText = month.year.toString()
+            yearText.setTextAndPlaceCursorAtEnd(month.year.toString())
             yearRangeStart = month.year / 20 * 20
             yearError = false
             view = View.Years
@@ -60,18 +62,22 @@ internal class DatePickerState(initialMonth: YearMonth) {
     fun chooseYear(year: Int) {
         if (year !in FirstYear..LastYear) return
         month = YearMonth(year, month.month)
-        yearText = year.toString()
+        yearText.setTextAndPlaceCursorAtEnd(year.toString())
         yearError = false
         view = View.Days
     }
 
     fun editYear(text: String) {
-        yearText = text
+        yearText.setTextAndPlaceCursorAtEnd(text)
+        yearError = false
+    }
+
+    fun clearYearError() {
         yearError = false
     }
 
     fun applyYear() {
-        val year = yearText.trim().toIntOrNull()
+        val year = yearText.text.toString().trim().toIntOrNull()
         if (year == null || year !in FirstYear..LastYear) yearError = true else chooseYear(year)
     }
 
@@ -89,11 +95,15 @@ internal class DatePickerState(initialMonth: YearMonth) {
         const val LastYear = 9999
 
         val Saver = listSaver<DatePickerState, Any>(
-            save = { listOf(it.month.year, it.month.month.ordinal + 1, it.view.name, it.yearText, it.yearRangeStart, it.yearError) },
+            save = { listOf(it.month.year, it.month.month.ordinal + 1, it.view.name, it.yearText.text.toString(), it.yearRangeStart,
+                it.yearError, it.yearText.selection.start, it.yearText.selection.end) },
             restore = {
                 DatePickerState(YearMonth(it[0] as Int, it[1] as Int)).apply {
                     view = View.valueOf(it[2] as String)
-                    yearText = it[3] as String
+                    yearText.edit {
+                        replace(0, length, it[3] as String)
+                        selection = TextRange(it[6] as Int, it[7] as Int)
+                    }
                     yearRangeStart = it[4] as Int
                     yearError = it[5] as Boolean
                 }
