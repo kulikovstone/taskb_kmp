@@ -97,8 +97,7 @@ class CalendarWeatherUiTest {
             WeatherCondition.entries[index % (WeatherCondition.entries.size - 1)], -5.0 + index, 2.0 + index) }
         val state = calendarPreviewState().copy(now = Instant.parse("2026-10-29T09:00:00Z"), weather = WeatherForecast(city, days))
         val intents = mutableListOf<CalendarIntent>()
-        var settingsOpened = false
-        setContent { TaskBTheme(false) { CalendarScreen(state, intents::add, {}, {}, {}, onOpenSettings = { settingsOpened = true }) } }
+        setContent { TaskBTheme(false) { CalendarScreen(state, intents::add, {}, {}, {}) } }
         val number = onNodeWithTag("calendar-day-number-$date", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val weather = onNodeWithTag("calendar-weather-$date", useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertEquals(4f, weather.left - number.right, 0.5f)
@@ -108,8 +107,6 @@ class CalendarWeatherUiTest {
         onNodeWithTag("calendar-weather-$date", useUnmergedTree = true).assertContentDescriptionEquals("Clear sky, low -5 degrees Celsius, high 2 degrees Celsius")
         onNodeWithTag("calendar-day-number-$date", useUnmergedTree = true).performClick()
         runOnIdle { assertEquals(CalendarIntent.SelectDay(date), intents.last()) }
-        onNodeWithTag("calendar-weather-settings").performClick()
-        runOnIdle { assertTrue(settingsOpened) }
         val path = Path.of("build/reports/screenshots/calendar-weather.png")
         Files.createDirectories(path.parent)
         ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", path.toFile())

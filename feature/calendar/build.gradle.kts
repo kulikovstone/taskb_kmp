@@ -21,7 +21,6 @@ kotlin {
             implementation(project(":feature:group:api"))
             implementation(project(":feature:weather:api"))
             implementation(project(":feature:holiday:api"))
-            implementation(project(":feature:settings:api"))
             implementation(project(":ui"))
         }
         commonTest.dependencies {
