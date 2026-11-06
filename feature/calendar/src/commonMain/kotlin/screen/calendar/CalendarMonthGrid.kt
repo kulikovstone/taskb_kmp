@@ -72,7 +72,12 @@ private fun CalendarDayCell(date: LocalDate, tasks: List<CalendarItem>, state: C
     DisposableEffect(drag, date) { onDispose { drag.targets.remove(date) } }
     Box(modifier
         .onGloballyPositioned { drag.targets[date] = it.boundsInRoot() }
-        .background(when { hovered || isSelected -> colors.selected; outsideMonth || date.dayOfWeek.isoDayNumber >= 6 -> colors.subtle; else -> colors.surface })
+        .background(when {
+            hovered -> colors.selected
+            isSelected -> colors.calendarSelectedDay
+            outsideMonth || date.dayOfWeek.isoDayNumber >= 6 -> colors.subtle
+            else -> colors.surface
+        })
         .clickable(interactionSource = null, indication = null, role = Role.Button) { onIntent(CalendarIntent.SelectDay(date)) }
         .semantics { contentDescription = "Show tasks for $date"; selected = hovered || isSelected }
         .testTag("calendar-day-$date").clipToBounds()) {
