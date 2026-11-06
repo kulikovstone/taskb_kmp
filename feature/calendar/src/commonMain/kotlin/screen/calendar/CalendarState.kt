@@ -60,7 +60,8 @@ internal data class CalendarState(
     val monthItemsByDate: Map<LocalDate?, List<CalendarItem>> get() {
         val tasksByDay = monthTasksByDate
         return days.associateWith { date ->
-            (tasksByDay[date].orEmpty().map(CalendarItem::TaskItem) + eventItems(date)).sortedWith(calendarItemOrder)
+            val order = if (date != null && date < today) pastDayCalendarItemOrder else calendarItemOrder
+            (tasksByDay[date].orEmpty().map(CalendarItem::TaskItem) + eventItems(date)).sortedWith(order)
         }
     }
     val sidebarItems: List<CalendarItem> get() =
@@ -113,3 +114,6 @@ private val calendarItemOrder = compareBy<CalendarItem> {
 }
     .thenBy { it.startDateTime }.thenBy { it.isCompleted }
     .thenByDescending { it.createdAt }.thenByDescending { it.id }
+
+private val pastDayCalendarItemOrder = compareBy<CalendarItem> { it.isEvent || it.isCompleted }
+    .then(calendarItemOrder)
