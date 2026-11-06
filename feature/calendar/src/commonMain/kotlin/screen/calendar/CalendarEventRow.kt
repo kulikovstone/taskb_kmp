@@ -50,7 +50,7 @@ internal fun CalendarEventRow(
     val hasTime = event.startDateTime != null
     val colors = TaskBTheme.colors
     val interaction = remember { MutableInteractionSource() }
-    val subdued = event.isPastCalendarEvent(now)
+    val subdued = event.isPastCalendarEntry(date.takeIf { dense }, now)
     val titleColor = if (subdued) colors.completedText else colors.text
     val timeColor = if (subdued) colors.completedText else colors.taskTime
     val secondaryColor = if (subdued) colors.completedText else colors.muted

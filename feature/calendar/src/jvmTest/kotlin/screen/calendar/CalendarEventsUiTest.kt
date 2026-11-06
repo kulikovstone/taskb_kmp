@@ -1,14 +1,20 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import androidx.compose.ui.geometry.Size
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextLayoutResult
 import com.mkulikov.taskb.feature.event.api.model.Event
+import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
@@ -19,6 +25,53 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTestApi::class)
 class CalendarEventsUiTest {
+    @Test
+    fun `past dates of ongoing multi-day events are grey in both themes`() {
+        val today = LocalDate(2026, 11, 6)
+        val start = LocalDate(2026, 11, 4)
+        val zone = TimeZone.currentSystemDefault()
+        val events = listOf(
+            Event(1, "Vacation", start, groupId = 3, durationDays = 4),
+            Event(2, "Business trip", start, groupId = 1, startTime = LocalTime(18, 0), durationMinutes = 3840),
+        )
+        for (dark in listOf(false, true)) {
+            val state = mutableStateOf(timedCalendarPreviewState().copy(today = today, selectedDate = today,
+                now = LocalDateTime(today, LocalTime(12, 0)).toInstant(zone), tasks = emptyList(), events = events))
+            runSkikoComposeUiTest(size = Size(1440f, 900f)) {
+                setContent { TaskBTheme(dark) { CalendarScreen(state.value, {}, {}, {}, {}) } }
+                val active = if (dark) Palette.BlueGrey.s50 else Palette.BlueGrey.s900
+                for (day in 4..7) {
+                    val date = LocalDate(2026, 11, day)
+                    val cell = hasAnyAncestor(hasTestTag("calendar-day-$date"))
+                    for (event in events) {
+                        val layouts = mutableListOf<TextLayoutResult>()
+                        onNode(hasText(calendarMonthEventText(event, date)) and cell, useUnmergedTree = true)
+                            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+                        val layout = layouts.single().layoutInput
+                        assertEquals(if (date < today) Palette.Grey.s400 else active, layout.style.color, "$date: ${event.name}")
+                        if (date < today) assertTrue(layout.text.spanStyles.all { it.item.color == Palette.Grey.s400 })
+                    }
+                }
+                val output = Path.of("build/reports/screenshots/calendar-multi-day-past-${if (dark) "dark" else "light"}.png")
+                Files.createDirectories(output.parent)
+                ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
+
+                // The final day's timed entry becomes grey at its end time; the all-day entry is still active.
+                val lastDay = LocalDate(2026, 11, 7)
+                runOnIdle {
+                    state.value = state.value.copy(today = lastDay, selectedDate = lastDay,
+                        now = LocalDateTime(lastDay, LocalTime(10, 0)).toInstant(zone))
+                }
+                for ((name, color) in listOf("Business trip 10:00" to Palette.Grey.s400, "Vacation" to active)) {
+                    val layouts = mutableListOf<TextLayoutResult>()
+                    onNode(hasText(name) and hasAnyAncestor(hasTestTag("calendar-day-$lastDay")), useUnmergedTree = true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+                    assertEquals(color, layouts.single().layoutInput.style.color)
+                }
+            }
+        }
+    }
+
     @Test fun `all day and timed events share the Events section and group stripe with no calendar icon inset`() = runSkikoComposeUiTest(size = Size(1440f, 1100f)) {
         val date = LocalDate(2026, 11, 6)
         val preview = timedCalendarPreviewState()

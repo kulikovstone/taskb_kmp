@@ -34,6 +34,9 @@ internal val Event.isMultiDayCalendarEvent: Boolean
 internal fun Event.isPastCalendarEvent(now: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): Boolean =
     (endDateTime ?: startDateTime)?.let { it <= now.toLocalDateTime(timeZone) } == true
 
+internal fun Event.isPastCalendarEntry(date: LocalDate?, now: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): Boolean =
+    date?.let { it < now.toLocalDateTime(timeZone).date } == true || isPastCalendarEvent(now, timeZone)
+
 internal fun calendarMonthEventText(task: Event, date: LocalDate?): String {
     val start = task.startDateTime ?: return task.name
     if (!task.isMultiDayCalendarEvent || date == null || date == start.date) {

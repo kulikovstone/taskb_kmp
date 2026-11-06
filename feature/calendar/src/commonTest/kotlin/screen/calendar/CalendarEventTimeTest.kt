@@ -74,6 +74,22 @@ class CalendarEventTimeTest {
     }
 
     @Test
+    fun `past multi-day entries use the displayed local date while the event stays active`() {
+        val now = Instant.parse("2026-11-07T12:00:00Z")
+        for (event in listOf(trip, trip.copy(startTime = null, durationDays = 4))) {
+            assertTrue(event.isPastCalendarEntry(start, now, TimeZone.UTC))
+            assertFalse(event.isPastCalendarEntry(LocalDate(2026, 11, 7), now, TimeZone.UTC))
+            assertFalse(event.isPastCalendarEntry(LocalDate(2026, 11, 8), now, TimeZone.UTC))
+            assertFalse(event.isPastCalendarEntry(null, now, TimeZone.UTC))
+            assertFalse(event.isPastCalendarEvent(now, TimeZone.UTC))
+        }
+        val localTomorrow = Instant.parse("2026-11-06T21:00:00Z")
+        assertFalse(trip.isPastCalendarEntry(start, localTomorrow, TimeZone.UTC))
+        assertTrue(trip.isPastCalendarEntry(start, localTomorrow, TimeZone.of("Asia/Yekaterinburg")))
+        assertTrue(trip.isPastCalendarEntry(LocalDate(2026, 11, 9), Instant.parse("2026-11-09T10:00:00Z"), TimeZone.UTC))
+    }
+
+    @Test
     fun `dragging an intermediate segment offsets the whole event and same-cell drops do nothing`() {
         val drag = CalendarDragState()
         val source = LocalDate(2026, 11, 7)
