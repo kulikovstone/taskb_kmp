@@ -19,7 +19,7 @@ internal class CalendarNavEntry : INavEntry {
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
         scope.entry<CalendarRoute> {
             val koin = getKoin()
-            val store = rememberNavEntryResource(CalendarStore::class) { CalendarStore(koin.get(), koin.get(), eventRepository = koin.get(), weatherRepository = koin.get()) }
+            val store = rememberNavEntryResource(CalendarStore::class) { CalendarStore(koin.get(), koin.get(), eventRepository = koin.get(), weatherRepository = koin.get(), holidayRepository = koin.get()) }
             val state by store.state.collectAsState()
             CalendarScreen(
                 state = state,

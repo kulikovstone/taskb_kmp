@@ -10,5 +10,5 @@ import org.koin.dsl.onClose
 fun weatherModule() = module {
     single { WeatherClient() } onClose { it?.close() }
     single { OpenMeteoApi(get<WeatherClient>().client) }
-    single<IWeatherRepository> { WeatherRepository(get(), inject()) }
+    single<IWeatherRepository> { WeatherRepository(get(), get()) }
 }

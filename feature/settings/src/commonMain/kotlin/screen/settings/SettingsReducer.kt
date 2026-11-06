@@ -1,12 +1,12 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
-import com.mkulikov.taskb.feature.weather.api.model.WeatherLocation
+import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 
 internal sealed interface SettingsMessage {
-    data class Location(val value: WeatherLocation?) : SettingsMessage
+    data class Location(val value: AppLocation?) : SettingsMessage
     data object Loading : SettingsMessage
     data class Query(val value: String) : SettingsMessage
-    data class SearchResult(val query: String, val results: List<WeatherLocation>, val failed: Boolean = false) : SettingsMessage
+    data class SearchResult(val query: String, val results: List<AppLocation>, val failed: Boolean = false) : SettingsMessage
     data object Saving : SettingsMessage
     data class Saved(val failed: Boolean) : SettingsMessage
     data object LoadFailed : SettingsMessage

@@ -66,6 +66,10 @@ internal fun CalendarTaskRow(
     today: LocalDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
+    if (task is CalendarItem.HolidayItem) {
+        CalendarHolidayRow(task.holiday, modifier, dense, contentPadding, today)
+        return
+    }
     if (task is CalendarItem.EventItem) {
         CalendarEventRow(task.event, group, onOpenTask, modifier, dense, enabled, dragging, date, now, contentPadding)
         return

@@ -11,29 +11,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.*
 
 internal class OpenMeteoApi(private val client: HttpClient?) {
-    suspend fun searchLocations(query: String): List<WeatherLocation> {
-        val response = requireClient().get("https://geocoding-api.open-meteo.com/v1/search") {
-            parameter("name", query.trim())
-            parameter("count", 10)
-            parameter("language", "en")
-            parameter("format", "json")
-        }
-        check(response.status.value in 200..299)
-        val root = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        return root["results"]?.jsonArray.orEmpty().mapNotNull { element ->
-            runCatching {
-                val item = element.jsonObject
-                WeatherLocation(
-                    name = listOfNotNull(item.string("name"), item["admin1"]?.jsonPrimitive?.contentOrNull,
-                        item["country"]?.jsonPrimitive?.contentOrNull).distinct().joinToString(", "),
-                    latitude = item.getValue("latitude").jsonPrimitive.double,
-                    longitude = item.getValue("longitude").jsonPrimitive.double,
-                    timeZone = item.string("timezone"),
-                )
-            }.getOrNull()
-        }
-    }
-
     suspend fun forecast(location: WeatherLocation): List<DailyWeather> {
         val response = requireClient().get("https://api.open-meteo.com/v1/forecast") {
             parameter("latitude", location.latitude)
@@ -73,5 +50,3 @@ internal fun weatherCondition(code: Int?): WeatherCondition = when (code) {
     95, 96, 97, 99 -> WeatherCondition.Thunderstorm
     else -> WeatherCondition.Unknown
 }
-
-internal fun JsonObject.string(key: String): String = getValue(key).jsonPrimitive.content

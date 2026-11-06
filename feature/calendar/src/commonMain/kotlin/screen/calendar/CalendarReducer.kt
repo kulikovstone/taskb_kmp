@@ -9,8 +9,10 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.yearMonth
 import kotlin.time.Instant
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
+import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 
 internal sealed interface CalendarMessage {
+    data class Holidays(val month: YearMonth, val selectedMonth: YearMonth?, val value: HolidayCalendar) : CalendarMessage
     data class Weather(val value: WeatherForecast) : CalendarMessage
     data class MoveChoice(val value: CalendarMove?) : CalendarMessage
     data object Loading : CalendarMessage
@@ -30,6 +32,8 @@ internal sealed interface CalendarMessage {
 }
 
 internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): CalendarState = when (message) {
+    is CalendarMessage.Holidays -> if (message.month != state.month ||
+        message.selectedMonth != state.selectedDate?.yearMonth?.takeUnless { it == state.month }) state else state.copy(holidayCalendar = message.value)
     is CalendarMessage.Weather -> state.copy(weather = message.value)
     is CalendarMessage.MoveChoice -> state.copy(moveChoice = message.value)
     CalendarMessage.Loading -> state.copy(isLoading = true, loadError = null)

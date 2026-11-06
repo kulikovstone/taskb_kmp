@@ -1,7 +1,6 @@
 package com.mkulikov.taskb.feature.weather
 
-import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
-import com.mkulikov.taskb.feature.settings.api.database.IAppSettingsDao
+import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import com.mkulikov.taskb.feature.weather.api.model.WeatherLocation
@@ -17,6 +16,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
@@ -45,34 +45,12 @@ class WeatherRepositoryTest {
         })
         try {
             val clock = MutableClock(Instant.parse("2026-10-30T21:00:00Z"))
-            val repository = WeatherRepository(OpenMeteoApi(client), lazyOf(Settings()), clock, StandardTestDispatcher(testScheduler))
-            repository.setLocation(city)
+            val repository = WeatherRepository(OpenMeteoApi(client), Locations(city), clock)
             val forecast = repository.observeForecast().first { !it.isLoading }
             assertNull(forecast.error)
             assertEquals(listOf(LocalDate(2026, 10, 31), LocalDate(2026, 11, 1)), forecast.days.map { it.date })
             assertEquals(-5.0, forecast.days.first().minimumCelsius)
             assertEquals(WeatherCondition.Snow, forecast.days.first().condition)
-        } finally { client.close() }
-    }
-
-    @Test
-    fun `city search handles empty results and malformed locations without guessing a location`() = runTest {
-        var calls = 0
-        val client = HttpClient(MockEngine { request ->
-            calls++
-            assertEquals("geocoding-api.open-meteo.com", request.url.host)
-            assertEquals("Paris", request.url.parameters["name"])
-            respond("""{"results":[{"name":"Paris","admin1":"Île-de-France","country":"France","latitude":48.85,"longitude":2.35,"timezone":"Europe/Paris"},{"name":"Invalid","latitude":999,"longitude":2,"timezone":"Europe/Paris"}]}""")
-        })
-        try {
-            val repository = WeatherRepository(OpenMeteoApi(client), lazyOf(Settings()))
-            assertTrue(repository.searchLocations(" ").isEmpty())
-            val cities = repository.searchLocations(" Paris ")
-            assertEquals(1, calls)
-            assertEquals("Paris, Île-de-France, France", cities.single().name)
-            assertEquals("Europe/Paris", cities.single().timeZone)
-            val empty = HttpClient(MockEngine { respond("{}") })
-            try { assertTrue(OpenMeteoApi(empty).searchLocations("Unknown").isEmpty()) } finally { empty.close() }
         } finally { client.close() }
     }
 
@@ -104,8 +82,7 @@ class WeatherRepositoryTest {
         })
         try {
             val clock = MutableClock(Instant.parse("2026-10-31T10:00:00Z"))
-            val repository = WeatherRepository(OpenMeteoApi(client), lazyOf(Settings()), clock, StandardTestDispatcher(testScheduler))
-            repository.setLocation(city)
+            val repository = WeatherRepository(OpenMeteoApi(client), Locations(city), clock)
             suspend fun read() = repository.observeForecast().first { !it.isLoading }
             assertEquals(2, read().days.size)
             clock.value += 59.minutes
@@ -125,27 +102,26 @@ class WeatherRepositoryTest {
     }
 
     @Test
-    fun `city and disabled state survive a repository restart and switching cities clears old forecasts`() = runTest {
+    fun `shared location changes clear forecasts and an absent location performs no requests`() = runTest {
         var calls = 0
         val client = HttpClient(MockEngine {
             calls++
             respond(forecastJson("2026-10-31"))
         })
         try {
-            val settings = Settings()
+            val locations = Locations()
             val clock = MutableClock(Instant.parse("2026-10-31T10:00:00Z"))
-            fun repository() = WeatherRepository(OpenMeteoApi(client), lazyOf(settings), clock, StandardTestDispatcher(testScheduler))
+            fun repository() = WeatherRepository(OpenMeteoApi(client), locations, clock)
             val repository = repository()
-            assertNull(repository.observeLocation().first())
+            assertNull(repository.observeForecast().first().location)
             assertEquals(0, calls)
-            repository.setLocation(city)
-            assertEquals(city, repository().observeLocation().first())
+            locations.setLocation(city)
             val states = Channel<WeatherForecast>(Channel.UNLIMITED)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.observeForecast().collect { states.send(it) } }
             assertTrue(states.receive().isLoading)
             assertEquals(city, states.receive().location)
             val anotherCity = city.copy(name = "Another city", longitude = 61.0)
-            repository.setLocation(anotherCity)
+            locations.setLocation(anotherCity)
             suspend fun nextFor(location: WeatherLocation?): WeatherForecast {
                 while (true) {
                     val next = states.receive()
@@ -157,11 +133,11 @@ class WeatherRepositoryTest {
             assertTrue(changing.isLoading && changing.days.isEmpty())
             assertEquals(anotherCity, nextFor(anotherCity).location)
             assertEquals(2, calls)
-            repository.setLocation(null)
+            locations.setLocation(null)
             val disabled = nextFor(null)
             assertNull(disabled.location)
             assertTrue(disabled.days.isEmpty())
-            assertNull(repository().observeLocation().first())
+            assertNull(repository().observeForecast().first().location)
         } finally { client.close() }
     }
 
@@ -170,8 +146,7 @@ class WeatherRepositoryTest {
         val started = CompletableDeferred<Unit>()
         val client = HttpClient(MockEngine { started.complete(Unit); awaitCancellation() })
         try {
-            val repository = WeatherRepository(OpenMeteoApi(client), lazyOf(Settings()), dispatcher = StandardTestDispatcher(testScheduler))
-            repository.setLocation(city)
+            val repository = WeatherRepository(OpenMeteoApi(client), Locations(city))
             val states = mutableListOf<WeatherForecast>()
             val observation = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
                 repository.observeForecast().collect { states += it }
@@ -187,10 +162,11 @@ class WeatherRepositoryTest {
         } finally { client.close() }
     }
 
-    private class Settings : IAppSettingsDao {
-        val values = mutableMapOf<String, String>()
-        override suspend fun getValue(key: String) = values[key]
-        override suspend fun upsert(setting: ApplicationSetting) { values[setting.key] = setting.value }
+    private class Locations(initial: WeatherLocation? = null) : IAppLocationRepository {
+        private val location = MutableStateFlow(initial)
+        override fun observeLocation() = location
+        override suspend fun setLocation(location: WeatherLocation?) { this.location.value = location }
+        override suspend fun searchLocations(query: String) = emptyList<WeatherLocation>()
     }
 
     private class MutableClock(var value: Instant) : Clock { override fun now() = value }

@@ -20,6 +20,7 @@ kotlin {
             implementation(project(":feature:settings:api"))
             implementation(project(":feature:task:api"))
             implementation(project(":feature:event:api"))
+            implementation(project(":feature:holiday:api"))
         }
         androidMain.dependencies {
             implementation(libs.sqlite.bundled)

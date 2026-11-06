@@ -6,6 +6,7 @@ import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 
 internal sealed interface CalendarIntent {
+    data object RetryHolidays : CalendarIntent
     data object RetryWeather : CalendarIntent
     data object PreviousMonth : CalendarIntent
     data object NextMonth : CalendarIntent

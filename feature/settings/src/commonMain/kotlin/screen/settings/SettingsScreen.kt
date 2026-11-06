@@ -35,16 +35,20 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Calendar weather", style = TaskBTheme.typography.title, color = colors.heading)
-                    Text("Show a 10-day forecast next to day numbers in the calendar. Temperatures are in °C.",
+                    Text("Location", style = TaskBTheme.typography.title, color = colors.heading)
+                    Text("Weather and public holidays in the calendar use this application location.",
                         style = TaskBTheme.typography.body, color = colors.secondary)
                     if (state.isLoading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = colors.accent)
                     else {
-                        Text(state.location?.name ?: "Weather is off. Choose a city to enable it.",
-                            style = TaskBTheme.typography.button, color = colors.text, modifier = Modifier.testTag("settings-weather-location"))
-                        if (state.location != null) TextButton({ onIntent(SettingsIntent.DisableWeather) }, enabled = !state.isSaving) {
-                            Text("Turn off weather", color = colors.accent)
+                        Text(state.location?.name ?: "No location selected. Choose a city to enable weather and public holidays.",
+                            style = TaskBTheme.typography.button, color = colors.text, modifier = Modifier.testTag("settings-app-location"))
+                        if (state.location != null) TextButton({ onIntent(SettingsIntent.ClearLocation) }, enabled = !state.isSaving) {
+                            Text("Clear location", color = colors.accent)
                         }
+                    }
+                    if (state.location != null && state.location.countryCode == null) {
+                        Text("The saved location's country is checked automatically. If holidays stay unavailable, choose the city again.",
+                            style = TaskBTheme.typography.small, color = colors.muted)
                     }
                     TaskBTextField(query, "Search city", placeholder = "City name", search = true,
                         enabled = !state.isLoading && !state.isSaving, modifier = Modifier.fillMaxWidth().testTag("settings-city-search"))
@@ -65,12 +69,16 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
                         }
                         Divider(color = colors.border)
                     }
-                    Text("Forecast dates follow the selected city's time zone.", style = TaskBTheme.typography.small, color = colors.muted)
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("Weather data by Open-Meteo", style = TaskBTheme.typography.small, color = colors.accent,
+                    Text("Forecast dates follow the selected city's time zone. Public holidays use its country and region.", style = TaskBTheme.typography.small, color = colors.muted)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Data sources", style = TaskBTheme.typography.section, color = colors.heading)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Weather and location data by Open-Meteo", style = TaskBTheme.typography.small, color = colors.accent,
                             modifier = Modifier.clickable(role = Role.Button) { uriHandler.openUri("https://open-meteo.com/") })
                         Text("CC BY 4.0", style = TaskBTheme.typography.small, color = colors.accent,
                             modifier = Modifier.clickable(role = Role.Button) { uriHandler.openUri("https://creativecommons.org/licenses/by/4.0/") })
+                        Text("Public holidays by Enrico", style = TaskBTheme.typography.small, color = colors.accent,
+                            modifier = Modifier.clickable(role = Role.Button) { uriHandler.openUri("https://kayaposoft.com/enrico/") })
                     }
                 }
             }

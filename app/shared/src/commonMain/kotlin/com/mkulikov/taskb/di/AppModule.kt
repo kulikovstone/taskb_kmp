@@ -12,6 +12,7 @@ import com.mkulikov.taskb.feature.hello.di.helloModule
 import com.mkulikov.taskb.feature.home.di.homeModule
 import com.mkulikov.taskb.feature.task.di.taskModule
 import com.mkulikov.taskb.feature.weather.di.weatherModule
+import com.mkulikov.taskb.feature.holiday.di.holidayModule
 import org.koin.dsl.module
 
 internal fun appModule(databaseFactory: () -> AppDatabase) = module {
@@ -19,6 +20,7 @@ internal fun appModule(databaseFactory: () -> AppDatabase) = module {
         databaseModule(databaseFactory),
         settingsModule(),
         weatherModule(),
+        holidayModule(),
         navigationModule(),
         calendarModule(),
         eventModule(),

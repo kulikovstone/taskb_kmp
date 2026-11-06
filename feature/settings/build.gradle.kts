@@ -11,7 +11,8 @@ kotlin {
             implementation(libs.compose.material)
             implementation(project(":core:mvi"))
             implementation(project(":core:navigation"))
-            implementation(project(":feature:weather:api"))
+            implementation(libs.ktor.client.core)
+            implementation(libs.kotlinx.serialization.json)
             implementation(project(":ui"))
 
             implementation(project(":core:database"))
@@ -19,7 +20,10 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
+        jvmMain.dependencies { implementation(libs.ktor.client.cio) }
+        androidMain.dependencies { implementation(libs.ktor.client.cio) }
         jvmTest.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.compose.ui.test)

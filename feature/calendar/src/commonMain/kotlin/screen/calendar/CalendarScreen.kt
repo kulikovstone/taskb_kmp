@@ -49,6 +49,7 @@ internal fun CalendarScreen(
     val openItem: (CalendarItem) -> Unit = { item -> when (item) {
         is CalendarItem.TaskItem -> openTask(item.task)
         is CalendarItem.EventItem -> onOpenEvent(item.event)
+        is CalendarItem.HolidayItem -> Unit
     } }
     Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
         BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {

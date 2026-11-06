@@ -19,6 +19,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
+import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -39,6 +40,7 @@ internal data class CalendarState(
     val moveChoice: CalendarMove? = null,
     val now: Instant = Clock.System.now(),
     val weather: WeatherForecast = WeatherForecast(),
+    val holidayCalendar: HolidayCalendar = HolidayCalendar(),
 ) {
     val weatherByDate get() = weather.location?.let { location ->
         val first = now.toLocalDateTime(TimeZone.of(location.timeZone)).date
@@ -67,23 +69,25 @@ internal data class CalendarState(
     private fun eventItems(date: LocalDate?): List<CalendarItem.EventItem> = events
         .filter { if (date == null) it.dueDate == null else it.occursOn(date) }
         .map(CalendarItem::EventItem)
+    private fun holidayItems(date: LocalDate?): List<CalendarItem.HolidayItem> = holidayCalendar.holidays
+        .filter { it.date == date }.distinctBy { it.id }.sortedBy { it.name }.map(CalendarItem::HolidayItem)
     val monthItemsByDate: Map<LocalDate?, List<CalendarItem>> get() {
         val tasksByDay = monthTasksByDate
         return days.associateWith { date ->
             val order = if (date != null && date < today) pastDayCalendarItemOrder else calendarItemOrder
-            (tasksByDay[date].orEmpty().map(CalendarItem::TaskItem) + eventItems(date)).sortedWith(order)
+            (tasksByDay[date].orEmpty().map(CalendarItem::TaskItem) + holidayItems(date) + eventItems(date)).sortedWith(order)
         }
     }
     val sidebarItems: List<CalendarItem> get() =
-        (sidebarTasks.map(CalendarItem::TaskItem) + eventItems(selectedDate)).sortedWith(calendarItemOrder)
+        (sidebarTasks.map(CalendarItem::TaskItem) + holidayItems(selectedDate) + eventItems(selectedDate)).sortedWith(calendarItemOrder)
     val sidebarDailyItems get() = sidebarDailyTasks.map(CalendarItem::TaskItem)
-    val sidebarEventItems get() = eventItems(selectedDate).sortedWith(calendarItemOrder)
+    val sidebarEventItems get() = (holidayItems(selectedDate) + eventItems(selectedDate)).sortedWith(calendarItemOrder)
     val sidebarMainTaskItems get() = sidebarUntimedTasks.map(CalendarItem::TaskItem)
     val sidebarCompletedItems get() = sidebarCompletedTasks.map(CalendarItem::TaskItem)
     val isSelectedDayCompleted: Boolean get() {
         if (selectedDate != today || isLoading || loadError != null) return false
         val tasks = sidebarTasks
-        val timedEvents = sidebarEventItems.map { it.event }.filter { it.isTimed }
+        val timedEvents = sidebarEventItems.filterIsInstance<CalendarItem.EventItem>().map { it.event }.filter { it.isTimed }
         return (tasks.isNotEmpty() || timedEvents.isNotEmpty()) &&
             tasks.all { it.isCompleted } && timedEvents.all { it.isPastCalendarEvent(now) }
     }
@@ -117,13 +121,14 @@ internal data class CalendarMove(
 
 private val calendarItemOrder = compareBy<CalendarItem> {
     when {
+        it.isHoliday -> -1
         !it.isEvent -> 2
         it.startDateTime == null -> 0
         else -> 1
     }
 }
     .thenBy { it.startDateTime }.thenBy { it.isCompleted }
-    .thenByDescending { it.createdAt }.thenByDescending { it.id }
+    .thenByDescending { it.createdAt }.thenByDescending { if (it.isHoliday) 0 else it.id }.thenBy { if (it.isHoliday) it.name else "" }
 
-private val pastDayCalendarItemOrder = compareBy<CalendarItem> { it.isEvent || it.isCompleted }
+private val pastDayCalendarItemOrder = compareBy<CalendarItem> { it !is CalendarItem.TaskItem || it.isCompleted }
     .then(calendarItemOrder)

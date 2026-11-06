@@ -28,6 +28,10 @@ import kotlin.time.Clock
 import kotlin.time.Duration
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import com.mkulikov.taskb.feature.weather.api.repository.IWeatherRepository
+import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
+import com.mkulikov.taskb.feature.holiday.api.repository.IHolidayRepository
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class CalendarStore(
@@ -38,14 +42,17 @@ internal class CalendarStore(
     private val clock: Clock = Clock.System,
     private val eventRepository: IEventRepository? = null,
     private val weatherRepository: IWeatherRepository? = null,
+    private val holidayRepository: IHolidayRepository? = null,
 ) : CoroutineStore<CalendarIntent, CalendarState, CalendarMessage>(CalendarState(today(), now = clock.now()), ::reduceCalendar, dispatcher) {
     private var observation: Job? = null
     private var weatherObservation: Job? = null
+    private var holidayObservation: Job? = null
     private var nextMoveToken = 0L
 
     init {
         accept(CalendarIntent.RetryLoad)
         accept(CalendarIntent.RetryWeather)
+        accept(CalendarIntent.RetryHolidays)
         collectEffect(flow {
             while (true) {
                 delay(60_000)
@@ -64,6 +71,7 @@ internal class CalendarStore(
 
     override fun handleIntent(intent: CalendarIntent) {
         when (intent) {
+            CalendarIntent.RetryHolidays -> observeHolidays()
             CalendarIntent.RetryWeather -> {
                 weatherObservation?.cancel()
                 weatherObservation = weatherRepository?.let { repository ->
@@ -150,6 +158,31 @@ internal class CalendarStore(
                 }
             }
         }
+    }
+
+    private fun observeHolidays() {
+        val repository = holidayRepository ?: return
+        holidayObservation?.cancel()
+        holidayObservation = collectEffect(state.map { value ->
+            value.month to value.selectedDate?.yearMonth?.takeUnless { it == value.month }
+        }.distinctUntilChanged().flatMapLatest { (month, selectedMonth) ->
+            val visible = repository.observeHolidays(month.firstDay,
+                month.firstDay.plus(month.numberOfDays - 1, DateTimeUnit.DAY))
+            val calendars = if (selectedMonth == null) visible else combine(visible,
+                repository.observeHolidays(selectedMonth.firstDay,
+                    selectedMonth.firstDay.plus(selectedMonth.numberOfDays - 1, DateTimeUnit.DAY))) { main, selected ->
+                if (main.location != selected.location) main.copy(holidays = emptyList(), isLoading = true)
+                else main.copy(holidays = (main.holidays + selected.holidays).distinctBy { it.id },
+                    isLoading = main.isLoading || selected.isLoading,
+                    error = listOfNotNull(main.error, selected.error).distinct().joinToString(" ").takeIf { it.isNotBlank() })
+            }
+            calendars.map<HolidayCalendar, CalendarMessage> { CalendarMessage.Holidays(month, selectedMonth, it) }
+        }.catch {
+            if (it is CancellationException) throw it
+            val value = state.value
+            emit(CalendarMessage.Holidays(value.month, value.selectedDate?.yearMonth?.takeUnless { month -> month == value.month },
+                HolidayCalendar(error = "Couldn't load public holidays. Please try again.")))
+        })
     }
 
     private fun move(move: CalendarMove, undoing: Boolean) {

@@ -45,6 +45,7 @@ internal class CalendarDragState {
     fun begin(task: Task, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) =
         begin(CalendarItem.TaskItem(task), position, size, dense, sourceDate)
     fun begin(task: CalendarItem, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) {
+        if (task.isHoliday) return
         this.item = task
         this.position = position
         this.size = size
@@ -79,6 +80,7 @@ internal fun Modifier.calendarTaskDrag(
     sourceDate: LocalDate? = task.dueDate,
     onMove: (Int, LocalDate) -> Unit,
 ): Modifier {
+    if (task.isHoliday) return this
     var coordinates: LayoutCoordinates? by remember { mutableStateOf(null) }
     val latestTask by rememberUpdatedState(task)
     val latestMove by rememberUpdatedState(onMove)

@@ -1,12 +1,12 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
-import com.mkulikov.taskb.feature.weather.api.model.WeatherLocation
+import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 
 internal data class SettingsState(
-    val location: WeatherLocation? = null,
+    val location: AppLocation? = null,
     val isLoading: Boolean = true,
     val query: String = "",
-    val results: List<WeatherLocation> = emptyList(),
+    val results: List<AppLocation> = emptyList(),
     val isSearching: Boolean = false,
     val hasSearched: Boolean = false,
     val isSaving: Boolean = false,

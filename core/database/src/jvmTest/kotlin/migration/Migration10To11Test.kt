@@ -44,7 +44,7 @@ class Migration10To11Test {
                 assertNull(records.single { record -> record.event.id == 3 }.event.dueDate)
                 assertEquals(1, records.single { record -> record.event.id == 2 }.event.durationDays)
                 database.useReaderConnection { connection ->
-                    connection.usePrepared("PRAGMA user_version") { statement -> assertTrue(statement.step()); assertEquals(11L, statement.getLong(0)) }
+                    connection.usePrepared("PRAGMA user_version") { statement -> assertTrue(statement.step()); assertEquals(12L, statement.getLong(0)) }
                     connection.usePrepared("PRAGMA foreign_key_check") { statement -> assertFalse(statement.step()) }
                 }
             }

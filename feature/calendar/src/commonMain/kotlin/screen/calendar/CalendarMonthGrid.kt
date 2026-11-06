@@ -119,13 +119,14 @@ private fun CalendarDayTasks(date: LocalDate, tasks: List<CalendarItem>, state: 
                 val timed = task.startDateTime != null
                 val group = state.groups.find { it.id == task.groupId }
                 val taskInsets = when {
+                    task.isHoliday -> calendarHolidayMarkerWidth.roundToPx() + 4.dp.roundToPx()
                     !task.isEvent -> calendarTaskPadding.roundToPx() * 2 + calendarTaskCheckboxSize.roundToPx() + calendarTaskTitleGap.roundToPx()
                     group != null -> calendarEventMarkerWidth.roundToPx() + 4.dp.roundToPx()
                     else -> 0
                 }
                 val titleMaxWidth = (constraints.maxWidth - taskInsets).coerceAtLeast(0)
                 val label = if (timed) calendarMonthItemText(task, date) else task.name
-                val maxLines = if (timed && task.isMultiDayCalendarEvent) 1 else 2
+                val maxLines = if (task.isHoliday || timed && task.isMultiDayCalendarEvent) 1 else 2
                 val titleLayout = textMeasurer.measure(label, style = titleStyle, maxLines = maxLines,
                     overflow = TextOverflow.Ellipsis, constraints = Constraints(maxWidth = titleMaxWidth))
                 val titleWidth = if (titleLayout.multiParagraph.didExceedMaxLines) titleMaxWidth else {
@@ -134,9 +135,9 @@ private fun CalendarDayTasks(date: LocalDate, tasks: List<CalendarItem>, state: 
                 }
                 val taskWidth = (taskInsets + titleWidth).coerceAtMost(constraints.maxWidth)
                 val row = subcompose(task.key) {
-                    val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
+                    val enabled = !task.isHoliday && (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, group, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
-                        Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled, dense = true, sourceDate = date) { id, target -> onIntent(task.moveTo(target)) },
+                        Modifier.testTag(if (task.isEvent || task.isHoliday) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled, dense = true, sourceDate = date) { id, target -> onIntent(task.moveTo(target)) },
                         dense = true, enabled = enabled, dragging = drag.item?.key == task.key, date = date, now = state.now, today = state.today)
                 }.single().measure(Constraints.fixedWidth(taskWidth))
                 add(row)

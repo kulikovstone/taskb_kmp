@@ -1,5 +1,8 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
+import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
+import com.mkulikov.taskb.feature.holiday.api.repository.IHolidayRepository
 import com.mkulikov.taskb.feature.weather.api.model.WeatherLocation
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
@@ -407,7 +410,6 @@ class CalendarStoreTest {
         var subscriptions = 0
         var fail = false
         val repository = object : IWeatherRepository {
-            override fun observeLocation() = flowOf(city)
             override fun observeForecast() = flow {
                 subscriptions++
                 try {
@@ -416,8 +418,6 @@ class CalendarStoreTest {
                     kotlinx.coroutines.awaitCancellation()
                 } finally { subscriptions-- }
             }
-            override suspend fun searchLocations(query: String) = emptyList<WeatherLocation>()
-            override suspend fun setLocation(location: WeatherLocation?) = Unit
         }
         CalendarStore(Tasks(listOf(Task(1, "Plan trip", today))), Groups(), StandardTestDispatcher(testScheduler),
             { today }, weatherRepository = repository).use { store ->
@@ -452,6 +452,67 @@ class CalendarStoreTest {
             weather = WeatherForecast(city, days))
         assertEquals(setOf(first, LocalDate(2026, 11, 10)), state.weatherByDate.keys)
         assertTrue(state.copy(weather = WeatherForecast()).weatherByDate.isEmpty())
+    }
+
+    @Test
+    fun `holiday observation loads opened months without prefetching adjacent grid months and closes with calendar`() = runTest {
+        val requests = mutableListOf<Pair<LocalDate, LocalDate>>()
+        var subscriptions = 0
+        val holidays = object : IHolidayRepository {
+            override fun observeHolidays(from: LocalDate, through: LocalDate) = flow {
+                requests += from to through
+                subscriptions++
+                try { emit(HolidayCalendar()); kotlinx.coroutines.awaitCancellation() }
+                finally { subscriptions-- }
+            }
+        }
+        CalendarStore(Tasks(emptyList()), Groups(), StandardTestDispatcher(testScheduler), { today },
+            holidayRepository = holidays).use { store ->
+            runCurrent()
+            assertEquals(listOf(LocalDate(2026, 10, 1) to LocalDate(2026, 10, 31)), requests)
+            store.accept(CalendarIntent.ShowUnscheduled)
+            store.accept(CalendarIntent.NextMonth)
+            runCurrent()
+            assertEquals(LocalDate(2026, 11, 1) to LocalDate(2026, 11, 30), requests.last())
+            assertEquals(1, subscriptions)
+            store.accept(CalendarIntent.SelectDay(LocalDate(2026, 12, 1)))
+            runCurrent()
+            assertEquals(setOf(LocalDate(2026, 11, 1) to LocalDate(2026, 11, 30),
+                LocalDate(2026, 12, 1) to LocalDate(2026, 12, 31)), requests.takeLast(2).toSet())
+            assertEquals(2, subscriptions)
+            store.accept(CalendarIntent.ChooseDate)
+            store.accept(CalendarIntent.DateChosen(LocalDate(2036, 6, 12)))
+            runCurrent()
+            assertEquals(LocalDate(2036, 6, 1) to LocalDate(2036, 6, 30), requests.last())
+            assertEquals(1, subscriptions)
+        }
+        runCurrent()
+        assertEquals(0, subscriptions)
+    }
+
+    @Test
+    fun `holiday errors do not block tasks and retry can recover the opened month`() = runTest {
+        var fail = true
+        val holiday = PublicHoliday("test", today, "Public holiday", "FR")
+        val holidays = object : IHolidayRepository {
+            override fun observeHolidays(from: LocalDate, through: LocalDate) = flow {
+                if (fail) error("Unavailable")
+                emit(HolidayCalendar(holidays = listOf(holiday)))
+            }
+        }
+        CalendarStore(Tasks(listOf(Task(1, "Task", today))), Groups(), StandardTestDispatcher(testScheduler),
+            { today }, holidayRepository = holidays).use { store ->
+            runCurrent()
+            assertFalse(store.state.value.isLoading)
+            assertNull(store.state.value.loadError)
+            assertNotNull(store.state.value.holidayCalendar.error)
+            assertEquals("Task", store.state.value.sidebarTasks.single().name)
+            fail = false
+            store.accept(CalendarIntent.RetryHolidays)
+            runCurrent()
+            assertNull(store.state.value.holidayCalendar.error)
+            assertEquals(listOf(holiday), store.state.value.holidayCalendar.holidays)
+        }
     }
 
     private class Tasks(tasks: List<Task>, private val now: () -> Instant = Clock.System::now) : ITaskRepository {
