@@ -117,7 +117,7 @@ private fun CalendarDayTasks(date: LocalDate, tasks: List<CalendarItem>, state: 
                 val group = state.groups.find { it.id == task.groupId }
                 val taskInsets = when {
                     !task.isEvent -> calendarTaskPadding.roundToPx() * 2 + calendarTaskCheckboxSize.roundToPx() + calendarTaskTitleGap.roundToPx()
-                    group != null -> 2.dp.roundToPx() + 4.dp.roundToPx()
+                    group != null -> calendarEventMarkerWidth.roundToPx() + 4.dp.roundToPx()
                     else -> 0
                 }
                 val titleMaxWidth = (constraints.maxWidth - taskInsets).coerceAtLeast(0)

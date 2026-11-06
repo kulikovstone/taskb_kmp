@@ -32,6 +32,8 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
+internal val calendarEventMarkerWidth = 3.dp
+
 @Composable
 internal fun CalendarEventRow(
     event: Event,
@@ -65,7 +67,7 @@ internal fun CalendarEventRow(
         horizontalArrangement = Arrangement.spacedBy(if (dense) 4.dp else 10.dp),
     ) {
         if (group != null) Box(
-            Modifier.width(2.dp).fillMaxHeight()
+            Modifier.width(calendarEventMarkerWidth).fillMaxHeight()
                 .then(if (dense) Modifier else Modifier.padding(vertical = 3.dp))
                 .background(group.color.color).testTag("calendar-event-marker-${event.key}"),
         )

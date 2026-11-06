@@ -57,7 +57,7 @@ class CalendarTimedTasksUiTest {
         val coffee = onNodeWithTag("calendar-event-time-301", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val team = onNodeWithTag("calendar-event-time-300", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertEquals(24f, coffee.left, 0.5f)
-        assertEquals(36f, team.left, 0.5f)
+        assertEquals(37f, team.left, 0.5f)
         val marker = onNode(hasTestTag("calendar-event-marker-300") and hasAnyAncestor(hasTestTag("calendar-sidebar")), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertEquals(team.top + 3f, marker.top, 0.5f)
         assertEquals(52f, marker.height, 0.5f)
