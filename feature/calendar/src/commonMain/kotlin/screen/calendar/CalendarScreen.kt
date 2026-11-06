@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
+import com.mkulikov.taskb.ui.component.date_picker.TaskBDatePicker
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.event.api.model.Event
@@ -120,6 +121,10 @@ internal fun CalendarScreen(
                         )
                     }
                 }
+            }
+            if (state.isDatePickerOpen) {
+                TaskBDatePicker(state.selectedDate, state.today,
+                    { onIntent(CalendarIntent.DateChosen(it)) }, { onIntent(CalendarIntent.DismissDatePicker) }, maxHeight)
             }
         }
     }

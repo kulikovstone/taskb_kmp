@@ -23,6 +23,7 @@ internal data class CalendarState(
     val today: LocalDate,
     val month: YearMonth = today.yearMonth,
     val selectedDate: LocalDate? = today,
+    val isDatePickerOpen: Boolean = false,
     val tasks: List<Task> = emptyList(),
     val groups: List<Group> = emptyList(),
     val events: List<Event> = emptyList(),

@@ -6,6 +6,7 @@ import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.yearMonth
 import kotlin.time.Instant
 
 internal sealed interface CalendarMessage {
@@ -16,6 +17,8 @@ internal sealed interface CalendarMessage {
     data class Loaded(val tasks: List<Task>, val groups: List<Group>, val now: Instant, val events: List<Event> = emptyList()) : CalendarMessage
     data class Month(val value: YearMonth) : CalendarMessage
     data class SelectedDate(val value: LocalDate?) : CalendarMessage
+    data class DatePicker(val open: Boolean) : CalendarMessage
+    data class DateChosen(val value: LocalDate) : CalendarMessage
     data class Today(val value: LocalDate, val now: Instant) : CalendarMessage
     data class Moving(val id: Int, val undoing: Boolean = false) : CalendarMessage
     data class Moved(val move: CalendarMove, val undoing: Boolean, val error: String? = null) : CalendarMessage
@@ -32,6 +35,8 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
     is CalendarMessage.Loaded -> state.copy(tasks = message.tasks, events = message.events, groups = message.groups, now = message.now, isLoading = false, loadError = null)
     is CalendarMessage.Month -> state.copy(month = message.value)
     is CalendarMessage.SelectedDate -> state.copy(selectedDate = message.value)
+    is CalendarMessage.DatePicker -> state.copy(isDatePickerOpen = message.open)
+    is CalendarMessage.DateChosen -> state.copy(selectedDate = message.value, month = message.value.yearMonth, isDatePickerOpen = false)
     is CalendarMessage.Today -> state.copy(today = message.value, now = message.now)
     is CalendarMessage.Moving -> state.copy(pendingMove = message.id, undo = if (message.undoing) null else state.undo)
     is CalendarMessage.Moved -> state.copy(

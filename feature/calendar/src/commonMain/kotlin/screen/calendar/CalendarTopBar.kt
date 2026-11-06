@@ -32,9 +32,9 @@ internal fun CalendarTopBar(state: CalendarState, onIntent: (CalendarIntent) -> 
             OutlinedButton({ onIntent(CalendarIntent.Today) }, Modifier.width(72.dp).height(40.dp).testTag("calendar-today"), shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, colors.border), contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface)) {
                 Text("Today", style = TaskBTheme.typography.button, color = colors.accent)
             }
-            OutlinedButton({}, Modifier.width(116.dp).height(40.dp).testTag("calendar-choose-date"), enabled = false,
+            OutlinedButton({ onIntent(CalendarIntent.ChooseDate) }, Modifier.width(116.dp).height(40.dp).testTag("calendar-choose-date"),
                 shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, colors.border), contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface, disabledContentColor = colors.muted)) {
+                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface)) {
                 Text("Choose date", style = TaskBTheme.typography.button)
             }
         }

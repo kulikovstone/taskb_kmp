@@ -3,6 +3,7 @@ package com.mkulikov.taskb
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
@@ -20,11 +21,61 @@ import org.junit.rules.TemporaryFolder
 import org.koin.compose.KoinIsolatedContext
 import kotlin.test.*
 import kotlin.time.Clock
+import java.nio.file.Files
+import java.nio.file.Path
+import javax.imageio.ImageIO
 
 @OptIn(ExperimentalTestApi::class)
 class CalendarNavigationUiTest {
     @get:Rule
     val directory = TemporaryFolder()
+
+    @Test
+    fun `shared date picker cancels without navigating and choosing a distant date loads its tasks`() {
+        withAppKoin(directory.root.toPath().resolve("calendar-date-picker.db")) { app ->
+            val target = LocalDate(2036, 6, 12)
+            val db = app.koin.get<AppDatabase>()
+            runBlocking {
+                app.koin.get<IAppSettings>().completeWelcome()
+                db.taskDao().insert(TaskEntity(name = "Anniversary", description = "Chosen date details", dueDate = target.toEpochDays()))
+            }
+            runSkikoComposeUiTest(size = Size(1440f, 900f)) {
+                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
+                waitText("Calendar")
+                onNodeWithText("Calendar").performClick()
+                waitText("Task")
+                onNodeWithTag("calendar-sidebar-toggle").performClick()
+                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
+                onNodeWithTag("calendar-choose-date").assertIsEnabled().performClick()
+                onNodeWithTag("date-picker-panel").assertIsDisplayed()
+                onNode(isDialog()).screenshot("calendar-date-picker")
+                onNodeWithText("Cancel").performClick()
+                onNodeWithTag("date-picker-panel").assertDoesNotExist()
+                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
+
+                onNodeWithTag("calendar-choose-date").performClick()
+                onNodeWithContentDescription("Choose year").performClick()
+                onNodeWithContentDescription("Year").performTextReplacement("2036")
+                onNodeWithContentDescription("Year").performImeAction()
+                onNodeWithContentDescription("Choose month").performClick()
+                onNodeWithContentDescription("Choose June 2036").performClick()
+                onNodeWithContentDescription("Choose June 12, 2036").performClick()
+                waitText("Chosen date details")
+                onNodeWithTag("date-picker-panel").assertDoesNotExist()
+                onNodeWithText("June 2036").assertIsDisplayed()
+                onNodeWithTag("calendar-sidebar-title").assertTextEquals("Jun 12, 2036")
+                onNodeWithTag("calendar-day-$target", useUnmergedTree = true).assertIsSelected()
+                onNode(hasText("Anniversary") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true)
+                    .assertIsDisplayed()
+                onRoot().screenshot("calendar-chosen-date")
+
+                onNodeWithTag("calendar-choose-date").performClick()
+                onNodeWithContentDescription("Choose June 12, 2036").assertIsSelected()
+                onNodeWithText("Cancel").performClick()
+                onNodeWithText("June 2036").assertIsDisplayed()
+            }
+        }
+    }
 
     @Test
     fun `calendar remembers explicitly chosen groups for the app session including cancelled drafts and clearing`() {
@@ -134,7 +185,7 @@ class CalendarNavigationUiTest {
                 onNodeWithText("Calendar").performClick()
                 waitText("Today's details")
                 onNode(hasText("Today's task") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()
-                onNodeWithTag("calendar-choose-date").assertIsNotEnabled().performMouseInput { click() }
+                onNodeWithTag("calendar-choose-date").assertIsEnabled()
                 onNodeWithText("Create task").assertDoesNotExist()
                 onNodeWithTag("calendar-sidebar-toggle").performClick()
                 waitText("Calendar task")
@@ -219,5 +270,11 @@ class CalendarNavigationUiTest {
 
     private suspend fun SkikoComposeUiTest.waitText(text: String) {
         waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText(text), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun SemanticsNodeInteraction.screenshot(name: String) {
+        val path = Path.of("build/reports/screenshots/$name.png")
+        Files.createDirectories(path.parent)
+        ImageIO.write(captureToImage().toAwtImage(), "png", path.toFile())
     }
 }

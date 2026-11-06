@@ -68,6 +68,9 @@ internal class CalendarStore(
                 reduce(CalendarMessage.SelectedDate(date))
             }
             is CalendarIntent.SelectDay -> reduce(CalendarMessage.SelectedDate(intent.date))
+            CalendarIntent.ChooseDate -> reduce(CalendarMessage.DatePicker(true))
+            CalendarIntent.DismissDatePicker -> reduce(CalendarMessage.DatePicker(false))
+            is CalendarIntent.DateChosen -> if (state.value.isDatePickerOpen) reduce(CalendarMessage.DateChosen(intent.date))
             CalendarIntent.ShowUnscheduled -> reduce(CalendarMessage.SelectedDate(null))
             CalendarIntent.DismissError -> reduce(CalendarMessage.DismissError)
             CalendarIntent.DismissMoveChoice -> reduce(CalendarMessage.MoveChoice(null))

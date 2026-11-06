@@ -28,6 +28,35 @@ class CalendarStoreTest {
     private val created = Instant.parse("2026-10-01T10:00:00Z")
 
     @Test
+    fun `date picker cancellation preserves browsing and choosing a date selects its month and tasks`() = runTest {
+        val selected = LocalDate(2036, 6, 12)
+        val task = Task(1, "Anniversary", selected)
+        CalendarStore(Tasks(listOf(task)), Groups(), StandardTestDispatcher(testScheduler), { today }).use { store ->
+            runCurrent()
+            store.accept(CalendarIntent.NextMonth)
+            store.accept(CalendarIntent.ShowUnscheduled)
+            runCurrent()
+            val month = store.state.value.month
+            store.accept(CalendarIntent.ChooseDate)
+            runCurrent()
+            assertTrue(store.state.value.isDatePickerOpen)
+            store.accept(CalendarIntent.DismissDatePicker)
+            runCurrent()
+            assertFalse(store.state.value.isDatePickerOpen)
+            assertEquals(month, store.state.value.month)
+            assertNull(store.state.value.selectedDate)
+
+            store.accept(CalendarIntent.ChooseDate)
+            store.accept(CalendarIntent.DateChosen(selected))
+            runCurrent()
+            assertFalse(store.state.value.isDatePickerOpen)
+            assertEquals(selected, store.state.value.selectedDate)
+            assertEquals(YearMonth(2036, 6), store.state.value.month)
+            assertEquals(listOf(task), store.state.value.sidebarTasks)
+        }
+    }
+
+    @Test
     fun `completing a daily routine moves it to completed and preserves other occurrences and history`() = runTest {
         val first = Task(1, "Daily routine", today, createdAt = created,
             recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily), occurrenceId = TaskOccurrenceId(4, today))

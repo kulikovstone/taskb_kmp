@@ -22,7 +22,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTestApi::class)
 class CalendarScreenUiTest {
     @Test
-    fun `selected day sidebar shows descriptions and overflow tasks and the date picker stays disabled`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
+    fun `selected day sidebar shows descriptions and overflow tasks`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
         val state = mutableStateOf(calendarPreviewState())
         val intents = mutableListOf<CalendarIntent>()
         val opened = mutableListOf<Int>()
@@ -41,8 +41,7 @@ class CalendarScreenUiTest {
         }
         onNodeWithTag("calendar-sidebar-title").assertTextEquals("Oct 29, 2026")
         onNode(hasText("Summarize progress and the next milestones.") and hasAnyAncestor(hasTestTag("calendar-sidebar")), useUnmergedTree = true).assertIsDisplayed()
-        onNodeWithTag("calendar-choose-date").assertIsNotEnabled().performMouseInput { click() }
-        runOnIdle { assertTrue(intents.isEmpty()) }
+        onNodeWithTag("calendar-choose-date").assertIsEnabled()
         onNodeWithTag("calendar-sidebar-toggle").performClick()
         onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
         onNodeWithText("Scope, milestones and owners for the next release.", useUnmergedTree = true).assertIsDisplayed()
