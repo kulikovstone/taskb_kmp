@@ -94,7 +94,7 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
                             onIntent(task.moveTo(target))
-                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now,
+                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now, today = state.today,
                         contentPadding = calendarSidebarTaskPadding)
                 }
                 if (events.isNotEmpty()) item(key = "events-heading") {
@@ -109,7 +109,7 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
                             onIntent(task.moveTo(target))
-                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now,
+                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now, today = state.today,
                         contentPadding = calendarSidebarTaskPadding)
                     Spacer(Modifier.height(4.dp))
                 }
@@ -127,7 +127,7 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
                             onIntent(task.moveTo(target))
-                        }, enabled = enabled, dragging = drag.item?.key == task.key,
+                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now, today = state.today,
                         contentPadding = calendarSidebarTaskPadding)
                 }
                 if (completed.isNotEmpty()) item(key = "completed-heading") {
@@ -145,7 +145,7 @@ internal fun CalendarSidebar(state: CalendarState, drag: CalendarDragState, onIn
                         Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled,
                             sourceDate = date ?: task.dueDate) { id, target ->
                             onIntent(task.moveTo(target))
-                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now,
+                        }, enabled = enabled, dragging = drag.item?.key == task.key, now = state.now, today = state.today,
                         contentPadding = calendarSidebarTaskPadding)
                 }
             }

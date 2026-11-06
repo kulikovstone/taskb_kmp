@@ -3,6 +3,7 @@ package com.mkulikov.taskb.ui.theme
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 
 @Immutable
 data class TaskBColors(
@@ -21,6 +22,7 @@ data class TaskBColors(
     val onAction: Color,
     val selected: Color,
     val calendarSelectedDay: Color,
+    val overdueTaskBackground: Color,
     val danger: Color,
     val dangerSoft: Color,
     val success: Color,
@@ -46,6 +48,7 @@ internal val LightTaskBColors = TaskBColors(
     onAction = Palette.White,
     selected = Palette.Blue.s50,
     calendarSelectedDay = Palette.Green.s50,
+    overdueTaskBackground = Palette.Red.s50,
     danger = Palette.Red.s900,
     dangerSoft = Palette.Red.s50,
     success = Palette.Green.s600,
@@ -71,6 +74,7 @@ internal val DarkTaskBColors = TaskBColors(
     onAction = Palette.White,
     selected = Palette.BlueGrey.s800,
     calendarSelectedDay = Palette.BlueGrey.s800,
+    overdueTaskBackground = Palette.Red.s900.copy(alpha = 0.16f).compositeOver(Palette.Grey.s900),
     danger = Palette.Red.a100,
     dangerSoft = Palette.Red.s900,
     success = Palette.Green.s300,

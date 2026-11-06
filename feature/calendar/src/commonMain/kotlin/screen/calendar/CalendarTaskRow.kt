@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.indication
@@ -31,6 +32,8 @@ import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -60,6 +63,7 @@ internal fun CalendarTaskRow(
     dragging: Boolean = false,
     date: LocalDate? = task.dueDate,
     now: Instant = Clock.System.now(),
+    today: LocalDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     if (task is CalendarItem.EventItem) {
@@ -70,10 +74,12 @@ internal fun CalendarTaskRow(
     val interactionSource = remember { MutableInteractionSource() }
     val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
     val titleStyle = calendarTaskTitleStyle(dense)
+    val overdue = !task.isCompleted && task.dueDate?.let { it < today } == true
     Column(modifier.graphicsLayer { alpha = if (dragging) 0.25f else 1f }) {
         Row(
             Modifier.fillMaxWidth()
                 .clip(if (dense) RoundedCornerShape(8.dp) else RectangleShape)
+                .then(if (overdue) Modifier.background(colors.overdueTaskBackground) else Modifier)
                 .hoverable(interactionSource, enabled = enabled)
                 .indication(interactionSource, LocalIndication.current)
                 .padding(contentPadding)

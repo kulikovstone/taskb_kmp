@@ -134,7 +134,7 @@ private fun CalendarDayTasks(date: LocalDate, tasks: List<CalendarItem>, state: 
                     val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                     CalendarTaskRow(task, group, { onOpenTask(task) }, { onIntent(CalendarIntent.ToggleCompleted(it, task.occurrenceId)) },
                         Modifier.testTag(if (task.isEvent) "calendar-${task.key}" else "calendar-task-${task.key}").calendarTaskDrag(task, drag, enabled, dense = true, sourceDate = date) { id, target -> onIntent(task.moveTo(target)) },
-                        dense = true, enabled = enabled, dragging = drag.item?.key == task.key, date = date, now = state.now)
+                        dense = true, enabled = enabled, dragging = drag.item?.key == task.key, date = date, now = state.now, today = state.today)
                 }.single().measure(Constraints.fixedWidth(taskWidth))
                 add(row)
                 measuredHeight += row.height

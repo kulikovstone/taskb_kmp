@@ -116,7 +116,7 @@ internal fun CalendarScreen(
                         CalendarTaskRow(
                             task, state.groups.find { it.id == task.groupId }, {}, {},
                             modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-                            dense = dense, enabled = false, date = drag.sourceDate, now = state.now,
+                            dense = dense, enabled = false, date = drag.sourceDate, now = state.now, today = state.today,
                         )
                     }
                 }
