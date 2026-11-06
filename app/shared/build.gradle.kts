@@ -81,6 +81,7 @@ kotlin {
             implementation(project(":feature:settings"))
             implementation(project(":feature:settings:api"))
             implementation(project(":feature:task"))
+            implementation(project(":feature:weather"))
             implementation(project(":ui"))
             implementation(libs.koin.core)
             implementation(libs.koin.compose)

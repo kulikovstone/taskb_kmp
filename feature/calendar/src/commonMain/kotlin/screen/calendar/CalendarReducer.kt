@@ -8,8 +8,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.yearMonth
 import kotlin.time.Instant
+import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 
 internal sealed interface CalendarMessage {
+    data class Weather(val value: WeatherForecast) : CalendarMessage
     data class MoveChoice(val value: CalendarMove?) : CalendarMessage
     data object Loading : CalendarMessage
     data object LoadFailed : CalendarMessage
@@ -28,6 +30,7 @@ internal sealed interface CalendarMessage {
 }
 
 internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): CalendarState = when (message) {
+    is CalendarMessage.Weather -> state.copy(weather = message.value)
     is CalendarMessage.MoveChoice -> state.copy(moveChoice = message.value)
     CalendarMessage.Loading -> state.copy(isLoading = true, loadError = null)
     CalendarMessage.LoadFailed -> state.copy(isLoading = false, loadError = "Couldn't load the calendar. Please try again.")

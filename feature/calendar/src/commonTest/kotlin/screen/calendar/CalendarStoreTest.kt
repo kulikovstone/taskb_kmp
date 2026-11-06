@@ -1,5 +1,10 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import com.mkulikov.taskb.feature.weather.api.model.WeatherLocation
+import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
+import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
+import com.mkulikov.taskb.feature.weather.api.model.DailyWeather
+import com.mkulikov.taskb.feature.weather.api.repository.IWeatherRepository
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.group.api.repository.GroupWriteResult
@@ -392,6 +397,61 @@ class CalendarStoreTest {
         runCurrent()
         assertEquals(0, repository.subscriptions)
         assertEquals(0, groups.subscriptions)
+    }
+
+    @Test
+    fun `weather failure is isolated from task loading and forecast observation closes with calendar`() = runTest {
+        val city = WeatherLocation("Paris", 48.85, 2.35, "Europe/Paris")
+        val forecast = WeatherForecast(location = city,
+            error = "Weather unavailable")
+        var subscriptions = 0
+        var fail = false
+        val repository = object : IWeatherRepository {
+            override fun observeLocation() = flowOf(city)
+            override fun observeForecast() = flow {
+                subscriptions++
+                try {
+                    if (fail) error("Offline")
+                    emit(forecast)
+                    kotlinx.coroutines.awaitCancellation()
+                } finally { subscriptions-- }
+            }
+            override suspend fun searchLocations(query: String) = emptyList<WeatherLocation>()
+            override suspend fun setLocation(location: WeatherLocation?) = Unit
+        }
+        CalendarStore(Tasks(listOf(Task(1, "Plan trip", today))), Groups(), StandardTestDispatcher(testScheduler),
+            { today }, weatherRepository = repository).use { store ->
+            runCurrent()
+            assertEquals(forecast, store.state.value.weather)
+            assertFalse(store.state.value.isLoading)
+            assertNull(store.state.value.loadError)
+            assertEquals("Plan trip", store.state.value.sidebarTasks.single().name)
+            fail = true
+            store.accept(CalendarIntent.RetryWeather)
+            runCurrent()
+            assertNotNull(store.state.value.weather.error)
+            assertNull(store.state.value.loadError)
+            fail = false
+            store.accept(CalendarIntent.RetryWeather)
+            runCurrent()
+            assertEquals(1, subscriptions)
+        }
+        runCurrent()
+        assertEquals(0, subscriptions)
+    }
+
+    @Test
+    fun `weather dates use city time zone and exclude expired or distant forecasts`() {
+        val city = WeatherLocation("Tokyo", 35.68, 139.69, "Asia/Tokyo")
+        val first = LocalDate(2026, 11, 1)
+        val days = listOf(LocalDate(2026, 10, 31), first, LocalDate(2026, 11, 10), LocalDate(2026, 11, 11)).map {
+            DailyWeather(it,
+                WeatherCondition.Clear, 10.0, 20.0)
+        }
+        val state = CalendarState(today, now = Instant.parse("2026-10-31T16:00:00Z"),
+            weather = WeatherForecast(city, days))
+        assertEquals(setOf(first, LocalDate(2026, 11, 10)), state.weatherByDate.keys)
+        assertTrue(state.copy(weather = WeatherForecast()).weatherByDate.isEmpty())
     }
 
     private class Tasks(tasks: List<Task>, private val now: () -> Instant = Clock.System::now) : ITaskRepository {

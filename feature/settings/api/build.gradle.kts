@@ -6,6 +6,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.room.runtime)
+            api(libs.navigation3.runtime)
 
         }
     }

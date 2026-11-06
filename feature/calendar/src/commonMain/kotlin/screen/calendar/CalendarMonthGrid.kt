@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Constraints
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import com.mkulikov.taskb.feature.weather.api.model.DailyWeather
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.yearMonth
@@ -39,6 +40,7 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
     val colors = TaskBTheme.colors
     val tasks = state.monthItemsByDate
     val weeks = state.days.chunked(7)
+    val weather = state.weatherByDate
     Column(modifier.calendarMonthGestures(onIntent).testTag("calendar-grid").clipToBounds().border(1.dp, colors.border).padding(1.dp)) {
         Box(Modifier.fillMaxWidth().height(40.dp)) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
@@ -52,7 +54,7 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 week.forEachIndexed { dayIndex, date ->
                     key(date) {
-                        CalendarDayCell(date, tasks[date].orEmpty(), state, drag, onIntent, onOpenTask,
+                        CalendarDayCell(date, tasks[date].orEmpty(), state, drag, onIntent, onOpenTask, weather[date],
                             endBorder = dayIndex < 6, bottomBorder = weekIndex < weeks.lastIndex,
                             modifier = Modifier.weight(1f).fillMaxHeight())
                     }
@@ -63,7 +65,7 @@ internal fun CalendarMonthGrid(state: CalendarState, drag: CalendarDragState, on
 }
 
 @Composable
-private fun CalendarDayCell(date: LocalDate, tasks: List<CalendarItem>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (CalendarItem) -> Unit, endBorder: Boolean, bottomBorder: Boolean, modifier: Modifier) {
+private fun CalendarDayCell(date: LocalDate, tasks: List<CalendarItem>, state: CalendarState, drag: CalendarDragState, onIntent: (CalendarIntent) -> Unit, onOpenTask: (CalendarItem) -> Unit, weather: DailyWeather?, endBorder: Boolean, bottomBorder: Boolean, modifier: Modifier) {
     val colors = TaskBTheme.colors
     val outsideMonth = date.yearMonth != state.month
     val isToday = date == state.today
@@ -90,7 +92,8 @@ private fun CalendarDayCell(date: LocalDate, tasks: List<CalendarItem>, state: C
                     .testTag("calendar-day-number-$date"), contentAlignment = Alignment.Center) {
                     Text(date.day.toString(), color = if (isToday) colors.onAction else if (outsideMonth) colors.muted else colors.text, style = TaskBTheme.typography.button)
                 }
-                if (outsideMonth) Text(calendarMonthAbbreviation.format(date), color = colors.muted, style = TaskBTheme.typography.button)
+                if (weather != null) CalendarWeatherSummary(weather, Modifier.weight(1f, fill = false))
+                if (outsideMonth) Text(calendarMonthAbbreviation.format(date), color = colors.muted, style = TaskBTheme.typography.button, maxLines = 1)
             }
             CalendarDayTasks(date, tasks, state, drag, onIntent, onOpenTask, { onIntent(CalendarIntent.SelectDay(date)) }, Modifier.weight(1f).fillMaxWidth().padding(horizontal = 2.dp))
         }

@@ -23,6 +23,7 @@ internal fun HomeScreen(
     onTasksClick: () -> Unit,
     onGroupsClick: () -> Unit,
     onCalendarClick: () -> Unit,
+    onSettingsClick: () -> Unit = {},
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -33,6 +34,7 @@ internal fun HomeScreen(
             TaskBButton(label = "Groups", onClick = onGroupsClick)
             TaskBButton(label = "Tasks", onClick = onTasksClick)
             TaskBButton(label = "Calendar", onClick = onCalendarClick)
+            TaskBButton(label = "Settings", onClick = onSettingsClick)
         }
         Text(
             text = "Version $appVersion",

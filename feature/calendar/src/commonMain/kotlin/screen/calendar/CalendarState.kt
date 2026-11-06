@@ -18,6 +18,9 @@ import kotlinx.datetime.yearMonth
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
+import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 internal data class CalendarState(
     val today: LocalDate,
@@ -35,7 +38,13 @@ internal data class CalendarState(
     val undo: CalendarMove? = null,
     val moveChoice: CalendarMove? = null,
     val now: Instant = Clock.System.now(),
+    val weather: WeatherForecast = WeatherForecast(),
 ) {
+    val weatherByDate get() = weather.location?.let { location ->
+        val first = now.toLocalDateTime(TimeZone.of(location.timeZone)).date
+        val end = first.plus(10, DateTimeUnit.DAY)
+        weather.days.filter { it.date >= first && it.date < end }.associateBy { it.date }
+    }.orEmpty()
     val undatedTasks: List<Task> get() = tasks.filter {
         val completedAt = it.completedAt
         it.dueDate == null && (completedAt == null || completedAt > now - 24.hours)

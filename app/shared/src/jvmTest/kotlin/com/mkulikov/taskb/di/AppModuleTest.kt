@@ -5,6 +5,9 @@ import com.mkulikov.taskb.core.database.open
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.feature.weather.api.model.WeatherLocation
+import com.mkulikov.taskb.feature.weather.api.repository.IWeatherRepository
+import kotlinx.coroutines.flow.first
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
@@ -33,15 +36,19 @@ class AppModuleTest {
                     val settings = application.koin.get<IAppSettings>()
                     val navigator = application.koin.get<IAppNavigator>()
                     assertSame(navigator, application.koin.get<IAppNavigator>())
-                    assertEquals(6, application.koin.getAll<INavEntry>().size)
+                    assertEquals(7, application.koin.getAll<INavEntry>().size)
+                    val weather = application.koin.get<IWeatherRepository>()
+                    val city = WeatherLocation("Paris, France", 48.85, 2.35, "Europe/Paris")
                     val groups = application.koin.get<IGroupRepository>()
                     assertSame(groups, application.koin.get<IGroupRepository>())
                     assertEquals(launch, opens)
                     if (launch == 0) {
                         assertFalse(settings.hasCompletedWelcome())
                         settings.completeWelcome()
+                        weather.setLocation(city)
                     } else {
                         assertTrue(settings.hasCompletedWelcome())
+                        assertEquals(city, weather.observeLocation().first())
                     }
                     assertEquals(launch + 1, opens)
                     assertSame(application.koin.get<AppDatabase>(), application.koin.get<AppDatabase>())

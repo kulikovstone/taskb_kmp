@@ -41,6 +41,7 @@ internal fun CalendarScreen(
     onOpenOccurrence: ((Task) -> Unit)? = null,
     onCreateEvent: (LocalDate?) -> Unit = {},
     onOpenEvent: (Event) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
     val drag = remember { CalendarDragState() }
     var origin by remember { mutableStateOf(Offset.Zero) }
@@ -60,7 +61,7 @@ internal fun CalendarScreen(
                 }
             } else {
                 Column(Modifier.fillMaxSize()) {
-                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(state.selectedDate) }, { onCreateEvent(state.selectedDate) })
+                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(state.selectedDate) }, { onCreateEvent(state.selectedDate) }, onOpenSettings)
                     when {
                         state.isLoading -> TaskBLoading(Modifier.weight(1f))
                         state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })

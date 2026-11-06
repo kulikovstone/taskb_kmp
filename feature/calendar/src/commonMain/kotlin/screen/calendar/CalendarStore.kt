@@ -26,6 +26,8 @@ import kotlinx.datetime.plusMonth
 import kotlinx.datetime.yearMonth
 import kotlin.time.Clock
 import kotlin.time.Duration
+import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
+import com.mkulikov.taskb.feature.weather.api.repository.IWeatherRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class CalendarStore(
@@ -35,12 +37,15 @@ internal class CalendarStore(
     private val today: () -> LocalDate = ::currentDate,
     private val clock: Clock = Clock.System,
     private val eventRepository: IEventRepository? = null,
+    private val weatherRepository: IWeatherRepository? = null,
 ) : CoroutineStore<CalendarIntent, CalendarState, CalendarMessage>(CalendarState(today(), now = clock.now()), ::reduceCalendar, dispatcher) {
     private var observation: Job? = null
+    private var weatherObservation: Job? = null
     private var nextMoveToken = 0L
 
     init {
         accept(CalendarIntent.RetryLoad)
+        accept(CalendarIntent.RetryWeather)
         collectEffect(flow {
             while (true) {
                 delay(60_000)
@@ -59,6 +64,15 @@ internal class CalendarStore(
 
     override fun handleIntent(intent: CalendarIntent) {
         when (intent) {
+            CalendarIntent.RetryWeather -> {
+                weatherObservation?.cancel()
+                weatherObservation = weatherRepository?.let { repository ->
+                    collectEffect(repository.observeForecast().map<WeatherForecast, CalendarMessage> { CalendarMessage.Weather(it) }.catch {
+                        if (it is CancellationException) throw it
+                        emit(CalendarMessage.Weather(WeatherForecast(error = "Couldn't load weather. Please try again.")))
+                    })
+                }
+            }
             CalendarIntent.PreviousMonth -> reduce(CalendarMessage.Month(state.value.month.minusMonth()))
             CalendarIntent.NextMonth -> reduce(CalendarMessage.Month(state.value.month.plusMonth()))
             CalendarIntent.Today -> {

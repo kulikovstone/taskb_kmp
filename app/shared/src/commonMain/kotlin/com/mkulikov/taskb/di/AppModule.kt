@@ -11,12 +11,14 @@ import com.mkulikov.taskb.feature.settings.di.settingsModule
 import com.mkulikov.taskb.feature.hello.di.helloModule
 import com.mkulikov.taskb.feature.home.di.homeModule
 import com.mkulikov.taskb.feature.task.di.taskModule
+import com.mkulikov.taskb.feature.weather.di.weatherModule
 import org.koin.dsl.module
 
 internal fun appModule(databaseFactory: () -> AppDatabase) = module {
     includes(
         databaseModule(databaseFactory),
         settingsModule(),
+        weatherModule(),
         navigationModule(),
         calendarModule(),
         eventModule(),

@@ -22,7 +22,29 @@ import com.composables.icons.materialsymbols.outlinedfilled.Cancel
 import com.composables.icons.materialsymbols.outlinedfilled.Check_box
 import com.composables.icons.materialsymbols.outlinedfilled.Folder
 
+import com.composables.icons.materialsymbols.outlined.Settings
+import com.mkulikov.taskb.ui.resources.Res
+import com.mkulikov.taskb.ui.resources.weather_cloudy
+import com.mkulikov.taskb.ui.resources.weather_drizzle
+import com.mkulikov.taskb.ui.resources.weather_fog
+import com.mkulikov.taskb.ui.resources.weather_partly_cloudy
+import com.mkulikov.taskb.ui.resources.weather_rain
+import com.mkulikov.taskb.ui.resources.weather_snow
+import com.mkulikov.taskb.ui.resources.weather_sunny
+import com.mkulikov.taskb.ui.resources.weather_thunderstorm
+import com.mkulikov.taskb.ui.resources.weather_unknown
+
 object TaskBIcons {
+    val Sunny get() = Res.drawable.weather_sunny
+    val PartlyCloudy get() = Res.drawable.weather_partly_cloudy
+    val Cloudy get() = Res.drawable.weather_cloudy
+    val Fog get() = Res.drawable.weather_fog
+    val Drizzle get() = Res.drawable.weather_drizzle
+    val Rain get() = Res.drawable.weather_rain
+    val Snow get() = Res.drawable.weather_snow
+    val Thunderstorm get() = Res.drawable.weather_thunderstorm
+    val UnknownWeather get() = Res.drawable.weather_unknown
+    val Settings get() = MaterialSymbols.Outlined.Settings
     val Back get() = MaterialSymbols.Outlined.Arrow_back
     val Add get() = MaterialSymbols.Outlined.Add
     val Done get() = MaterialSymbols.Outlined.Check

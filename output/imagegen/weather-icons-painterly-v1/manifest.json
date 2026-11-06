@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "generation_tool": "built-in image_gen",
+  "reference_image": "/home/mkulikov/TaskB/Изображение ChatGPT 6 нояб. 2026 г., 00_06_50.png",
+  "style": "Soft painterly gouache/pastel, warm cream and honey highlights, powder-blue shadows, transparent background.",
+  "icons": [
+    {
+      "id": "sunny",
+      "label": "Sunny",
+      "condition": "Clear",
+      "file": "sunny.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-f8359dd6-2f7b-4287-9558-4994baf9f4a3.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "partly-cloudy",
+      "label": "Partly cloudy",
+      "condition": "PartlyCloudy",
+      "file": "partly-cloudy.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-ec60280f-f730-4b65-b1e4-8190daaec20c.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "cloudy",
+      "label": "Cloudy",
+      "condition": "Cloudy",
+      "file": "cloudy.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-71a5e851-01b9-41e4-a491-9a31292ecfed.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "fog",
+      "label": "Fog",
+      "condition": "Fog",
+      "file": "fog.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-677f9cb5-9465-4ecd-badd-1fcfe0973b40.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "drizzle",
+      "label": "Drizzle",
+      "condition": "Drizzle",
+      "file": "drizzle.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-ed50939d-1cdc-4a5d-9f11-540656843486.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "rain",
+      "label": "Rain",
+      "condition": "Rain",
+      "file": "rain.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-ec8fbfe9-bd78-44a5-b632-e5cbc92ed8c0.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "snow",
+      "label": "Snow",
+      "condition": "Snow",
+      "file": "snow.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-f92cf474-c149-48b6-9cce-b666b7b2ccc4.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "thunderstorm",
+      "label": "Thunderstorm",
+      "condition": "Thunderstorm",
+      "file": "thunderstorm.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-7883a8a6-8dab-4f5a-8c58-fa31c5420043.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    },
+    {
+      "id": "unknown",
+      "label": "Unknown weather",
+      "condition": "Unknown",
+      "file": "unknown.png",
+      "generated_source": "/home/mkulikov/.codex/generated_images/01a1b1c4-e225-7dc3-8b11-913ee6692340/exec-6a600c5d-62ef-4185-a462-33b9fff7cd50.png",
+      "size_pixels": [
+        1254,
+        1254
+      ],
+      "transparent_background": true
+    }
+  ],
+  "canvas_pixels": [
+    1254,
+    1254
+  ],
+  "format": "PNG RGBA; original generated alpha preserved"
+}
