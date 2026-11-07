@@ -104,16 +104,15 @@ showNoGroup, noGroupSelected)` из `:feature:group:api`. Фильтр спис�
 при недостаточной ширине остаются значок и максимум. Данные не интерполируются
 за пределами прогноза; пропуски температуры не заменяются нулями.
 
-Для погоды используется согласованный живописный набор из девяти цветных PNG.
+Для погоды используется согласованный живописный набор из десяти цветных PNG.
 Оптимизированные ресурсы 96×96 с прозрачностью находятся в
 `ui/src/commonMain/composeResources/drawable/weather_*.png` и доступны через `TaskBIcons`.
-Календарь отображает их размером 20dp без цветового тонирования; морось и дождь имеют
-отдельные значки. Исходники высокого разрешения и промпты сохранены в
-`output/imagegen/weather-icons-painterly-v1`. Чтобы обновить ресурс без повторной
-генерации, используйте ImageMagick:
+Календарь отображает их размером 20dp без цветового тонирования. У мороси, дождя
+и сильного дождя отдельные значки. Исходники высокого разрешения и промпты хранятся
+локально в `~/TaskB/weather-icons-painterly-v2`. Ресурс можно экспортировать через ImageMagick.
 
 ```bash
-magick output/imagegen/weather-icons-painterly-v1/sunny.png \
+magick ~/TaskB/weather-icons-painterly-v2/sunny.png \
   -filter Lanczos -resize 96x96 -depth 8 -strip -define png:compression-level=9 \
   ui/src/commonMain/composeResources/drawable/weather_sunny.png
 ```

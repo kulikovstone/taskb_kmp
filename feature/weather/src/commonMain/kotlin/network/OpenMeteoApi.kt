@@ -73,12 +73,12 @@ internal fun weatherCondition(code: Int?): WeatherCondition {
         57 -> WeatherCondition.Drizzle
         61,
         63,
-        65,
         66,
         67,
         80,
-        81,
-        82 -> WeatherCondition.Rain
+        81 -> WeatherCondition.Rain
+        65,
+        82 -> WeatherCondition.HeavyRain
         71,
         73,
         75,

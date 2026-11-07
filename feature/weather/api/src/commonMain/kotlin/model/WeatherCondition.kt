@@ -7,6 +7,7 @@ enum class WeatherCondition {
     Fog,
     Drizzle,
     Rain,
+    HeavyRain,
     Snow,
     Thunderstorm,
     Unknown,

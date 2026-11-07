@@ -28,6 +28,7 @@ internal fun CalendarWeatherSummary(weather: DailyWeather, modifier: Modifier = 
         WeatherCondition.Fog -> "Fog"
         WeatherCondition.Drizzle -> "Drizzle"
         WeatherCondition.Rain -> "Rain"
+        WeatherCondition.HeavyRain -> "Heavy rain"
         WeatherCondition.Snow -> "Snow"
         WeatherCondition.Thunderstorm -> "Thunderstorm"
         WeatherCondition.Unknown -> "Unknown conditions"
@@ -39,6 +40,7 @@ internal fun CalendarWeatherSummary(weather: DailyWeather, modifier: Modifier = 
         WeatherCondition.Fog -> TaskBIcons.Fog
         WeatherCondition.Drizzle -> TaskBIcons.Drizzle
         WeatherCondition.Rain -> TaskBIcons.Rain
+        WeatherCondition.HeavyRain -> TaskBIcons.HeavyRain
         WeatherCondition.Snow -> TaskBIcons.Snow
         WeatherCondition.Thunderstorm -> TaskBIcons.Thunderstorm
         WeatherCondition.Unknown -> TaskBIcons.UnknownWeather

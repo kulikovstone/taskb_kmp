@@ -26,6 +26,7 @@ import com.mkulikov.taskb.ui.resources.Res
 import com.mkulikov.taskb.ui.resources.weather_cloudy
 import com.mkulikov.taskb.ui.resources.weather_drizzle
 import com.mkulikov.taskb.ui.resources.weather_fog
+import com.mkulikov.taskb.ui.resources.weather_heavy_rain
 import com.mkulikov.taskb.ui.resources.weather_partly_cloudy
 import com.mkulikov.taskb.ui.resources.weather_rain
 import com.mkulikov.taskb.ui.resources.weather_snow
@@ -51,6 +52,9 @@ object TaskBIcons {
 
     val Rain
         get() = Res.drawable.weather_rain
+
+    val HeavyRain
+        get() = Res.drawable.weather_heavy_rain
 
     val Snow
         get() = Res.drawable.weather_snow

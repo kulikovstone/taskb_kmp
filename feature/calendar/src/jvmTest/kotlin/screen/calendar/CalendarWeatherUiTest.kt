@@ -32,6 +32,7 @@ class CalendarWeatherUiTest {
             size = Size(width = 720f, height = 640f),
         ) {
             val first = LocalDate(year = 2026, month = 11, day = 1)
+            val conditions = WeatherCondition.entries
             setContent {
                 Row(modifier = Modifier.fillMaxSize()) {
                     listOf(false, true).forEachIndexed { themeIndex, dark ->
@@ -49,12 +50,12 @@ class CalendarWeatherUiTest {
                                         color = TaskBTheme.colors.heading,
                                         style = TaskBTheme.typography.title,
                                     )
-                                    WeatherCondition.entries.forEachIndexed { index, condition ->
+                                    conditions.forEachIndexed { index, condition ->
                                         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                                             CalendarWeatherSummary(
                                                 weather = DailyWeather(
                                                     date = first.plus(
-                                                        value = themeIndex * 9 + index,
+                                                        value = themeIndex * conditions.size + index,
                                                         unit = DateTimeUnit.DAY,
                                                     ),
                                                     condition = condition,
@@ -76,11 +77,11 @@ class CalendarWeatherUiTest {
                     }
                 }
             }
-            for (index in 0 until 18) {
+            for (index in 0 until 2 * conditions.size) {
                 val date = first.plus(value = index, unit = DateTimeUnit.DAY)
                 onNodeWithTag(testTag = "calendar-weather-icon-$date", useUnmergedTree = true).assertIsDisplayed()
             }
-            for (index in listOf(0, 9)) {
+            for (index in listOf(0, conditions.size)) {
                 val date = first.plus(value = index, unit = DateTimeUnit.DAY)
                 val pixels = onNodeWithTag(testTag = "calendar-weather-icon-$date", useUnmergedTree = true)
                     .captureToImage()

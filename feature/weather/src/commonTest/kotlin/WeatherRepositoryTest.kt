@@ -283,7 +283,9 @@ class WeatherRepositoryTest {
                 assertEquals(expected = WeatherCondition.Unknown, actual = weatherCondition(code = 123))
                 assertEquals(expected = WeatherCondition.Thunderstorm, actual = weatherCondition(code = 99))
                 assertEquals(expected = WeatherCondition.Fog, actual = weatherCondition(code = 48))
-                assertEquals(expected = WeatherCondition.Rain, actual = weatherCondition(code = 82))
+                assertEquals(expected = WeatherCondition.Rain, actual = weatherCondition(code = 63))
+                assertEquals(expected = WeatherCondition.HeavyRain, actual = weatherCondition(code = 65))
+                assertEquals(expected = WeatherCondition.HeavyRain, actual = weatherCondition(code = 82))
             } finally {
                 client.close()
             }
