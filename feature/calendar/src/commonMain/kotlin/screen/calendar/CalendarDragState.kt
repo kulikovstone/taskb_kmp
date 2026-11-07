@@ -21,14 +21,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
-import com.mkulikov.taskb.feature.task.api.model.Task
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 
 @Stable
 internal class CalendarDragState {
-    val task: Task? get() = (item as? CalendarItem.TaskItem)?.task
     var item: CalendarItem? by mutableStateOf(null)
         private set
     var position by mutableStateOf(Offset.Zero)
@@ -42,8 +40,6 @@ internal class CalendarDragState {
     val targets = mutableStateMapOf<LocalDate, Rect>()
     val hoveredDay: LocalDate? get() = if (item == null) null else targets.entries.firstOrNull { it.value.contains(position) }?.key
 
-    fun begin(task: Task, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) =
-        begin(CalendarItem.TaskItem(task), position, size, dense, sourceDate)
     fun begin(task: CalendarItem, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) {
         if (task.isHoliday) return
         this.item = task
