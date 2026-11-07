@@ -13,23 +13,33 @@ import kotlinx.coroutines.flow.map
 internal class GroupsStore(
     private val repository: IGroupRepository,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : CoroutineStore<GroupsIntent, GroupsState, GroupsMessage>(GroupsState(), ::reduceGroups, dispatcher) {
+) : CoroutineStore<GroupsIntent, GroupsState, GroupsMessage>(
+    initialState = GroupsState(),
+    reducer = ::reduceGroups,
+    context = dispatcher,
+) {
     private var observation: Job? = null
 
-    init { accept(GroupsIntent.RetryLoad) }
+    init {
+        accept(intent = GroupsIntent.RetryLoad)
+    }
 
     override fun handleIntent(intent: GroupsIntent) {
         when (intent) {
-            is GroupsIntent.Filter -> reduce(GroupsMessage.FilterChanged(intent.filter))
-            is GroupsIntent.Sort -> reduce(GroupsMessage.SortChanged(intent.sort))
+            is GroupsIntent.Filter -> reduce(message = GroupsMessage.FilterChanged(filter = intent.filter))
+            is GroupsIntent.Sort -> reduce(message = GroupsMessage.SortChanged(sort = intent.sort))
             GroupsIntent.RetryLoad -> if (observation?.isActive != true) {
-                reduce(GroupsMessage.Loading)
-                observation = collectEffect(repository.groups.map<List<Group>, GroupsMessage> {
-                    GroupsMessage.Loaded(it)
-                }.catch {
-                    if (it is CancellationException) throw it
-                    emit(GroupsMessage.LoadFailed)
-                })
+                reduce(message = GroupsMessage.Loading)
+                observation = collectEffect(
+                    messages = repository.groups
+                        .map<List<Group>, GroupsMessage> { groups ->
+                            GroupsMessage.Loaded(groups = groups)
+                        }
+                        .catch { exception ->
+                            if (exception is CancellationException) throw exception
+                            emit(value = GroupsMessage.LoadFailed)
+                        }
+                )
             }
         }
     }

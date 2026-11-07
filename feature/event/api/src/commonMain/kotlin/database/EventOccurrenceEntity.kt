@@ -1,14 +1,30 @@
 package com.mkulikov.taskb.feature.event.api.database
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
-import androidx.room3.ColumnInfo
 
-@Entity(tableName = "event_occurrences", primaryKeys = ["scheduleId", "scheduledDate"], foreignKeys = [
-    ForeignKey(entity = EventScheduleEntity::class, parentColumns = ["id"], childColumns = ["scheduleId"], onDelete = ForeignKey.CASCADE),
-    ForeignKey(entity = EventEntity::class, parentColumns = ["id"], childColumns = ["eventId"], onDelete = ForeignKey.CASCADE),
-], indices = [Index("eventId"), Index("scheduleId")])
+@Entity(
+    tableName = "event_occurrences",
+    primaryKeys = ["scheduleId", "scheduledDate"],
+    foreignKeys =
+        [
+            ForeignKey(
+                entity = EventScheduleEntity::class,
+                parentColumns = ["id"],
+                childColumns = ["scheduleId"],
+                onDelete = ForeignKey.CASCADE,
+            ),
+            ForeignKey(
+                entity = EventEntity::class,
+                parentColumns = ["id"],
+                childColumns = ["eventId"],
+                onDelete = ForeignKey.CASCADE,
+            ),
+        ],
+    indices = [Index("eventId"), Index("scheduleId")],
+)
 data class EventOccurrenceEntity(
     val scheduleId: Long,
     val scheduledDate: Long,

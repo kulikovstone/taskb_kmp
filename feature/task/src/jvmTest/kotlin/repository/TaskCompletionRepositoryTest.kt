@@ -6,12 +6,6 @@ import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -20,137 +14,291 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import org.junit.Rule
+import org.junit.rules.TemporaryFolder
 
 class TaskCompletionRepositoryTest {
     @get:Rule val folder = TemporaryFolder()
-    private val zone = TimeZone.of("Asia/Yekaterinburg")
-    private fun day(day: Int) = LocalDate(2026, 11, day)
+    private val zone = TimeZone.of(zoneId = "Asia/Yekaterinburg")
+
+    private fun day(day: Int) = LocalDate(year = 2026, month = 11, day = day)
 
     @Test
-    fun `completion uses the local planned day and survives duplicate requests reopening and database restart`() = runBlocking {
-        val file = folder.root.toPath().resolve("completion-dates.db")
-        // Thursday locally, while UTC is still Wednesday.
-        var now = Instant.parse("2026-11-04T20:30:15.123Z")
-        val createdAt = now
-        val clock = object : Clock { override fun now() = now }
-        val cases = listOf(
-            day(2) to Instant.parse("2026-11-02T18:59:59.999Z"),
-            day(4) to Instant.parse("2026-11-04T18:59:59.999Z"),
-            day(5) to now,
-            day(6) to now,
-            null to now,
-        )
-        val completions = mutableMapOf<Int, Instant>()
-        val db = AppDatabase.open(file)
-        try {
-            val repository = TaskRepository(lazy { db }, clock, { zone })
-            for ((index, case) in cases.withIndex()) {
-                val (date, expected) = case
-                val name = "Task $index"
-                assertTrue(repository.save(Task(name = name, dueDate = date)))
-                val task = repository.tasks.first().single { it.name == name }
-                repository.setCompleted(task.id, true)
-                assertEquals(expected, repository.getById(task.id)?.completedAt)
-                assertEquals(expected.toEpochMilliseconds(), db.taskDao().getById(task.id)?.completedAt)
-                completions[task.id] = expected
+    fun `completion uses the local planned day and survives duplicate requests reopening and database restart`() {
+        runBlocking {
+            val file = folder.root.toPath().resolve("completion-dates.db")
+            // Thursday locally, while UTC is still Wednesday.
+            var now = Instant.parse(input = "2026-11-04T20:30:15.123Z")
+            val createdAt = now
+            val clock =
+                object : Clock {
+                    override fun now() = now
+                }
+            val cases = listOf(
+                day(day = 2) to Instant.parse(input = "2026-11-02T18:59:59.999Z"),
+                day(day = 4) to Instant.parse(input = "2026-11-04T18:59:59.999Z"),
+                day(day = 5) to now,
+                day(day = 6) to now,
+                null to now,
+            )
+            val completions = mutableMapOf<Int, Instant>()
+            val db = AppDatabase.open(file = file)
+            try {
+                val repository = TaskRepository(database = lazy { db }, clock = clock, timeZone = { zone })
+                for ((index, case) in cases.withIndex()) {
+                    val (date, expected) = case
+                    val name = "Task $index"
+                    assertTrue(actual = repository.save(task = Task(name = name, dueDate = date)))
+                    val task = repository.tasks.first().single { task -> task.name == name }
+                    repository.setCompleted(id = task.id, completed = true)
+                    assertEquals(expected = expected, actual = repository.getById(id = task.id)?.completedAt)
+                    assertEquals(
+                        expected = expected.toEpochMilliseconds(),
+                        actual = db.taskDao().getById(id = task.id)?.completedAt,
+                    )
+                    completions[task.id] = expected
+                }
+                now += 5.days
+                for ((id, expected) in completions) {
+                    repository.setCompleted(id = id, completed = true)
+                    assertEquals(expected = expected, actual = repository.getById(id = id)?.completedAt)
+                    assertEquals(expected = createdAt, actual = repository.getById(id = id)?.createdAt)
+                }
+                val id = completions.keys.first()
+                repository.setCompleted(id = id, completed = false)
+                assertNull(actual = repository.getById(id = id)?.completedAt)
+                repository.setCompleted(id = id, completed = true)
+                assertEquals(
+                    expected = completions.getValue(key = id),
+                    actual = repository.getById(id = id)?.completedAt,
+                )
+            } finally {
+                db.close()
             }
-            now += 5.days
-            for ((id, expected) in completions) {
-                repository.setCompleted(id, true)
-                assertEquals(expected, repository.getById(id)?.completedAt)
-                assertEquals(createdAt, repository.getById(id)?.createdAt)
+            val reopened = AppDatabase.open(file = file)
+            try {
+                for ((id, expected) in completions) assertEquals(
+                    expected = expected.toEpochMilliseconds(),
+                    actual = reopened.taskDao().getById(id = id)?.completedAt,
+                )
+            } finally {
+                reopened.close()
             }
-            val id = completions.keys.first()
-            repository.setCompleted(id, false)
-            assertNull(repository.getById(id)?.completedAt)
-            repository.setCompleted(id, true)
-            assertEquals(completions.getValue(id), repository.getById(id)?.completedAt)
-        } finally { db.close() }
-        val reopened = AppDatabase.open(file)
-        try {
-            for ((id, expected) in completions) assertEquals(expected.toEpochMilliseconds(), reopened.taskDao().getById(id)?.completedAt)
-        } finally { reopened.close() }
+        }
     }
 
     @Test
-    fun `end of planned day follows daylight saving transitions instead of adding 24 hours`() = runBlocking {
-        val berlin = TimeZone.of("Europe/Berlin")
-        val cases = listOf(
-            Triple(LocalDate(2026, 3, 29), Instant.parse("2026-03-30T10:00:00Z"), Instant.parse("2026-03-29T21:59:59.999Z")),
-            Triple(LocalDate(2026, 10, 25), Instant.parse("2026-10-26T10:00:00Z"), Instant.parse("2026-10-25T22:59:59.999Z")),
-        )
-        val db = AppDatabase.open(folder.root.toPath().resolve("daylight-saving.db"))
-        try {
-            for ((date, now, expected) in cases) {
-                val clock = object : Clock { override fun now() = now }
-                val repository = TaskRepository(lazy { db }, clock, { berlin })
-                assertTrue(repository.save(Task(name = "$date", dueDate = date)))
-                val task = repository.tasks.first().single { it.dueDate == date }
-                repository.setCompleted(task.id, true)
-                assertEquals(expected, repository.getById(task.id)?.completedAt)
+    fun `end of planned day follows daylight saving transitions instead of adding 24 hours`() {
+        runBlocking {
+            val berlin = TimeZone.of(zoneId = "Europe/Berlin")
+            val cases = listOf(
+                Triple(
+                    first = LocalDate(year = 2026, month = 3, day = 29),
+                    second = Instant.parse(input = "2026-03-30T10:00:00Z"),
+                    third = Instant.parse(input = "2026-03-29T21:59:59.999Z"),
+                ),
+                Triple(
+                    first = LocalDate(year = 2026, month = 10, day = 25),
+                    second = Instant.parse(input = "2026-10-26T10:00:00Z"),
+                    third = Instant.parse(input = "2026-10-25T22:59:59.999Z"),
+                ),
+            )
+            val db = AppDatabase.open(file = folder.root.toPath().resolve("daylight-saving.db"))
+            try {
+                for ((date, now, expected) in cases) {
+                    val clock =
+                        object : Clock {
+                            override fun now() = now
+                        }
+                    val repository = TaskRepository(database = lazy { db }, clock = clock, timeZone = { berlin })
+                    assertTrue(actual = repository.save(task = Task(name = "$date", dueDate = date)))
+                    val task = repository.tasks.first().single { task -> task.dueDate == date }
+                    repository.setCompleted(id = task.id, completed = true)
+                    assertEquals(expected = expected, actual = repository.getById(id = task.id)?.completedAt)
+                }
+            } finally {
+                db.close()
             }
-        } finally { db.close() }
+        }
     }
 
     @Test
-    fun `recurring completion uses the moved date and preserves other occurrences when reopened`() = runBlocking {
-        var now = Instant.parse("2026-11-05T08:30:15.123Z")
-        val clock = object : Clock { override fun now() = now }
-        val db = AppDatabase.open(folder.root.toPath().resolve("moved-completion.db"))
-        try {
-            val repository = TaskRepository(lazy { db }, clock, { zone })
-            assertTrue(repository.save(Task(name = "Routine", dueDate = day(1),
-                recurrence = TaskRecurrence(RecurrenceFrequency.Daily, occurrenceCount = 3))))
-            val events = repository.observeCalendar(day(1), day(6)).first().sortedBy { it.dueDate }
-            val movedDates = listOf(day(3), day(6), day(5))
-            val expected = listOf(Instant.parse("2026-11-03T18:59:59.999Z"), now, now)
-            for ((index, event) in events.withIndex()) {
-                assertTrue(repository.moveOccurrence(event.id, event.occurrenceId, event.dueDate, movedDates[index], TaskChangeScope.ThisOccurrence))
-                assertTrue(repository.setOccurrenceCompleted(event.id, event.occurrenceId, true))
-                assertEquals(expected[index], repository.getOccurrence(event.id, requireNotNull(event.occurrenceId))?.completedAt)
+    fun `recurring completion uses the moved date and preserves other occurrences when reopened`() {
+        runBlocking {
+            var now = Instant.parse(input = "2026-11-05T08:30:15.123Z")
+            val clock =
+                object : Clock {
+                    override fun now() = now
+                }
+            val db = AppDatabase.open(file = folder.root.toPath().resolve("moved-completion.db"))
+            try {
+                val repository = TaskRepository(database = lazy { db }, clock = clock, timeZone = { zone })
+                assertTrue(
+                    actual = repository.save(
+                        task = Task(
+                            name = "Routine",
+                            dueDate = day(day = 1),
+                            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily, occurrenceCount = 3),
+                        )
+                    )
+                )
+                val events = repository.observeCalendar(
+                    from = day(day = 1),
+                    through = day(day = 6),
+                ).first().sortedBy(selector = Task::dueDate)
+                val movedDates = listOf(day(day = 3), day(day = 6), day(day = 5))
+                val expected = listOf(Instant.parse(input = "2026-11-03T18:59:59.999Z"), now, now)
+                for ((index, event) in events.withIndex()) {
+                    assertTrue(
+                        actual = repository.moveOccurrence(
+                            id = event.id,
+                            occurrence = event.occurrenceId,
+                            expectedDate = event.dueDate,
+                            date = movedDates[index],
+                            scope = TaskChangeScope.ThisOccurrence,
+                        )
+                    )
+                    assertTrue(
+                        actual = repository.setOccurrenceCompleted(
+                            id = event.id,
+                            occurrence = event.occurrenceId,
+                            completed = true,
+                        )
+                    )
+                    assertEquals(
+                        expected = expected[index],
+                        actual = repository
+                            .getOccurrence(id = event.id, occurrence = requireNotNull(value = event.occurrenceId))
+                            ?.completedAt,
+                    )
+                }
+                now += 5.days
+                for ((index, event) in events.withIndex()) {
+                    assertTrue(
+                        actual = repository.setOccurrenceCompleted(
+                            id = event.id,
+                            occurrence = event.occurrenceId,
+                            completed = true,
+                        )
+                    )
+                    assertEquals(
+                        expected = expected[index],
+                        actual = repository
+                            .getOccurrence(id = event.id, occurrence = requireNotNull(value = event.occurrenceId))
+                            ?.completedAt,
+                    )
+                }
+                val first = events.first()
+                val key = requireNotNull(value = first.occurrenceId)
+                assertTrue(
+                    actual = repository.setOccurrenceCompleted(id = first.id, occurrence = key, completed = false)
+                )
+                assertNull(actual = repository.getOccurrence(id = first.id, occurrence = key)?.completedAt)
+                assertTrue(
+                    actual = repository.moveOccurrence(
+                        id = first.id,
+                        occurrence = key,
+                        expectedDate = day(day = 3),
+                        date = day(day = 4),
+                        scope = TaskChangeScope.ThisOccurrence,
+                    )
+                )
+                assertTrue(
+                    actual = repository.setOccurrenceCompleted(id = first.id, occurrence = key, completed = true)
+                )
+                val completed = assertNotNull(actual = repository.getOccurrence(id = first.id, occurrence = key))
+                assertEquals(expected = day(day = 4), actual = completed.dueDate)
+                assertEquals(
+                    expected = Instant.parse(input = "2026-11-04T18:59:59.999Z"),
+                    actual = completed.completedAt,
+                )
+                for (index in 1..2) assertEquals(
+                    expected = expected[index],
+                    actual = repository
+                        .getOccurrence(
+                            id = events[index].id,
+                            occurrence = requireNotNull(value = events[index].occurrenceId),
+                        )
+                        ?.completedAt,
+                )
+            } finally {
+                db.close()
             }
-            now += 5.days
-            for ((index, event) in events.withIndex()) {
-                assertTrue(repository.setOccurrenceCompleted(event.id, event.occurrenceId, true))
-                assertEquals(expected[index], repository.getOccurrence(event.id, requireNotNull(event.occurrenceId))?.completedAt)
-            }
-            val first = events.first()
-            val key = requireNotNull(first.occurrenceId)
-            assertTrue(repository.setOccurrenceCompleted(first.id, key, false))
-            assertNull(repository.getOccurrence(first.id, key)?.completedAt)
-            assertTrue(repository.moveOccurrence(first.id, key, day(3), day(4), TaskChangeScope.ThisOccurrence))
-            assertTrue(repository.setOccurrenceCompleted(first.id, key, true))
-            val completed = assertNotNull(repository.getOccurrence(first.id, key))
-            assertEquals(day(4), completed.dueDate)
-            assertEquals(Instant.parse("2026-11-04T18:59:59.999Z"), completed.completedAt)
-            for (index in 1..2) assertEquals(expected[index], repository.getOccurrence(events[index].id, requireNotNull(events[index].occurrenceId))?.completedAt)
-        } finally { db.close() }
+        }
     }
 
     @Test
-    fun `finished series keeps the latest completion date regardless of the order in which events were checked off`() = runBlocking {
-        val clock = object : Clock { override fun now() = Instant.parse("2026-11-05T08:30:00Z") }
-        val db = AppDatabase.open(folder.root.toPath().resolve("series-completion.db"))
-        try {
-            val repository = TaskRepository(lazy { db }, clock, { zone })
-            assertTrue(repository.save(Task(name = "Routine", dueDate = day(1),
-                recurrence = TaskRecurrence(RecurrenceFrequency.Daily, occurrenceCount = 3))))
-            val events = repository.observeCalendar(day(1), day(3)).first().sortedBy { it.dueDate }
-            for (index in listOf(2, 0, 1)) {
-                val event = events[index]
-                assertTrue(repository.setOccurrenceCompleted(event.id, event.occurrenceId, true))
+    fun `finished series keeps the latest completion date regardless of the order in which events were checked off`() {
+        runBlocking {
+            val clock =
+                object : Clock {
+                    override fun now() = Instant.parse(input = "2026-11-05T08:30:00Z")
+                }
+            val db = AppDatabase.open(file = folder.root.toPath().resolve("series-completion.db"))
+            try {
+                val repository = TaskRepository(database = lazy { db }, clock = clock, timeZone = { zone })
+                assertTrue(
+                    actual = repository.save(
+                        task = Task(
+                            name = "Routine",
+                            dueDate = day(day = 1),
+                            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily, occurrenceCount = 3),
+                        )
+                    )
+                )
+                val events = repository.observeCalendar(
+                    from = day(day = 1),
+                    through = day(day = 3),
+                ).first().sortedBy(selector = Task::dueDate)
+                for (index in listOf(2, 0, 1)) {
+                    val event = events[index]
+                    assertTrue(
+                        actual = repository.setOccurrenceCompleted(
+                            id = event.id,
+                            occurrence = event.occurrenceId,
+                            completed = true,
+                        )
+                    )
+                }
+                val expected = Instant.parse(input = "2026-11-03T18:59:59.999Z")
+                val id = events.first().id
+                assertEquals(expected = expected, actual = repository.getById(id = id)?.completedAt)
+                assertEquals(
+                    expected = expected.toEpochMilliseconds(),
+                    actual = db.taskDao().getById(id = id)?.completedAt,
+                )
+                assertTrue(actual = repository.observeTaskList(today = day(day = 5)).first().isEmpty())
+                assertEquals(
+                    expected = 3,
+                    actual = repository.observeCalendar(
+                        from = day(day = 1),
+                        through = day(day = 3),
+                    ).first().count(predicate = Task::isCompleted),
+                )
+                val middle = events[1]
+                assertTrue(
+                    actual = repository.setOccurrenceCompleted(
+                        id = id,
+                        occurrence = middle.occurrenceId,
+                        completed = false,
+                    )
+                )
+                assertNull(actual = repository.getById(id = id)?.completedAt)
+                assertTrue(
+                    actual = repository.setOccurrenceCompleted(
+                        id = id,
+                        occurrence = middle.occurrenceId,
+                        completed = true,
+                    )
+                )
+                assertEquals(expected = expected, actual = repository.getById(id = id)?.completedAt)
+            } finally {
+                db.close()
             }
-            val expected = Instant.parse("2026-11-03T18:59:59.999Z")
-            val id = events.first().id
-            assertEquals(expected, repository.getById(id)?.completedAt)
-            assertEquals(expected.toEpochMilliseconds(), db.taskDao().getById(id)?.completedAt)
-            assertTrue(repository.observeTaskList(day(5)).first().isEmpty())
-            assertEquals(3, repository.observeCalendar(day(1), day(3)).first().count { it.isCompleted })
-            val middle = events[1]
-            assertTrue(repository.setOccurrenceCompleted(id, middle.occurrenceId, false))
-            assertNull(repository.getById(id)?.completedAt)
-            assertTrue(repository.setOccurrenceCompleted(id, middle.occurrenceId, true))
-            assertEquals(expected, repository.getById(id)?.completedAt)
-        } finally { db.close() }
+        }
     }
 }

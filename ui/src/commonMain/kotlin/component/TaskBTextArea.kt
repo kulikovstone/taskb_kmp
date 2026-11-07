@@ -38,29 +38,36 @@ fun TaskBTextArea(
     enabled: Boolean = true,
 ) {
     val colors = TaskBTheme.colors
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(size = 8.dp)
     val textStyle = TaskBTheme.typography.body.copy(
         color = colors.text,
-        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.None,
+        ),
     )
-    var focused by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(value = false) }
     BasicTextField(
         state = state,
         enabled = enabled,
         lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = minLines),
         textStyle = textStyle,
-        cursorBrush = SolidColor(colors.accent),
+        cursorBrush = SolidColor(value = colors.accent),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
         modifier = modifier
-            .onFocusChanged { focused = it.isFocused }
-            .clip(shape)
-            .background(colors.surface)
-            .border(if (focused) 2.dp else 1.dp, if (focused) colors.accent else colors.border, shape)
+            .onFocusChanged { focusState -> focused = focusState.isFocused }
+            .clip(shape = shape)
+            .background(color = colors.surface)
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = if (focused) colors.accent else colors.border,
+                shape = shape,
+            )
             .semantics { contentDescription = description },
         decorator = TextFieldDecorator { inner ->
-            Box(Modifier.padding(12.dp)) {
+            Box(modifier = Modifier.padding(all = 12.dp)) {
                 if (state.text.isEmpty()) {
-                    Text(placeholder, style = textStyle, color = colors.muted)
+                    Text(text = placeholder, style = textStyle, color = colors.muted)
                 }
                 inner()
             }

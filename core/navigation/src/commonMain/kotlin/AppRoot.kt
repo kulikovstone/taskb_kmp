@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.core.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -15,10 +15,10 @@ import org.koin.compose.koinInject
 fun AppRoot(startDestination: NavKey, modifier: Modifier = Modifier) {
     val navigator = koinInject<AppNavigator>()
     val koin = getKoin()
-    val entries = remember(koin) { koin.getAll<INavEntry>() }
+    val entries = remember(key1 = koin) { koin.getAll<INavEntry>() }
 
-    remember(navigator, startDestination) {
-        navigator.setStartDestination(startDestination)
+    remember(key1 = navigator, key2 = startDestination) {
+        navigator.setStartDestination(key = startDestination)
     }
 
     NavDisplay(
@@ -30,7 +30,7 @@ fun AppRoot(startDestination: NavKey, modifier: Modifier = Modifier) {
             rememberEntryResourceNavEntryDecorator(),
         ),
         entryProvider = entryProvider {
-            entries.forEach { it.register(this, navigator) }
+            entries.forEach { entry -> entry.register(scope = this, navigator = navigator) }
         },
     )
 }

@@ -3,39 +3,58 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.event.api.model.endDateTime
 import com.mkulikov.taskb.feature.event.api.model.startDateTime
+import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.Padding
 import kotlinx.datetime.minus
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 
 private val eventDateLabel = LocalDate.Format {
-    day(Padding.NONE)
-    chars(" ")
-    monthName(MonthNames.ENGLISH_ABBREVIATED)
+    day(padding = Padding.NONE)
+    chars(value = " ")
+    monthName(names = MonthNames.ENGLISH_ABBREVIATED)
 }
 
-internal fun LocalTime.calendarTimeLabel(): String =
-    hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0')
+internal fun LocalTime.calendarTimeLabel(): String {
+    return hour.toString().padStart(length = 2, padChar = '0') +
+        ":" +
+        minute.toString().padStart(length = 2, padChar = '0')
+}
 
 internal val Event.calendarLastDate: LocalDate?
     get() {
         val end = endDateTime ?: return endDate
-        return if (end.time == LocalTime(0, 0)) end.date.minus(1, DateTimeUnit.DAY) else end.date
+        return if (end.time == LocalTime(hour = 0, minute = 0)) {
+            end.date.minus(value = 1, unit = DateTimeUnit.DAY)
+        } else {
+            end.date
+        }
     }
 
 internal val Event.isMultiDayCalendarEvent: Boolean
-    get() = calendarLastDate?.let { it > requireNotNull(dueDate) } == true
+    get() = calendarLastDate?.let { date -> date > requireNotNull(value = dueDate) } == true
 
-internal fun Event.isPastCalendarEvent(now: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): Boolean =
-    (endDateTime ?: startDateTime)?.let { it <= now.toLocalDateTime(timeZone) } == true
+internal fun Event.isPastCalendarEvent(
+    now: Instant,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): Boolean {
+    return (endDateTime ?: startDateTime)?.let { dateTime ->
+        dateTime <= now.toLocalDateTime(timeZone = timeZone)
+    } == true
+}
 
-internal fun Event.isPastCalendarEntry(date: LocalDate?, now: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): Boolean =
-    date?.let { it < now.toLocalDateTime(timeZone).date } == true || isPastCalendarEvent(now, timeZone)
+internal fun Event.isPastCalendarEntry(
+    date: LocalDate?,
+    now: Instant,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): Boolean {
+    return date?.let { date -> date < now.toLocalDateTime(timeZone = timeZone).date } == true ||
+        isPastCalendarEvent(now = now, timeZone = timeZone)
+}
 
 internal fun calendarMonthEventText(task: Event, date: LocalDate?): String {
     val start = task.startDateTime ?: return task.name
@@ -43,8 +62,8 @@ internal fun calendarMonthEventText(task: Event, date: LocalDate?): String {
         return "${start.time.calendarTimeLabel()} ${task.name}"
     }
     if (date == task.calendarLastDate) {
-        val end = requireNotNull(task.endDateTime)
-        val time = if (end.time == LocalTime(0, 0)) "24:00" else end.time.calendarTimeLabel()
+        val end = requireNotNull(value = task.endDateTime)
+        val time = if (end.time == LocalTime(hour = 0, minute = 0)) "24:00" else end.time.calendarTimeLabel()
         return "${task.name} $time"
     }
     return task.name
@@ -57,12 +76,16 @@ internal fun calendarEventTimeRange(task: Event): String {
         end == null -> start.time.calendarTimeLabel()
         start.date == end.date -> "${start.time.calendarTimeLabel()}–${end.time.calendarTimeLabel()}"
         else -> {
-            fun dateLabel(date: LocalDate): String = eventDateLabel.format(date) +
-                if (start.year != end.year) " ${date.year}" else ""
-            "${dateLabel(start.date)}, ${start.time.calendarTimeLabel()}–${dateLabel(end.date)}, ${end.time.calendarTimeLabel()}"
+            fun dateLabel(date: LocalDate): String {
+                return eventDateLabel.format(value = date) +
+                    if (start.year != end.year) " ${date.year}" else ""
+            }
+            ("${dateLabel(date = start.date)}, " +
+                "${start.time.calendarTimeLabel()}–${dateLabel(date = end.date)}, " +
+                end.time.calendarTimeLabel())
         }
     }
-    return "$range (${calendarEventDuration(task.durationMinutes ?: 60)})"
+    return "$range (${calendarEventDuration(minutes = task.durationMinutes ?: 60)})"
 }
 
 internal fun calendarEventDuration(minutes: Int): String {
@@ -70,8 +93,9 @@ internal fun calendarEventDuration(minutes: Int): String {
     val hours = minutes % 1440 / 60
     val remainder = minutes % 60
     return buildList {
-        if (days > 0) add("$days ${if (days == 1) "day" else "days"}")
-        if (hours > 0) add(if (days == 0 && hours == 1 && remainder == 0) "1 hour" else "$hours hr")
-        if (remainder > 0) add("$remainder min")
-    }.joinToString(" ")
+            if (days > 0) add(element = "$days ${if (days == 1) "day" else "days"}")
+            if (hours > 0) add(element = if (days == 0 && hours == 1 && remainder == 0) "1 hour" else "$hours hr")
+            if (remainder > 0) add(element = "$remainder min")
+        }
+        .joinToString(separator = " ")
 }

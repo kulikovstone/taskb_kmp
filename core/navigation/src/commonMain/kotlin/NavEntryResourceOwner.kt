@@ -7,12 +7,12 @@ internal class NavEntryResourceOwner : RememberObserver, AutoCloseable {
     private var closed = false
 
     fun resourcesFor(contentKey: Any): NavEntryResources {
-        check(!closed) { "NavEntry resource owner is already closed" }
-        return entries.getOrPut(contentKey) { NavEntryResources() }
+        check(value = !closed) { "NavEntry resource owner is already closed" }
+        return entries.getOrPut(key = contentKey) { NavEntryResources() }
     }
 
     fun remove(contentKey: Any) {
-        entries.remove(contentKey)?.close()
+        entries.remove(key = contentKey)?.close()
     }
 
     override fun close() {
@@ -20,10 +20,12 @@ internal class NavEntryResourceOwner : RememberObserver, AutoCloseable {
         closed = true
         val toClose = entries.values.toList()
         entries.clear()
-        closeAll(toClose)
+        closeAll(resources = toClose)
     }
 
     override fun onRemembered() = Unit
+
     override fun onForgotten() = close()
+
     override fun onAbandoned() = close()
 }

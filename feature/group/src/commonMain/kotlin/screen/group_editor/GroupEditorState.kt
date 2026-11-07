@@ -17,14 +17,24 @@ internal data class GroupEditorState(
     val loadError: String? = null,
     val dialog: GroupEditorDialog? = null,
 ) {
-    val isBusy: Boolean get() = isLoading || isSaving || isDeleting
-    val normalizedName: String get() = name.text.toString().trim()
-    val canSave: Boolean get() = !isBusy && !isFinished && loadError == null && normalizedName.isNotEmpty() &&
-        (isNew || original?.let { it.name != normalizedName || it.color != color } == true)
+    val isBusy: Boolean
+        get() = isLoading || isSaving || isDeleting
+
+    val normalizedName: String
+        get() = name.text.toString().trim()
+
+    val canSave: Boolean
+        get() = !isBusy &&
+            !isFinished &&
+            loadError == null &&
+            normalizedName.isNotEmpty() &&
+            (isNew || original?.let { group -> group.name != normalizedName || group.color != color } == true)
 }
 
 internal sealed interface GroupEditorDialog {
     data object NameConflict : GroupEditorDialog
+
     data object ConfirmDelete : GroupEditorDialog
+
     data class Error(val message: String) : GroupEditorDialog
 }

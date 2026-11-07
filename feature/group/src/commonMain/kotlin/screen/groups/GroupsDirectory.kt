@@ -1,7 +1,7 @@
 package com.mkulikov.taskb.feature.group.screen.groups
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,9 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
-import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.ui.component.TaskBSortHeader
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -44,18 +44,46 @@ private val GroupSortHeaderPadding = 16.dp
 @Composable
 internal fun GroupsFilters(state: GroupsState, onIntent: (GroupsIntent) -> Unit) {
     val colors = TaskBTheme.colors
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        listOf(GroupFilter.All to "All  ${state.groups.size}", GroupFilter.WithTasks to "With tasks  ${state.withTasksCount}", GroupFilter.Empty to "Empty ${state.emptyCount}").forEach { (filter, label) ->
-            val selected = state.filter == filter
-            Column(
-                Modifier.width(IntrinsicSize.Max).height(40.dp).selectable(selected, role = Role.Tab, onClick = { onIntent(GroupsIntent.Filter(filter)) }),
-            ) {
-                Box(Modifier.weight(1f).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                    Text(label, color = if (selected) colors.accent else colors.secondary, style = TaskBTheme.typography.label, maxLines = 1)
+    Row(
+        modifier = Modifier.horizontalScroll(state = rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
+    ) {
+        listOf(
+                GroupFilter.All to "All  ${state.groups.size}",
+                GroupFilter.WithTasks to "With tasks  ${state.withTasksCount}",
+                GroupFilter.Empty to "Empty ${state.emptyCount}",
+            )
+            .forEach { (filter, label) ->
+                val selected = state.filter == filter
+                Column(
+                    modifier = Modifier
+                        .width(intrinsicSize = IntrinsicSize.Max)
+                        .height(height = 40.dp)
+                        .selectable(
+                            selected = selected,
+                            role = Role.Tab,
+                            onClick = { onIntent(GroupsIntent.Filter(filter = filter)) },
+                        )
+                ) {
+                    Box(
+                        modifier = Modifier.weight(weight = 1f).padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (selected) colors.accent else colors.secondary,
+                            style = TaskBTheme.typography.label,
+                            maxLines = 1,
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(height = 2.dp)
+                            .background(color = if (selected) colors.accent else colors.surface)
+                    )
                 }
-                Box(Modifier.fillMaxWidth().height(2.dp).background(if (selected) colors.accent else colors.surface))
             }
-        }
     }
 }
 
@@ -69,35 +97,79 @@ internal fun GroupsDirectory(
 ) {
     val colors = TaskBTheme.colors
     val groups = state.visibleGroups
-    Column(modifier) {
-        Box(Modifier.fillMaxWidth().height(if (compact) 28.dp else 40.dp), contentAlignment = Alignment.CenterStart) {
-            Text(state.summary, color = colors.muted, style = TaskBTheme.typography.section.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal))
-        }
-        if (compact) Spacer(Modifier.height(16.dp)) else {
-            Row(
-                Modifier.fillMaxWidth().padding(
-                    start = GroupRowHorizontalPadding + GroupMarkSize + GroupRowSpacing - GroupSortHeaderPadding,
-                    end = GroupRowHorizontalPadding,
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier.fillMaxWidth().height(height = if (compact) 28.dp else 40.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text(
+                text = state.summary,
+                color = colors.muted,
+                style = TaskBTheme.typography.section.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
                 ),
+            )
+        }
+        if (compact) {
+            Spacer(modifier = Modifier.height(height = 16.dp))
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = GroupRowHorizontalPadding + GroupMarkSize + GroupRowSpacing -
+                            GroupSortHeaderPadding,
+                        end = GroupRowHorizontalPadding,
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(GroupRowSpacing),
+                horizontalArrangement = Arrangement.spacedBy(space = GroupRowSpacing),
             ) {
-                SortHeader("Name", GroupSort.Name, state, onIntent, Modifier.weight(1f))
-                SortHeader("Tasks", GroupSort.Tasks, state, onIntent, Modifier.width(96.dp), centered = true)
-                Spacer(Modifier.width(20.dp))
+                SortHeader(
+                    label = "Name",
+                    sort = GroupSort.Name,
+                    state = state,
+                    onIntent = onIntent,
+                    modifier = Modifier.weight(weight = 1f),
+                )
+                SortHeader(
+                    label = "Tasks",
+                    sort = GroupSort.Tasks,
+                    state = state,
+                    onIntent = onIntent,
+                    modifier = Modifier.width(width = 96.dp),
+                    centered = true,
+                )
+                Spacer(modifier = Modifier.width(width = 20.dp))
             }
             Divider(color = colors.border)
         }
         when {
-            state.isLoading -> TaskBLoading(Modifier.weight(1f))
-            state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(GroupsIntent.RetryLoad) })
-            groups.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                Text(if (state.groups.isEmpty()) "No groups yet." else "No groups match your search or filter.", style = TaskBTheme.typography.body, color = colors.muted)
+            state.isLoading -> TaskBLoading(modifier = Modifier.weight(weight = 1f))
+            state.loadError != null -> TaskBLoadError(
+                message = state.loadError,
+                onRetry = { onIntent(GroupsIntent.RetryLoad) },
+            )
+            groups.isEmpty() -> Box(
+                modifier = Modifier.fillMaxSize().padding(all = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (state.groups.isEmpty()) {
+                        "No groups yet."
+                    } else {
+                        "No groups match your search or filter."
+                    },
+                    style = TaskBTheme.typography.body,
+                    color = colors.muted,
+                )
             }
-            else -> LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
-                items(groups, key = { it.id }) { group ->
-                    GroupRow(group, compact = compact,
-                        showDivider = !compact || group.id != groups.last().id) {
+            else -> LazyColumn(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
+                items(items = groups, key = Group::id) { group ->
+                    GroupRow(
+                        group = group,
+                        compact = compact,
+                        showDivider = !compact || group.id != groups.last().id,
+                    ) {
                         onOpenGroup(group.id)
                     }
                 }
@@ -123,8 +195,8 @@ private fun SortHeader(
             label = label,
             isActive = state.sort == sort,
             reverseSort = state.reverseSort,
-            onClick = { onIntent(GroupsIntent.Sort(sort)) },
-            contentPadding = PaddingValues(GroupSortHeaderPadding),
+            onClick = { onIntent(GroupsIntent.Sort(sort = sort)) },
+            contentPadding = PaddingValues(all = GroupSortHeaderPadding),
         )
     }
 }
@@ -132,22 +204,54 @@ private fun SortHeader(
 @Composable
 private fun GroupRow(group: Group, compact: Boolean, showDivider: Boolean, onClick: () -> Unit) {
     val colors = TaskBTheme.colors
-    Column(Modifier.fillMaxWidth().background(colors.surface)
-        .clickable(role = Role.Button, onClick = onClick)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color = colors.surface)
+            .clickable(role = Role.Button, onClick = onClick)
+    ) {
         Row(
-            Modifier.fillMaxWidth().height(if (showDivider) 63.dp else 64.dp).padding(horizontal = GroupRowHorizontalPadding),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height = if (showDivider) 63.dp else 64.dp)
+                .padding(horizontal = GroupRowHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(GroupRowSpacing),
+            horizontalArrangement = Arrangement.spacedBy(space = GroupRowSpacing),
         ) {
-            Box(Modifier.size(GroupMarkSize), contentAlignment = Alignment.Center) {
-                Icon(TaskBIcons.FolderFilled, contentDescription = null, tint = group.color.color, modifier = Modifier.size(20.dp))
+            Box(modifier = Modifier.size(size = GroupMarkSize), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = TaskBIcons.FolderFilled,
+                    contentDescription = null,
+                    tint = group.color.color,
+                    modifier = Modifier.size(size = 20.dp),
+                )
             }
-            Text(group.name, modifier = Modifier.weight(1f), color = colors.text, style = TaskBTheme.typography.section, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Box(if (compact) Modifier else Modifier.width(96.dp), contentAlignment = Alignment.Center) {
+            Text(
+                text = group.name,
+                modifier = Modifier.weight(weight = 1f),
+                color = colors.text,
+                style = TaskBTheme.typography.section,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Box(
+                modifier = if (compact) Modifier else Modifier.width(width = 96.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 val count = group.tasks.planned
-                Text(if (compact) "$count ${if (count == 1) "task" else "tasks"}" else count.toString(), color = colors.muted, style = TaskBTheme.typography.body)
+                Text(
+                    text = if (compact) "$count ${if (count == 1) "task" else "tasks"}" else count.toString(),
+                    color = colors.muted,
+                    style = TaskBTheme.typography.body,
+                )
             }
-            if (!compact) Icon(TaskBIcons.ChevronRight, contentDescription = null, tint = colors.muted, modifier = Modifier.size(20.dp))
+            if (!compact)
+                Icon(
+                    imageVector = TaskBIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = colors.muted,
+                    modifier = Modifier.size(size = 20.dp),
+                )
         }
         if (showDivider) Divider(color = colors.border, thickness = 1.dp)
     }

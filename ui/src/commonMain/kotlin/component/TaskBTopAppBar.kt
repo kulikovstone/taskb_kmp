@@ -1,7 +1,7 @@
 package com.mkulikov.taskb.ui.component
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -39,7 +39,7 @@ fun TaskBTopAppBar(
 ) {
     if (titleSpacing == null) {
         TopAppBar(
-            modifier = modifier.height(64.dp),
+            modifier = modifier.height(height = 64.dp),
             backgroundColor = TaskBTheme.colors.surface,
             contentColor = TaskBTheme.colors.heading,
             elevation = 0.dp,
@@ -56,7 +56,7 @@ fun TaskBTopAppBar(
             },
             navigationIcon = {
                 IconButton(onClick = onBack, enabled = backEnabled) {
-                    Icon(backIcon, contentDescription = backContentDescription)
+                    Icon(imageVector = backIcon, contentDescription = backContentDescription)
                 }
             },
             actions = actions,
@@ -64,18 +64,18 @@ fun TaskBTopAppBar(
         return
     }
     TopAppBar(
-        modifier = modifier.height(64.dp),
+        modifier = modifier.height(height = 64.dp),
         backgroundColor = TaskBTheme.colors.surface,
         contentColor = TaskBTheme.colors.heading,
         elevation = 0.dp,
         contentPadding = PaddingValues(horizontal = 4.dp),
     ) {
-        CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
+        CompositionLocalProvider(value = LocalContentAlpha provides ContentAlpha.high) {
             IconButton(onClick = onBack, enabled = backEnabled) {
-                Icon(backIcon, contentDescription = backContentDescription)
+                Icon(imageVector = backIcon, contentDescription = backContentDescription)
             }
-            Spacer(Modifier.width(titleSpacing))
-            Column(Modifier.weight(1f)) {
+            Spacer(modifier = Modifier.width(width = titleSpacing))
+            Column(modifier = Modifier.weight(weight = 1f)) {
                 Text(
                     text = title,
                     maxLines = 1,

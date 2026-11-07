@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.GroupSelectionRoute
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBEditorTopAppBar
@@ -34,49 +35,76 @@ import org.koin.compose.koinInject
 
 @Composable
 internal fun GroupSelectionScreen(
-    route: GroupSelectionRoute, onBack: () -> Unit, onCreateGroup: () -> Unit,
+    route: GroupSelectionRoute,
+    onBack: () -> Unit,
+    onCreateGroup: () -> Unit,
     onSelected: (GroupSelectionResult) -> Unit,
 ) {
     val repository = koinInject<IGroupRepository>()
-    val store = rememberNavEntryResource("group-selection") {
-        GroupSelectionStore(repository, route.selectedGroupId, route.showNoGroup, route.noGroupSelected)
+    val store = rememberNavEntryResource(key = "group-selection") {
+        GroupSelectionStore(
+            repository = repository,
+            selectedGroupId = route.selectedGroupId,
+            showNoGroup = route.showNoGroup,
+            noGroupSelected = route.noGroupSelected,
+        )
     }
     val state by store.state.collectAsState()
-    LaunchedEffect(state.result) { state.result?.let(onSelected) }
-    Surface(Modifier.fillMaxSize()) {
-        GroupSelectionContent(state, store::accept, onBack, onCreateGroup)
+    LaunchedEffect(key1 = state.result) { state.result?.let(block = onSelected) }
+    Surface(modifier = Modifier.fillMaxSize()) {
+        GroupSelectionContent(
+            state = state,
+            onIntent = store::accept,
+            onBack = onBack,
+            onCreateGroup = onCreateGroup,
+        )
     }
 }
 
 @Composable
 internal fun GroupSelectionContent(
-    state: GroupSelectionState, onIntent: (GroupSelectionIntent) -> Unit,
-    onBack: () -> Unit, onCreateGroup: () -> Unit,
+    state: GroupSelectionState,
+    onIntent: (GroupSelectionIntent) -> Unit,
+    onBack: () -> Unit,
+    onCreateGroup: () -> Unit,
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val wide = maxWidth >= 840.dp
-        Column(Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             if (wide) {
-                TaskBEditorTopAppBar("Choose group", onBack, backEnabled = true) {
-                    TaskBEditorButton("New group", TaskBIcons.Add, onCreateGroup)
+                TaskBEditorTopAppBar(title = "Choose group", onBack = onBack, backEnabled = true) {
+                    TaskBEditorButton(label = "New group", icon = TaskBIcons.Add, onClick = onCreateGroup)
                 }
             } else {
-                TaskBTopAppBar("Choose group", onBack, titleSpacing = 4.dp) {
+                TaskBTopAppBar(title = "Choose group", onBack = onBack, titleSpacing = 4.dp) {
                     IconButton(onClick = onCreateGroup) {
-                        Icon(TaskBIcons.Add, contentDescription = "Add group", tint = TaskBTheme.colors.accent)
+                        Icon(
+                            imageVector = TaskBIcons.Add,
+                            contentDescription = "Add group",
+                            tint = TaskBTheme.colors.accent,
+                        )
                     }
                 }
             }
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                Column(Modifier.widthIn(max = 768.dp).fillMaxSize().padding(24.dp)) {
-                    TaskBTextField(state.query, "Search groups",
-                        placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(16.dp))
-                    val modifier = Modifier.weight(1f).fillMaxWidth()
+            Box(modifier = Modifier.weight(weight = 1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                Column(modifier = Modifier.widthIn(max = 768.dp).fillMaxSize().padding(all = 24.dp)) {
+                    TaskBTextField(
+                        state = state.query,
+                        description = "Search groups",
+                        placeholder = "Search groups",
+                        search = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(height = 16.dp))
+                    val modifier = Modifier.weight(weight = 1f).fillMaxWidth()
                     when {
-                        state.isLoading -> TaskBLoading(modifier)
-                        state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(GroupSelectionIntent.RetryLoad) }, modifier)
-                        else -> GroupSelectionList(state, onIntent, modifier)
+                        state.isLoading -> TaskBLoading(modifier = modifier)
+                        state.loadError != null -> TaskBLoadError(
+                            message = state.loadError,
+                            onRetry = { onIntent(GroupSelectionIntent.RetryLoad) },
+                            modifier = modifier,
+                        )
+                        else -> GroupSelectionList(state = state, onIntent = onIntent, modifier = modifier)
                     }
                 }
             }
@@ -85,24 +113,48 @@ internal fun GroupSelectionContent(
 }
 
 @Composable
-private fun GroupSelectionList(state: GroupSelectionState, onIntent: (GroupSelectionIntent) -> Unit, modifier: Modifier) {
+private fun GroupSelectionList(
+    state: GroupSelectionState,
+    onIntent: (GroupSelectionIntent) -> Unit,
+    modifier: Modifier,
+) {
     val scroll = rememberLazyListState()
     val scrollbar = scroll.canScrollForward || scroll.canScrollBackward
-    Box(modifier.selectableGroup()) {
-        LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().padding(end = if (scrollbar) 20.dp else 0.dp)) {
-            if (state.isNoGroupVisible) item(key = "none") {
-                TaskBSelectionRow("No group", state.noGroupSelected,
-                    { onIntent(GroupSelectionIntent.Select(null)) }, reserveGroupIconSpace = true)
+    Box(modifier = modifier.selectableGroup()) {
+        LazyColumn(
+            state = scroll,
+            modifier = Modifier.fillMaxSize().padding(end = if (scrollbar) 20.dp else 0.dp),
+        ) {
+            if (state.isNoGroupVisible)
+                item(key = "none") {
+                    TaskBSelectionRow(
+                        label = "No group",
+                        selected = state.noGroupSelected,
+                        onClick = { onIntent(GroupSelectionIntent.Select(groupId = null)) },
+                        reserveGroupIconSpace = true,
+                    )
+                }
+            items(items = state.matchingGroups, key = Group::id) { group ->
+                TaskBSelectionRow(
+                    label = group.name,
+                    selected = state.selectedGroupId == group.id,
+                    onClick = { onIntent(GroupSelectionIntent.Select(groupId = group.id)) },
+                    groupColor = group.color.color,
+                )
             }
-            items(state.matchingGroups, key = { it.id }) { group ->
-                TaskBSelectionRow(group.name, state.selectedGroupId == group.id,
-                    { onIntent(GroupSelectionIntent.Select(group.id)) }, group.color.color)
-            }
-            if (state.matchingGroups.isEmpty() && !state.isNoGroupVisible) item {
-                Text(if (state.query.text.isBlank()) "No groups yet." else "No groups match your search.",
-                    color = TaskBTheme.colors.muted, modifier = Modifier.padding(vertical = 24.dp))
-            }
+            if (state.matchingGroups.isEmpty() && !state.isNoGroupVisible)
+                item {
+                    Text(
+                        text = if (state.query.text.isBlank()) "No groups yet." else "No groups match your search.",
+                        color = TaskBTheme.colors.muted,
+                        modifier = Modifier.padding(vertical = 24.dp),
+                    )
+                }
         }
-        if (scrollbar) TaskBVerticalScrollbar(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+        if (scrollbar)
+            TaskBVerticalScrollbar(
+                state = scroll,
+                modifier = Modifier.align(alignment = Alignment.CenterEnd).fillMaxHeight(),
+            )
     }
 }

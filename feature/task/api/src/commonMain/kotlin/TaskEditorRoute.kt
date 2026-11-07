@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.task.api
 
 import androidx.navigation3.runtime.NavKey
-import kotlinx.datetime.LocalDate
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import kotlinx.datetime.LocalDate
 
 /** Opens a task editor independently of the tasks list. Defaults apply only to a new task. */
 sealed interface TaskEditorRoute : NavKey {

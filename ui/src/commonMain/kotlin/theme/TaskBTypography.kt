@@ -20,7 +20,12 @@ object TaskBTypography {
     val section = body.copy(fontSize = 16.sp, lineHeight = 24.sp, fontWeight = FontWeight.Medium)
     val title = body.copy(fontSize = 22.sp, lineHeight = 28.sp)
     val display = body.copy(fontSize = 32.sp, lineHeight = 44.sp)
-    val number = body.copy(fontSize = 24.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
+    val number = body.copy(
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.4).sp,
+    )
 
     internal val material = Typography(
         defaultFontFamily = family,

@@ -13,17 +13,20 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 fun TaskBChoiceDialog(title: String, message: String, choices: List<TaskBDialogChoice>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, style = TaskBTheme.typography.section) },
+        title = { Text(text = title, style = TaskBTheme.typography.section) },
         text = {
             Column {
-                Text(message, style = TaskBTheme.typography.body)
+                Text(text = message, style = TaskBTheme.typography.body)
                 choices.forEach { choice ->
-                    TextButton(choice.onClick, Modifier.fillMaxWidth()) {
-                        Text(choice.label, color = if (choice.destructive) TaskBTheme.colors.danger else TaskBTheme.colors.accent)
+                    TextButton(onClick = choice.onClick, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = choice.label,
+                            color = if (choice.destructive) TaskBTheme.colors.danger else TaskBTheme.colors.accent,
+                        )
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(text = "Cancel") } },
     )
 }

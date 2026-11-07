@@ -6,12 +6,15 @@ import androidx.room3.ForeignKey
 @Entity(
     tableName = "holidays",
     primaryKeys = ["locationKey", "year", "month", "id"],
-    foreignKeys = [ForeignKey(
-        entity = HolidayMonthEntity::class,
-        parentColumns = ["locationKey", "year", "month"],
-        childColumns = ["locationKey", "year", "month"],
-        onDelete = ForeignKey.CASCADE,
-    )],
+    foreignKeys =
+        [
+            ForeignKey(
+                entity = HolidayMonthEntity::class,
+                parentColumns = ["locationKey", "year", "month"],
+                childColumns = ["locationKey", "year", "month"],
+                onDelete = ForeignKey.CASCADE,
+            )
+        ],
 )
 data class HolidayEntity(
     val locationKey: String,

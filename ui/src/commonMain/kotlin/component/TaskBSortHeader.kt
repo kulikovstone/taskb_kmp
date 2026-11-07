@@ -30,25 +30,26 @@ fun TaskBSortHeader(
     reverseSort: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
+    contentPadding: PaddingValues = PaddingValues(all = 0.dp),
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
 ) {
     val colors = TaskBTheme.colors
     Row(
-        modifier = modifier.clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onClick)
+        modifier = modifier
+            .clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = "Sort by $label" }
-            .padding(contentPadding),
+            .padding(paddingValues = contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = horizontalArrangement,
     ) {
-        Text(label, style = TaskBTheme.typography.label, color = colors.secondary, maxLines = 1)
+        Text(text = label, style = TaskBTheme.typography.label, color = colors.secondary, maxLines = 1)
         if (isActive) {
-            Spacer(Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(width = 4.dp))
             Icon(
-                TaskBIcons.Sort,
+                imageVector = TaskBIcons.Sort,
                 contentDescription = null,
                 tint = if (reverseSort) colors.danger else colors.success,
-                modifier = Modifier.size(14.dp).rotate(if (reverseSort) 180f else 0f),
+                modifier = Modifier.size(size = 14.dp).rotate(degrees = if (reverseSort) 180f else 0f),
             )
         }
     }
@@ -71,12 +72,12 @@ private fun TaskBSortHeaderPreview(darkTheme: Boolean) {
     TaskBTheme(darkTheme = darkTheme) {
         Surface(color = TaskBTheme.colors.surface) {
             Row(
-                modifier = Modifier.padding(24.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                modifier = Modifier.padding(all = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
             ) {
-                TaskBSortHeader("Unsorted", isActive = false, reverseSort = false, onClick = {})
-                TaskBSortHeader("Ascending", isActive = true, reverseSort = false, onClick = {})
-                TaskBSortHeader("Descending", isActive = true, reverseSort = true, onClick = {})
+                TaskBSortHeader(label = "Unsorted", isActive = false, reverseSort = false, onClick = {})
+                TaskBSortHeader(label = "Ascending", isActive = true, reverseSort = false, onClick = {})
+                TaskBSortHeader(label = "Descending", isActive = true, reverseSort = true, onClick = {})
             }
         }
     }

@@ -10,30 +10,54 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.component.SelectionDialog
-import com.mkulikov.taskb.ui.component.TaskBSelectionRow
 import com.mkulikov.taskb.feature.task.component.SelectionScreen
+import com.mkulikov.taskb.ui.component.TaskBSelectionRow
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 
 @Composable
 internal fun TaskSelectionScreen(state: TaskState, onIntent: (TaskIntent) -> Unit) {
-    SelectionScreen("Filters", { onIntent(TaskIntent.CloseSelection) }) {
-        TaskSelectionContent(state, onIntent, it)
+    SelectionScreen(title = "Filters", onClose = { onIntent(TaskIntent.CloseSelection) }) { modifier ->
+        TaskSelectionContent(state = state, onIntent = onIntent, modifier = modifier)
     }
 }
 
 @Composable
 internal fun TaskSelectionDialog(state: TaskState, onIntent: (TaskIntent) -> Unit, availableHeight: Dp) {
-    SelectionDialog("Filters", { onIntent(TaskIntent.CloseSelection) }, availableHeight,
-        496.dp) { TaskSelectionContent(state, onIntent, it, scrollbar = true) }
+    SelectionDialog(
+        title = "Filters",
+        onClose = { onIntent(TaskIntent.CloseSelection) },
+        availableHeight = availableHeight,
+        preferredHeight = 496.dp,
+    ) { modifier ->
+        TaskSelectionContent(state = state, onIntent = onIntent, modifier = modifier, scrollbar = true)
+    }
 }
 
 @Composable
-private fun TaskSelectionContent(state: TaskState, onIntent: (TaskIntent) -> Unit, modifier: Modifier, scrollbar: Boolean = false) {
+private fun TaskSelectionContent(
+    state: TaskState,
+    onIntent: (TaskIntent) -> Unit,
+    modifier: Modifier,
+    scrollbar: Boolean = false,
+) {
     val scroll = rememberLazyListState()
-    Box(modifier.fillMaxWidth()) {
-        LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().padding(end = if (scrollbar) 20.dp else 0.dp)) {
-            items(TaskFilter.entries, key = { it.name }) { filter -> TaskBSelectionRow(filter.label, state.filter == filter, { onIntent(TaskIntent.Filter(filter)) }) }
+    Box(modifier = modifier.fillMaxWidth()) {
+        LazyColumn(
+            state = scroll,
+            modifier = Modifier.fillMaxSize().padding(end = if (scrollbar) 20.dp else 0.dp),
+        ) {
+            items(items = TaskFilter.entries, key = TaskFilter::name) { filter ->
+                TaskBSelectionRow(
+                    label = filter.label,
+                    selected = state.filter == filter,
+                    onClick = { onIntent(TaskIntent.Filter(filter = filter)) },
+                )
+            }
         }
-        if (scrollbar && (scroll.canScrollForward || scroll.canScrollBackward)) TaskBVerticalScrollbar(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+        if (scrollbar && (scroll.canScrollForward || scroll.canScrollBackward))
+            TaskBVerticalScrollbar(
+                state = scroll,
+                modifier = Modifier.align(alignment = Alignment.CenterEnd).fillMaxHeight(),
+            )
     }
 }

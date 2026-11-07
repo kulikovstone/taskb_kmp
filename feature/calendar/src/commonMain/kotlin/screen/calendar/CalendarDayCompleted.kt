@@ -25,25 +25,28 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 internal fun CalendarDayCompleted(modifier: Modifier = Modifier) {
     Column(
-        modifier.fillMaxWidth().testTag("calendar-day-completed"),
+        modifier = modifier.fillMaxWidth().testTag(tag = "calendar-day-completed"),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
-            painter = painterResource(Res.drawable.day_completed),
+            painter = painterResource(resource = Res.drawable.day_completed),
             contentDescription = null,
-            modifier = Modifier.fillMaxWidth().aspectRatio(1.5f).clip(RoundedCornerShape(12.dp)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(ratio = 1.5f)
+                .clip(shape = RoundedCornerShape(size = 12.dp)),
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(height = 16.dp))
         Text(
-            "All done for today",
+            text = "All done for today",
             modifier = Modifier.fillMaxWidth().semantics { heading() },
             color = TaskBTheme.colors.heading,
             style = TaskBTheme.typography.section,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(height = 4.dp))
         Text(
-            "Enjoy your free time.",
+            text = "Enjoy your free time.",
             modifier = Modifier.fillMaxWidth(),
             color = TaskBTheme.colors.muted,
             style = TaskBTheme.typography.body,

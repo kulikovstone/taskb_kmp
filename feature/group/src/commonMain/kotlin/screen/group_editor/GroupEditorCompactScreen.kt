@@ -13,31 +13,43 @@ import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
-internal fun GroupEditorCompactScreen(state: GroupEditorState, onIntent: (GroupEditorIntent) -> Unit, onBack: () -> Unit) {
+internal fun GroupEditorCompactScreen(
+    state: GroupEditorState,
+    onIntent: (GroupEditorIntent) -> Unit,
+    onBack: () -> Unit,
+) {
     val colors = TaskBTheme.colors
     val canSave = state.canSave && state.dialog == null
     val canDelete = state.original != null && !state.isBusy && !state.isFinished && state.dialog == null
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
         TaskBTopAppBar(
-            title = if (state.isNew) "New group" else "Edit group", onBack = onBack,
+            title = if (state.isNew) "New group" else "Edit group",
+            onBack = onBack,
             backEnabled = !state.isSaving && !state.isDeleting,
             titleSpacing = 4.dp,
         ) {
             if (!state.isNew) {
                 IconButton(onClick = { onIntent(GroupEditorIntent.PrepareDelete) }, enabled = canDelete) {
                     Icon(
-                        TaskBIcons.Delete, contentDescription = "Delete group",
+                        imageVector = TaskBIcons.Delete,
+                        contentDescription = "Delete group",
                         tint = if (canDelete) colors.danger else colors.muted.copy(alpha = 0.5f),
                     )
                 }
             }
             IconButton(onClick = { onIntent(GroupEditorIntent.Save) }, enabled = canSave) {
                 Icon(
-                    TaskBIcons.Done, contentDescription = "Save group",
+                    imageVector = TaskBIcons.Done,
+                    contentDescription = "Save group",
                     tint = if (canSave) colors.accent else colors.muted.copy(alpha = 0.5f),
                 )
             }
         }
-        GroupEditorForm(state, onIntent, modifier = Modifier.weight(1f).padding(horizontal = 24.dp), autoFocusName = state.isNew)
+        GroupEditorForm(
+            state = state,
+            onIntent = onIntent,
+            modifier = Modifier.weight(weight = 1f).padding(horizontal = 24.dp),
+            autoFocusName = state.isNew,
+        )
     }
 }

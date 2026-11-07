@@ -33,27 +33,46 @@ class TaskBTextAreaUiTest {
     fun `minimum height and wrapping match wide and compact designs in both themes`() {
         for (wide in listOf(true, false)) for (dark in listOf(false, true)) {
             val state = TextFieldState()
-            runSkikoComposeUiTest(size = Size(if (wide) 768f else 400f, 900f)) {
+            runSkikoComposeUiTest(size = Size(width = if (wide) 768f else 400f, height = 900f)) {
                 setContent {
-                    TaskBTheme(dark) {
-                        Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-                            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text("Description", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
-                                TaskBTextArea(state, "Task description", Modifier.fillMaxWidth(), "Add a description", minLines = if (wide) 2 else 4)
+                    TaskBTheme(darkTheme = dark) {
+                        Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(state = rememberScrollState())
+                                    .padding(all = 24.dp),
+                                verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+                            ) {
+                                Text(
+                                    text = "Description",
+                                    style = TaskBTheme.typography.label,
+                                    color = TaskBTheme.colors.text,
+                                )
+                                TaskBTextArea(
+                                    state = state,
+                                    description = "Task description",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = "Add a description",
+                                    minLines = if (wide) 2 else 4,
+                                )
                             }
                         }
                     }
                 }
-                val field = onNodeWithContentDescription("Task description")
-                assertEquals(if (wide) 68f else 112f, field.getUnclippedBoundsInRoot().height.value, 1f)
+                val field = onNodeWithContentDescription(label = "Task description")
+                assertEquals(
+                    expected = if (wide) 68f else 112f,
+                    actual = field.getUnclippedBoundsInRoot().height.value,
+                    absoluteTolerance = 1f,
+                )
                 val suffix = "${if (wide) "wide" else "compact"}-${if (dark) "dark" else "light"}"
-                screenshot("empty-$suffix")
-                field.performClick().performTextInput(longDescription)
+                screenshot(name = "empty-$suffix")
+                field.performClick().performTextInput(text = longDescription)
                 field.assertTextEquals(longDescription)
                 val height = field.getUnclippedBoundsInRoot().height.value
-                assertEquals(if (wide) 310f else 442f, height, 1f)
-                screenshot("long-$suffix")
+                assertEquals(expected = if (wide) 310f else 442f, actual = height, absoluteTolerance = 1f)
+                screenshot(name = "long-$suffix")
             }
         }
     }
@@ -61,24 +80,46 @@ class TaskBTextAreaUiTest {
     @Test
     fun `long text grows beyond the viewport and only the form scrolls`() {
         val state = TextFieldState()
-        runSkikoComposeUiTest(size = Size(400f, 360f)) {
+        runSkikoComposeUiTest(size = Size(width = 400f, height = 360f)) {
             setContent {
                 TaskBTheme {
-                    Column(Modifier.fillMaxSize().testTag("form").verticalScroll(rememberScrollState()).padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                        TaskBTextArea(state, "Task description", Modifier.fillMaxWidth(), minLines = 4)
-                        Text("Next field")
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(tag = "form")
+                            .verticalScroll(state = rememberScrollState())
+                            .padding(all = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(space = 24.dp),
+                    ) {
+                        TaskBTextArea(
+                            state = state,
+                            description = "Task description",
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 4,
+                        )
+                        Text(text = "Next field")
                     }
                 }
             }
-            val field = onNodeWithContentDescription("Task description")
-            field.performTextInput((1..40).joinToString("\n") { "Description line $it" })
-            assertTrue(field.getUnclippedBoundsInRoot().height.value > 800f)
-            val internalScroll = field.fetchSemanticsNode().config.getOrElseNullable(SemanticsProperties.VerticalScrollAxisRange) { null }
-            assertEquals(0f, internalScroll?.maxValue?.invoke() ?: 0f)
-            val formScroll = onNodeWithTag("form").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
-            assertTrue(formScroll.maxValue() > 0f)
-            onNodeWithText("Next field").performScrollTo().assertIsDisplayed()
+            val field = onNodeWithContentDescription(label = "Task description")
+            field.performTextInput(
+                text = (1..40).joinToString(separator = "\n") { lineNumber ->
+                    "Description line $lineNumber"
+                },
+            )
+            assertTrue(actual = field.getUnclippedBoundsInRoot().height.value > 800f)
+            val internalScroll = field.fetchSemanticsNode().config.getOrElseNullable(
+                key = SemanticsProperties.VerticalScrollAxisRange
+            ) {
+                null
+            }
+            assertEquals(expected = 0f, actual = internalScroll?.maxValue?.invoke() ?: 0f)
+            val formScroll =
+                onNodeWithTag(testTag = "form")
+                    .fetchSemanticsNode()
+                    .config[SemanticsProperties.VerticalScrollAxisRange]
+            assertTrue(actual = formScroll.maxValue() > 0f)
+            onNodeWithText(text = "Next field").performScrollTo().assertIsDisplayed()
         }
     }
 
@@ -88,7 +129,8 @@ class TaskBTextAreaUiTest {
         ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
     }
 
-    private val longDescription = """
+    private val longDescription =
+        """
         Review the task creation and editing screens before implementation.
         Check the date picker, group selector and recurrence settings together.
 
@@ -99,7 +141,9 @@ class TaskBTextAreaUiTest {
         • Add examples for long task names and descriptions.
 
         Notes:
-        The description should remain readable while the task is being edited. When more text is added, the field grows and the next sections move down.
+        ${"The description should remain readable while the task is being edited. " +
+            "When more text is added, the field grows and the next sections move down."}
         Scroll the whole form to reach the date, group and repeat settings.
-    """.trimIndent()
+        """
+            .trimIndent()
 }

@@ -31,18 +31,25 @@ fun TaskBSelectionButton(
     icon: ImageVector? = null,
 ) {
     val colors = TaskBTheme.colors
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(size = 8.dp)
     Row(
-        modifier.height(44.dp)
-            .clip(shape)
-            .background(if (selected) colors.selected else colors.surface)
-            .border(1.dp, if (selected) colors.accent else colors.border, shape)
+        modifier = modifier
+            .height(height = 44.dp)
+            .clip(shape = shape)
+            .background(color = if (selected) colors.selected else colors.surface)
+            .border(width = 1.dp, color = if (selected) colors.accent else colors.border, shape = shape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .semantics { this.selected = selected },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(space = 8.dp, alignment = Alignment.CenterHorizontally),
     ) {
-        if (icon != null) Icon(icon, null, tint = colors.accent, modifier = Modifier.size(18.dp))
-        Text(label, style = TaskBTheme.typography.button, color = colors.accent)
+        if (icon != null)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(size = 18.dp),
+            )
+        Text(text = label, style = TaskBTheme.typography.button, color = colors.accent)
     }
 }

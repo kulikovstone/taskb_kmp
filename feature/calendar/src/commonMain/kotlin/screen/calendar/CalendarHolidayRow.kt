@@ -19,18 +19,38 @@ internal val calendarHolidayMarkerWidth = 5.dp
 
 /** Public holidays are informational: no editor, completion control, or drag gesture. */
 @Composable
-internal fun CalendarHolidayRow(holiday: PublicHoliday, modifier: Modifier = Modifier, dense: Boolean = false,
-    contentPadding: PaddingValues = PaddingValues(0.dp), today: LocalDate) {
+internal fun CalendarHolidayRow(
+    holiday: PublicHoliday,
+    modifier: Modifier = Modifier,
+    dense: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(all = 0.dp),
+    today: LocalDate,
+) {
     val colors = TaskBTheme.colors
-    Row(modifier.fillMaxWidth().height(IntrinsicSize.Min)
-        .semantics { contentDescription = "Public holiday: ${holiday.name}" }
-        .padding(contentPadding).padding(top = 4.dp, bottom = 4.dp, end = if (dense) 0.dp else 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(if (dense) 4.dp else 10.dp)) {
-        Box(Modifier.width(calendarHolidayMarkerWidth).fillMaxHeight()
-            .then(if (dense) Modifier else Modifier.padding(vertical = 3.dp))
-            .background(Palette.Green.s800).testTag("calendar-holiday-marker-${holiday.id}"))
-        Text(holiday.name, modifier = Modifier.weight(1f).testTag("calendar-holiday-title-${holiday.id}"),
-            color = if (dense && holiday.date < today) colors.completedText else colors.text, style = calendarTaskTitleStyle(dense),
-            maxLines = if (dense) 1 else 2, overflow = TextOverflow.Ellipsis)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(intrinsicSize = IntrinsicSize.Min)
+            .semantics { contentDescription = "Public holiday: ${holiday.name}" }
+            .padding(paddingValues = contentPadding)
+            .padding(top = 4.dp, bottom = 4.dp, end = if (dense) 0.dp else 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(space = if (dense) 4.dp else 10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .width(width = calendarHolidayMarkerWidth)
+                .fillMaxHeight()
+                .then(other = if (dense) Modifier else Modifier.padding(vertical = 3.dp))
+                .background(color = Palette.Green.s800)
+                .testTag(tag = "calendar-holiday-marker-${holiday.id}")
+        )
+        Text(
+            text = holiday.name,
+            modifier = Modifier.weight(weight = 1f).testTag(tag = "calendar-holiday-title-${holiday.id}"),
+            color = if (dense && holiday.date < today) colors.completedText else colors.text,
+            style = calendarTaskTitleStyle(dense = dense),
+            maxLines = if (dense) 1 else 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }

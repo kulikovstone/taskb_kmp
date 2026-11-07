@@ -8,8 +8,13 @@ import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import kotlin.test.*
 import kotlin.test.Test
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -17,133 +22,252 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import kotlin.time.Instant
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskStoreTest {
-    private val today = LocalDate(2026, 10, 25)
-    private val now = Instant.parse("2026-10-25T12:00:00Z")
-    private val clock = object : Clock { override fun now() = this@TaskStoreTest.now }
+    private val today = LocalDate(year = 2026, month = 10, day = 25)
+    private val now = Instant.parse(input = "2026-10-25T12:00:00Z")
+    private val clock =
+        object : Clock {
+            override fun now() = this@TaskStoreTest.now
+        }
     private val tasks = listOf(
-        Task(1, "Overdue", today.minus(1, DateTimeUnit.DAY), 1), Task(2, "Today", today, 1),
-        Task(3, "Tomorrow", today.plus(1, DateTimeUnit.DAY)), Task(4, "Later", today.plus(2, DateTimeUnit.DAY)),
-        Task(5, "Someday"), Task(6, "Completed", today, 1, completedAt = Instant.parse("2026-10-25T10:00:00Z")),
+        Task(id = 1, name = "Overdue", dueDate = today.minus(value = 1, unit = DateTimeUnit.DAY), groupId = 1),
+        Task(id = 2, name = "Today", dueDate = today, groupId = 1),
+        Task(id = 3, name = "Tomorrow", dueDate = today.plus(value = 1, unit = DateTimeUnit.DAY)),
+        Task(id = 4, name = "Later", dueDate = today.plus(value = 2, unit = DateTimeUnit.DAY)),
+        Task(id = 5, name = "Someday"),
+        Task(
+            id = 6,
+            name = "Completed",
+            dueDate = today,
+            groupId = 1,
+            completedAt = Instant.parse(input = "2026-10-25T10:00:00Z"),
+        ),
     )
 
     @Test
-    fun dateFiltersRefreshWhenTheLocalDayChanges() = runTest {
-        var date = today
-        val repository = FakeTaskRepository().apply { values.value = this@TaskStoreTest.tasks }
-        TaskStore(repository, FakeGroupRepository(), StandardTestDispatcher(testScheduler), today = { date }, clock = clock).use { store ->
-            store.accept(TaskIntent.Filter(TaskFilter.Overdue))
+    fun dateFiltersRefreshWhenTheLocalDayChanges(): TestResult {
+        return runTest {
+            var date = today
+            val repository = FakeTaskRepository().apply { values.value = this@TaskStoreTest.tasks }
+            TaskStore(
+                    repository = repository,
+                    groups = FakeGroupRepository(),
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                    today = { date },
+                    clock = clock,
+                )
+                .use { store ->
+                    store.accept(intent = TaskIntent.Filter(filter = TaskFilter.Overdue))
+                    runCurrent()
+                    assertEquals(
+                        expected = listOf(element = 1),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                    date = today.plus(value = 1, unit = DateTimeUnit.DAY)
+                    advanceTimeBy(delayTimeMillis = 60_000)
+                    runCurrent()
+                    assertEquals(expected = date, actual = store.state.value.today)
+                    assertEquals(
+                        expected = listOf(1, 2),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                }
             runCurrent()
-            assertEquals(listOf(1), store.state.value.visibleTasks.map { it.id })
-            date = today.plus(1, DateTimeUnit.DAY)
-            advanceTimeBy(60_000)
-            runCurrent()
-            assertEquals(date, store.state.value.today)
-            assertEquals(listOf(1, 2), store.state.value.visibleTasks.map { it.id })
+            assertEquals(expected = 0, actual = repository.subscriptions)
         }
-        runCurrent()
-        assertEquals(0, repository.subscriptions)
     }
+
     @Test
     fun `date filters exclude completed tasks and combine with group and case insensitive search`() {
         val state = TaskState(tasks = tasks, today = today, now = now)
-        val expected = mapOf(TaskFilter.Scheduled to listOf(1, 2, 3, 4), TaskFilter.Overdue to listOf(1),
-            TaskFilter.Today to listOf(2), TaskFilter.Tomorrow to listOf(3), TaskFilter.OtherDates to listOf(4),
-            TaskFilter.NoDate to listOf(5), TaskFilter.Completed to listOf(6))
-        expected.forEach { (filter, ids) -> assertEquals(ids, state.copy(filter = filter).visibleTasks.map { it.id }, filter.label) }
-        assertEquals(listOf(1, 2, 6), state.copy(groupFilter = TaskGroupFilter.Selected(1)).visibleTasks.map { it.id })
-        assertEquals(listOf(3, 4, 5), state.copy(groupFilter = TaskGroupFilter.NoGroup).visibleTasks.map { it.id })
-        assertEquals(listOf(2), state.copy(groupFilter = TaskGroupFilter.Selected(1), query = TextFieldState(" TODAY "), filter = TaskFilter.Scheduled).visibleTasks.map { it.id })
-        assertEquals(6, state.copy(sort = TaskSort.Name, reverseSort = true).visibleTasks.last().id)
-        assertEquals(listOf(1, 2), state.copy(filter = TaskFilter.Overdue, today = today.plus(1, DateTimeUnit.DAY)).visibleTasks.map { it.id })
-    }
-    @Test
-    fun `store retries loading applies filters updates completion and releases subscriptions`() = runTest {
-        val repository = FakeTaskRepository(clock).apply { fail = true; values.value = this@TaskStoreTest.tasks }
-        val groups = FakeGroupRepository().apply { values.value = listOf(Group(1, "Work", GroupColor.Blue)) }
-        val store = TaskStore(repository, groups, StandardTestDispatcher(testScheduler), { today }, clock)
-        runCurrent()
-        assertNotNull(store.state.value.loadError)
-        repository.fail = false
-        store.accept(TaskIntent.RetryLoad)
-        runCurrent()
-        assertEquals(6, store.state.value.tasks.size)
-        store.accept(TaskIntent.Choose(TaskSelection.Filters))
-        store.accept(TaskIntent.Filter(TaskFilter.Completed))
-        store.accept(TaskIntent.ToggleCompleted(1))
-        runCurrent()
-        assertNull(store.state.value.selection)
-        assertEquals(2, store.state.value.visibleTasks.size)
-        store.accept(TaskIntent.FilterGroup(TaskGroupFilter.Selected(1)))
-        runCurrent()
-        groups.values.value = emptyList()
-        runCurrent()
-        assertEquals(TaskGroupFilter.All, store.state.value.groupFilter)
-        repository.fail = true
-        store.accept(TaskIntent.ToggleCompleted(2))
-        runCurrent()
-        assertNotNull(store.state.value.error)
-        assertTrue(store.state.value.pendingCompletion.isEmpty())
-        store.close()
-        runCurrent()
-        assertEquals(0, repository.subscriptions)
-        assertEquals(0, groups.subscriptions)
-    }
-
-    @Test
-    fun `completed tasks expire while open and reopening or new completions reschedule expiry`() = runTest {
-        val start = now
-        val clock = object : Clock { override fun now() = start + testScheduler.currentTime.milliseconds }
-        val scheduled = Task(1, "Scheduled completion", today, createdAt = start - 2.hours,
-            completedAt = start - 24.hours + 1_500.milliseconds)
-        val undated = Task(2, "Undated completion", createdAt = start - 1.hours,
-            completedAt = start - 24.hours + 2_500.milliseconds)
-        val active = Task(3, "Active", today, createdAt = start)
-        val repository = FakeTaskRepository(clock).apply { values.value = listOf(scheduled, undated, active) }
-        val groups = FakeGroupRepository()
-        TaskStore(repository, groups, StandardTestDispatcher(testScheduler), { today }, clock).use { store ->
-            store.accept(TaskIntent.Filter(TaskFilter.Completed))
-            runCurrent()
-            assertEquals(listOf(1, 2), store.state.value.visibleTasks.map { it.id })
-            advanceTimeBy(1_499)
-            runCurrent()
-            assertEquals(listOf(1, 2), store.state.value.visibleTasks.map { it.id })
-            advanceTimeBy(1)
-            runCurrent()
-            assertEquals(listOf(2), store.state.value.visibleTasks.map { it.id })
-            assertEquals(listOf(scheduled, undated, active), repository.values.value)
-            assertEquals("1 of 2 tasks", store.state.value.summary)
-
-            store.accept(TaskIntent.Filter(null))
-            store.accept(TaskIntent.ToggleCompleted(1))
-            store.accept(TaskIntent.ToggleCompleted(3))
-            runCurrent()
-            assertEquals(listOf(1, 3, 2), store.state.value.visibleTasks.map { it.id })
-            assertEquals(start + 2_500.milliseconds, store.state.value.nextCompletionExpiry)
-
-            repository.values.value = repository.values.value.map {
-                if (it.id == 3) it.copy(completedAt = clock.now() - 24.hours + 500.milliseconds) else it
-            }
-            runCurrent()
-            assertEquals(clock.now() + 500.milliseconds, store.state.value.nextCompletionExpiry)
-            advanceTimeBy(500)
-            runCurrent()
-            assertEquals(listOf(1, 2), store.state.value.visibleTasks.map { it.id })
-            advanceTimeBy(500)
-            runCurrent()
-            assertEquals(listOf(1), store.state.value.visibleTasks.map { it.id })
-            assertNull(store.state.value.nextCompletionExpiry)
-            assertEquals("1 task", store.state.value.summary)
-            assertEquals(3, repository.values.value.size)
+        val expected = mapOf(
+            TaskFilter.Scheduled to listOf(1, 2, 3, 4),
+            TaskFilter.Overdue to listOf(element = 1),
+            TaskFilter.Today to listOf(element = 2),
+            TaskFilter.Tomorrow to listOf(element = 3),
+            TaskFilter.OtherDates to listOf(element = 4),
+            TaskFilter.NoDate to listOf(element = 5),
+            TaskFilter.Completed to listOf(element = 6),
+        )
+        expected.forEach { (filter, ids) ->
+            assertEquals(
+                expected = ids,
+                actual = state.copy(filter = filter).visibleTasks.map(transform = Task::id),
+                message = filter.label,
+            )
         }
-        runCurrent()
-        assertEquals(0, repository.subscriptions)
-        assertEquals(0, groups.subscriptions)
+        assertEquals(
+            expected = listOf(1, 2, 6),
+            actual = state.copy(groupFilter = TaskGroupFilter.Selected(id = 1)).visibleTasks.map(transform = Task::id),
+        )
+        assertEquals(
+            expected = listOf(3, 4, 5),
+            actual = state.copy(groupFilter = TaskGroupFilter.NoGroup).visibleTasks.map(transform = Task::id),
+        )
+        assertEquals(
+            expected = listOf(element = 2),
+            actual = state
+                .copy(
+                    groupFilter = TaskGroupFilter.Selected(id = 1),
+                    query = TextFieldState(initialText = " TODAY "),
+                    filter = TaskFilter.Scheduled,
+                )
+                .visibleTasks
+                .map(transform = Task::id),
+        )
+        assertEquals(
+            expected = 6,
+            actual = state.copy(sort = TaskSort.Name, reverseSort = true).visibleTasks.last().id,
+        )
+        assertEquals(
+            expected = listOf(1, 2),
+            actual = state
+                .copy(filter = TaskFilter.Overdue, today = today.plus(value = 1, unit = DateTimeUnit.DAY))
+                .visibleTasks
+                .map(transform = Task::id),
+        )
+    }
+
+    @Test
+    fun `store retries loading applies filters updates completion and releases subscriptions`(): TestResult {
+        return runTest {
+            val repository = FakeTaskRepository(clock = clock).apply {
+                fail = true
+                values.value = this@TaskStoreTest.tasks
+            }
+            val groups = FakeGroupRepository().apply {
+                values.value = listOf(element = Group(id = 1, name = "Work", color = GroupColor.Blue))
+            }
+            val store = TaskStore(
+                repository = repository,
+                groups = groups,
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                today = { today },
+                clock = clock,
+            )
+            runCurrent()
+            assertNotNull(actual = store.state.value.loadError)
+            repository.fail = false
+            store.accept(intent = TaskIntent.RetryLoad)
+            runCurrent()
+            assertEquals(expected = 6, actual = store.state.value.tasks.size)
+            store.accept(intent = TaskIntent.Choose(selection = TaskSelection.Filters))
+            store.accept(intent = TaskIntent.Filter(filter = TaskFilter.Completed))
+            store.accept(intent = TaskIntent.ToggleCompleted(id = 1))
+            runCurrent()
+            assertNull(actual = store.state.value.selection)
+            assertEquals(expected = 2, actual = store.state.value.visibleTasks.size)
+            store.accept(intent = TaskIntent.FilterGroup(filter = TaskGroupFilter.Selected(id = 1)))
+            runCurrent()
+            groups.values.value = emptyList()
+            runCurrent()
+            assertEquals(expected = TaskGroupFilter.All, actual = store.state.value.groupFilter)
+            repository.fail = true
+            store.accept(intent = TaskIntent.ToggleCompleted(id = 2))
+            runCurrent()
+            assertNotNull(actual = store.state.value.error)
+            assertTrue(actual = store.state.value.pendingCompletion.isEmpty())
+            store.close()
+            runCurrent()
+            assertEquals(expected = 0, actual = repository.subscriptions)
+            assertEquals(expected = 0, actual = groups.subscriptions)
+        }
+    }
+
+    @Test
+    fun `completed tasks expire while open and reopening or new completions reschedule expiry`(): TestResult {
+        return runTest {
+            val start = now
+            val clock =
+                object : Clock {
+                    override fun now() = start + testScheduler.currentTime.milliseconds
+                }
+            val scheduled = Task(
+                id = 1,
+                name = "Scheduled completion",
+                dueDate = today,
+                createdAt = start - 2.hours,
+                completedAt = start - 24.hours + 1_500.milliseconds,
+            )
+            val undated = Task(
+                id = 2,
+                name = "Undated completion",
+                createdAt = start - 1.hours,
+                completedAt = start - 24.hours + 2_500.milliseconds,
+            )
+            val active = Task(id = 3, name = "Active", dueDate = today, createdAt = start)
+            val repository = FakeTaskRepository(clock = clock).apply {
+                values.value = listOf(scheduled, undated, active)
+            }
+            val groups = FakeGroupRepository()
+            TaskStore(
+                    repository = repository,
+                    groups = groups,
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                    today = { today },
+                    clock = clock,
+                )
+                .use { store ->
+                    store.accept(intent = TaskIntent.Filter(filter = TaskFilter.Completed))
+                    runCurrent()
+                    assertEquals(
+                        expected = listOf(1, 2),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                    advanceTimeBy(delayTimeMillis = 1_499)
+                    runCurrent()
+                    assertEquals(
+                        expected = listOf(1, 2),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                    advanceTimeBy(delayTimeMillis = 1)
+                    runCurrent()
+                    assertEquals(
+                        expected = listOf(element = 2),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                    assertEquals(expected = listOf(scheduled, undated, active), actual = repository.values.value)
+                    assertEquals(expected = "1 of 2 tasks", actual = store.state.value.summary)
+
+                    store.accept(intent = TaskIntent.Filter(filter = null))
+                    store.accept(intent = TaskIntent.ToggleCompleted(id = 1))
+                    store.accept(intent = TaskIntent.ToggleCompleted(id = 3))
+                    runCurrent()
+                    assertEquals(
+                        expected = listOf(1, 3, 2),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                    assertEquals(expected = start + 2_500.milliseconds, actual = store.state.value.nextCompletionExpiry)
+
+                    repository.values.value = repository.values.value.map { task ->
+                        if (task.id == 3) task.copy(completedAt = clock.now() - 24.hours + 500.milliseconds) else task
+                    }
+                    runCurrent()
+                    assertEquals(
+                        expected = clock.now() + 500.milliseconds,
+                        actual = store.state.value.nextCompletionExpiry,
+                    )
+                    advanceTimeBy(delayTimeMillis = 500)
+                    runCurrent()
+                    assertEquals(
+                        expected = listOf(1, 2),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                    advanceTimeBy(delayTimeMillis = 500)
+                    runCurrent()
+                    assertEquals(
+                        expected = listOf(element = 1),
+                        actual = store.state.value.visibleTasks.map(transform = Task::id),
+                    )
+                    assertNull(actual = store.state.value.nextCompletionExpiry)
+                    assertEquals(expected = "1 task", actual = store.state.value.summary)
+                    assertEquals(expected = 3, actual = repository.values.value.size)
+                }
+            runCurrent()
+            assertEquals(expected = 0, actual = repository.subscriptions)
+            assertEquals(expected = 0, actual = groups.subscriptions)
+        }
     }
 }

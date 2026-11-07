@@ -14,11 +14,11 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 actual fun TaskBVerticalScrollbar(state: LazyListState, modifier: Modifier) {
     val colors = TaskBTheme.colors
     VerticalScrollbar(
-        adapter = rememberScrollbarAdapter(state),
+        adapter = rememberScrollbarAdapter(scrollState = state),
         modifier = modifier,
         style = LocalScrollbarStyle.current.copy(
             thickness = 4.dp,
-            shape = RoundedCornerShape(2.dp),
+            shape = RoundedCornerShape(size = 2.dp),
             unhoverColor = colors.muted.copy(alpha = 0.35f),
             hoverColor = colors.muted.copy(alpha = 0.65f),
         ),

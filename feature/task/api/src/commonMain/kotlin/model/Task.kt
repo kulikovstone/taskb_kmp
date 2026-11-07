@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.task.api.model
 
-import kotlinx.datetime.LocalDate
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
 
 data class Task(
     val id: Int = 0,
@@ -15,6 +15,11 @@ data class Task(
     val occurrenceId: TaskOccurrenceId? = null,
     val description: String = "",
 ) {
-    val isCompleted: Boolean get() = completedAt != null
-    val key: String get() = occurrenceId?.let { "$id:${it.scheduleId}:${it.scheduledDate}" } ?: id.toString()
+    val isCompleted: Boolean
+        get() = completedAt != null
+
+    val key: String
+        get() = occurrenceId?.let { occurrenceId ->
+            "$id:${occurrenceId.scheduleId}:${occurrenceId.scheduledDate}"
+        } ?: id.toString()
 }

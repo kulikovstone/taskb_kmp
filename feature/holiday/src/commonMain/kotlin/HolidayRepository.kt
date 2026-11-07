@@ -11,6 +11,7 @@ import com.mkulikov.taskb.feature.holiday.network.HolidayLocation
 import com.mkulikov.taskb.feature.holiday.network.HolidayLocationException
 import com.mkulikov.taskb.feature.holiday.network.holidayLocation
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
+import kotlin.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -19,12 +20,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.number
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.number
 import kotlinx.datetime.plusMonth
 import kotlinx.datetime.yearMonth
-import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class HolidayRepository(
@@ -37,64 +37,138 @@ internal class HolidayRepository(
     private val fetchMutex = Mutex()
 
     override fun observeHolidays(from: LocalDate, through: LocalDate): Flow<HolidayCalendar> {
-        require(from <= through)
-        return locations.observeLocation().flatMapLatest { location ->
-            flow {
-                if (location == null) {
-                    emit(HolidayCalendar())
-                    return@flow
+        require(value = from <= through)
+        return locations
+            .observeLocation()
+            .flatMapLatest { location ->
+                flow {
+                    if (location == null) {
+                        emit(value = HolidayCalendar())
+                        return@flow
+                    }
+                    val jurisdiction = try {
+                        holidayLocation(location = location)
+                    } catch (exception: HolidayLocationException) {
+                        emit(value = HolidayCalendar(location = location, error = exception.message))
+                        return@flow
+                    }
+                    val months = buildList {
+                        var month = from.yearMonth
+                        while (month <= through.yearMonth) {
+                            add(element = month)
+                            month = month.plusMonth()
+                        }
+                    }
+                    val saved = withContext(context = dispatcher) {
+                        dao.value.getHolidays(
+                            locationKey = jurisdiction.key,
+                            fromDate = from.toEpochDays(),
+                            throughDate = through.toEpochDays(),
+                        )
+                    }
+                    val missing = withContext(context = dispatcher) {
+                        months.filter { month ->
+                            dao.value.getMonth(
+                                locationKey = jurisdiction.key,
+                                year = month.year,
+                                month = month.month.number,
+                            ) == null
+                        }
+                    }
+                    emit(
+                        value = HolidayCalendar(
+                            location = location,
+                            holidays = saved.map(transform = HolidayEntity::toHoliday),
+                            isLoading = missing.isNotEmpty(),
+                        )
+                    )
+                    var failure: String? = null
+                    for (month in missing) {
+                        try {
+                            loadMonth(location = jurisdiction, month = month)
+                        } catch (exception: CancellationException) {
+                            throw exception
+                        } catch (exception: HolidayLocationException) {
+                            failure = exception.message
+                        } catch (_: Exception) {
+                            failure =
+                                "Couldn't load public holidays. Cached holidays are still available. Please try again."
+                        }
+                    }
+                    emitAll(
+                        flow = withContext(context = dispatcher) {
+                                dao.value.observeHolidays(
+                                    locationKey = jurisdiction.key,
+                                    fromDate = from.toEpochDays(),
+                                    throughDate = through.toEpochDays(),
+                                )
+                            }
+                            .map { holidays ->
+                                HolidayCalendar(
+                                    location = location,
+                                    holidays = holidays.map(transform = HolidayEntity::toHoliday),
+                                    error = failure,
+                                )
+                            }
+                    )
                 }
-                val jurisdiction = try { holidayLocation(location) }
-                catch (exception: HolidayLocationException) {
-                    emit(HolidayCalendar(location = location, error = exception.message))
-                    return@flow
-                }
-                val months = buildList {
-                    var month = from.yearMonth
-                    while (month <= through.yearMonth) { add(month); month = month.plusMonth() }
-                }
-                val saved = withContext(dispatcher) {
-                    dao.value.getHolidays(jurisdiction.key, from.toEpochDays(), through.toEpochDays())
-                }
-                val missing = withContext(dispatcher) {
-                    months.filter { dao.value.getMonth(jurisdiction.key, it.year, it.month.number) == null }
-                }
-                emit(HolidayCalendar(location, saved.map(HolidayEntity::toHoliday), isLoading = missing.isNotEmpty()))
-                var failure: String? = null
-                for (month in missing) {
-                    try { loadMonth(jurisdiction, month) }
-                    catch (exception: CancellationException) { throw exception }
-                    catch (exception: HolidayLocationException) { failure = exception.message }
-                    catch (_: Exception) { failure = "Couldn't load public holidays. Cached holidays are still available. Please try again." }
-                }
-                emitAll(withContext(dispatcher) {
-                    dao.value.observeHolidays(jurisdiction.key, from.toEpochDays(), through.toEpochDays())
-                }.map { HolidayCalendar(location, it.map(HolidayEntity::toHoliday), error = failure) })
-            }.catch { exception ->
-                if (exception is CancellationException) throw exception
-                emit(HolidayCalendar(location = location, error = "Couldn't read public holidays. Please try again."))
+                    .catch { exception ->
+                        if (exception is CancellationException) throw exception
+                        emit(
+                            value = HolidayCalendar(
+                                location = location,
+                                error = "Couldn't read public holidays. Please try again.",
+                            )
+                        )
+                    }
             }
-        }.catch { exception ->
-            if (exception is CancellationException) throw exception
-            emit(HolidayCalendar(error = "Couldn't load location settings. Please try again."))
-        }
+            .catch { exception ->
+                if (exception is CancellationException) throw exception
+                emit(value = HolidayCalendar(error = "Couldn't load location settings. Please try again."))
+            }
     }
 
-    private suspend fun loadMonth(location: HolidayLocation, month: YearMonth) = fetchMutex.withLock {
-        // Recheck after acquiring the lock: another calendar observer may have
-        // populated this month while this request was waiting.
-        val alreadyLoaded = withContext(dispatcher) {
-            dao.value.getMonth(location.key, month.year, month.month.number) != null
-        }
-        if (!alreadyLoaded) {
-            val holidays = api.holidays(location, month)
-            withContext(dispatcher) {
-                dao.value.replaceMonth(HolidayMonthEntity(location.key, month.year, month.month.number, clock.now().toEpochMilliseconds()),
-                    holidays.map { HolidayEntity(location.key, month.year, month.month.number,
-                        it.id, it.date.toEpochDays(), it.name, it.countryCode) })
+    private suspend fun loadMonth(location: HolidayLocation, month: YearMonth) {
+        fetchMutex.withLock {
+            // Recheck after acquiring the lock: another calendar observer may have
+            // populated this month while this request was waiting.
+            val alreadyLoaded = withContext(context = dispatcher) {
+                dao.value.getMonth(locationKey = location.key, year = month.year, month = month.month.number) !=
+                    null
+            }
+            if (!alreadyLoaded) {
+                val holidays = api.holidays(location = location, month = month)
+                withContext(context = dispatcher) {
+                    dao.value.replaceMonth(
+                        month = HolidayMonthEntity(
+                            locationKey = location.key,
+                            year = month.year,
+                            month = month.month.number,
+                            fetchedAt = clock.now().toEpochMilliseconds(),
+                        ),
+                        holidays = holidays.map { holiday ->
+                            HolidayEntity(
+                                locationKey = location.key,
+                                year = month.year,
+                                month = month.month.number,
+                                id = holiday.id,
+                                date = holiday.date.toEpochDays(),
+                                name = holiday.name,
+                                countryCode = holiday.countryCode,
+                            )
+                        },
+                    )
+                }
             }
         }
     }
 }
 
-private fun HolidayEntity.toHoliday() = PublicHoliday(id, LocalDate.fromEpochDays(date), name, countryCode)
+private fun HolidayEntity.toHoliday(): PublicHoliday {
+    return PublicHoliday(
+        id = id,
+        date = LocalDate.fromEpochDays(epochDays = date),
+        name = name,
+        countryCode = countryCode,
+    )
+}

@@ -1,15 +1,15 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
 import androidx.compose.foundation.text.input.TextFieldState
+import com.mkulikov.taskb.core.utils.time.currentDate
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.core.utils.time.currentDate
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 
 internal data class TaskState(
     val tasks: List<Task> = emptyList(),
@@ -27,63 +27,102 @@ internal data class TaskState(
     val pendingCompletion: Set<Int> = emptySet(),
     val error: String? = null,
 ) {
-    private val unexpiredTasks: List<Task> get() = tasks.filter {
-        val completedAt = it.completedAt
-        (completedAt == null || completedAt > now - 24.hours) &&
-            (it.occurrenceId == null || !it.isCompleted || filter == TaskFilter.Completed)
-    }
-    val taskCount: Int get() = unexpiredTasks.size
-    val nextCompletionExpiry: Instant? get() = tasks.asSequence()
-        .mapNotNull { it.completedAt?.plus(24.hours) }
-        .filter { it > now }
-        .minOrNull()
+    private val unexpiredTasks: List<Task>
+        get() = tasks.filter { task ->
+            val completedAt = task.completedAt
+            (completedAt == null || completedAt > now - 24.hours) &&
+                (task.occurrenceId == null || !task.isCompleted || filter == TaskFilter.Completed)
+        }
 
-    val visibleTasks: List<Task> get() {
-        val matching = unexpiredTasks.filter { task ->
-            task.name.contains(query.text.toString().trim(), ignoreCase = true) && when (val group = groupFilter) {
-                TaskGroupFilter.All -> true
-                TaskGroupFilter.NoGroup -> task.groupId == null
-                is TaskGroupFilter.Selected -> task.groupId == group.id
-            } && when (filter) {
-                null -> true
-                TaskFilter.Completed -> task.isCompleted
-                else -> !task.isCompleted && when (filter) {
-                    TaskFilter.Scheduled -> task.dueDate != null
-                    TaskFilter.Overdue -> task.dueDate?.let { it < today } == true
-                    TaskFilter.Today -> task.dueDate == today
-                    TaskFilter.Tomorrow -> task.dueDate == today.plus(1, DateTimeUnit.DAY)
-                    TaskFilter.OtherDates -> task.dueDate?.let { it > today.plus(1, DateTimeUnit.DAY) } == true
-                    TaskFilter.NoDate -> task.dueDate == null
+    val taskCount: Int
+        get() = unexpiredTasks.size
+
+    val nextCompletionExpiry: Instant?
+        get() = tasks
+            .asSequence()
+            .mapNotNull { task -> task.completedAt?.plus(duration = 24.hours) }
+            .filter { instant -> instant > now }
+            .minOrNull()
+
+    val visibleTasks: List<Task>
+        get() {
+            val matching = unexpiredTasks.filter { task ->
+                task.name.contains(other = query.text.toString().trim(), ignoreCase = true) &&
+                    when (val group = groupFilter) {
+                        TaskGroupFilter.All -> true
+                        TaskGroupFilter.NoGroup -> task.groupId == null
+                        is TaskGroupFilter.Selected -> task.groupId == group.id
+                    } &&
+                    when (filter) {
+                        null -> true
+                        TaskFilter.Completed -> task.isCompleted
+                        else -> !task.isCompleted &&
+                            when (filter) {
+                                TaskFilter.Scheduled -> task.dueDate != null
+                                TaskFilter.Overdue -> task.dueDate?.let { date -> date < today } == true
+                                TaskFilter.Today -> task.dueDate == today
+                                TaskFilter.Tomorrow -> task.dueDate == today.plus(value = 1, unit = DateTimeUnit.DAY)
+                                TaskFilter.OtherDates ->
+                                    task.dueDate?.let { date -> date > today.plus(
+                                        value = 1,
+                                        unit = DateTimeUnit.DAY,
+                                    ) } ==
+                                        true
+                                TaskFilter.NoDate -> task.dueDate == null
+                            }
+                    }
+            }
+            val order = when (sort) {
+                TaskSort.Name -> compareBy<Task> { task -> task.name.lowercase() }
+                TaskSort.Group -> {
+                    val groupNames = groups.associate { group -> group.id to group.name.lowercase() }
+                    compareBy<Task> { task -> task.groupId?.let(block = groupNames::get) ?: "" }
                 }
+                TaskSort.Date -> compareBy<Task> { task -> task.dueDate == null }.thenBy(selector = Task::dueDate)
+            }.let { comparator -> if (reverseSort) comparator.reversed() else comparator }
+            return matching.sortedWith(
+                comparator = compareBy<Task>(selector = Task::isCompleted)
+                    .then(comparator = order)
+                    .thenByDescending(selector = Task::createdAt)
+                    .thenByDescending(selector = Task::id)
+            )
+        }
+
+    val summary: String
+        get() {
+            val total = taskCount
+            return if (query.text.isBlank() && filter == null && groupFilter == TaskGroupFilter.All) {
+                "$total ${if (total == 1) "task" else "tasks"}"
+            } else {
+                "${visibleTasks.size} of $total tasks"
             }
         }
-        val order = when (sort) {
-            TaskSort.Name -> compareBy<Task> { it.name.lowercase() }
-            TaskSort.Group -> {
-                val groupNames = groups.associate { it.id to it.name.lowercase() }
-                compareBy<Task> { task -> task.groupId?.let(groupNames::get) ?: "" }
-            }
-            TaskSort.Date -> compareBy<Task> { it.dueDate == null }.thenBy { it.dueDate }
-        }.let { if (reverseSort) it.reversed() else it }
-        return matching.sortedWith(compareBy<Task> { it.isCompleted }.then(order)
-            .thenByDescending { it.createdAt }.thenByDescending { it.id })
-    }
-    val summary: String get() {
-        val total = taskCount
-        return if (query.text.isBlank() && filter == null && groupFilter == TaskGroupFilter.All) {
-            "$total ${if (total == 1) "task" else "tasks"}"
-        } else "${visibleTasks.size} of $total tasks"
-    }
 }
 
 internal enum class TaskFilter(val label: String) {
-    Scheduled("Scheduled"), Overdue("Overdue"), Today("Today"), Tomorrow("Tomorrow"),
-    OtherDates("Other dates"), NoDate("No date"), Completed("Completed"),
+    Scheduled(label = "Scheduled"),
+    Overdue(label = "Overdue"),
+    Today(label = "Today"),
+    Tomorrow(label = "Tomorrow"),
+    OtherDates(label = "Other dates"),
+    NoDate(label = "No date"),
+    Completed(label = "Completed"),
 }
-internal enum class TaskSort { Name, Group, Date }
+
+internal enum class TaskSort {
+    Name,
+    Group,
+    Date,
+}
+
 internal sealed interface TaskGroupFilter {
     data object All : TaskGroupFilter
+
     data object NoGroup : TaskGroupFilter
+
     data class Selected(val id: Int) : TaskGroupFilter
 }
-internal enum class TaskSelection { Filters }
+
+internal enum class TaskSelection {
+    Filters
+}

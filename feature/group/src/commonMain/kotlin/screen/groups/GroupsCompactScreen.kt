@@ -17,19 +17,41 @@ import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
-internal fun GroupsCompactScreen(state: GroupsState, onIntent: (GroupsIntent) -> Unit, onBack: () -> Unit, onCreateGroup: () -> Unit, onEditGroup: (Int) -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        TaskBTopAppBar("Groups", onBack, titleSpacing = 4.dp) {
+internal fun GroupsCompactScreen(
+    state: GroupsState,
+    onIntent: (GroupsIntent) -> Unit,
+    onBack: () -> Unit,
+    onCreateGroup: () -> Unit,
+    onEditGroup: (Int) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        TaskBTopAppBar(title = "Groups", onBack = onBack, titleSpacing = 4.dp) {
             IconButton(onClick = onCreateGroup) {
-                Icon(TaskBIcons.Add, contentDescription = "Add group", tint = TaskBTheme.colors.accent)
+                Icon(
+                    imageVector = TaskBIcons.Add,
+                    contentDescription = "Add group",
+                    tint = TaskBTheme.colors.accent,
+                )
             }
         }
-        Column(Modifier.weight(1f).padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
-            TaskBTextField(state.query, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(16.dp))
-            GroupsFilters(state, onIntent)
-            Spacer(Modifier.height(16.dp))
-            GroupsDirectory(state, onIntent, compact = true, onOpenGroup = onEditGroup, modifier = Modifier.weight(1f).fillMaxWidth())
+        Column(modifier = Modifier.weight(weight = 1f).padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
+            TaskBTextField(
+                state = state.query,
+                description = "Search groups",
+                placeholder = "Search groups",
+                search = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(height = 16.dp))
+            GroupsFilters(state = state, onIntent = onIntent)
+            Spacer(modifier = Modifier.height(height = 16.dp))
+            GroupsDirectory(
+                state = state,
+                onIntent = onIntent,
+                compact = true,
+                onOpenGroup = onEditGroup,
+                modifier = Modifier.weight(weight = 1f).fillMaxWidth(),
+            )
         }
     }
 }

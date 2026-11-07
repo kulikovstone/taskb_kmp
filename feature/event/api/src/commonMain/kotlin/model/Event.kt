@@ -1,11 +1,11 @@
 package com.mkulikov.taskb.feature.event.api.model
 
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.plus
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.plus
 
 data class Event(
     val id: Int = 0,
@@ -22,9 +22,20 @@ data class Event(
     /** Inclusive number of dates occupied by an event without time. */
     val durationDays: Int = 1,
 ) {
-    val endDate: LocalDate? get() = dueDate?.let { date ->
-        if (startTime == null) date.plus(durationDays.toLong() - 1, DateTimeUnit.DAY) else endDateTime?.date
-    }
-    val isTimed: Boolean get() = dueDate != null && startTime != null
-    val key: String get() = occurrenceId?.let { "$id:${it.scheduleId}:${it.scheduledDate}" } ?: id.toString()
+    val endDate: LocalDate?
+        get() = dueDate?.let { date ->
+            if (startTime == null) {
+                date.plus(value = durationDays.toLong() - 1, unit = DateTimeUnit.DAY)
+            } else {
+                endDateTime?.date
+            }
+        }
+
+    val isTimed: Boolean
+        get() = dueDate != null && startTime != null
+
+    val key: String
+        get() = occurrenceId?.let { occurrenceId ->
+            "$id:${occurrenceId.scheduleId}:${occurrenceId.scheduledDate}"
+        } ?: id.toString()
 }

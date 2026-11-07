@@ -8,13 +8,23 @@ import com.mkulikov.taskb.ui.dialog.TaskBMessageDialog
 internal fun GroupEditorDialogs(state: GroupEditorState, onIntent: (GroupEditorIntent) -> Unit) {
     val dismiss = { onIntent(GroupEditorIntent.DismissDialog) }
     when (val dialog = state.dialog) {
-        GroupEditorDialog.NameConflict -> TaskBMessageDialog("Name conflict", "A group with this name already exists.", dismiss)
+        GroupEditorDialog.NameConflict -> TaskBMessageDialog(
+            title = "Name conflict",
+            message = "A group with this name already exists.",
+            onDismiss = dismiss,
+        )
         GroupEditorDialog.ConfirmDelete -> TaskBConfirmationDialog(
             title = "Delete group",
             message = "The group will be deleted. Its tasks will be kept.",
-            confirmText = "Delete", onConfirm = { onIntent(GroupEditorIntent.ConfirmDelete) }, onDismiss = dismiss,
+            confirmText = "Delete",
+            onConfirm = { onIntent(GroupEditorIntent.ConfirmDelete) },
+            onDismiss = dismiss,
         )
-        is GroupEditorDialog.Error -> TaskBMessageDialog("Group error", dialog.message, dismiss)
+        is GroupEditorDialog.Error -> TaskBMessageDialog(
+            title = "Group error",
+            message = dialog.message,
+            onDismiss = dismiss,
+        )
         null -> Unit
     }
 }

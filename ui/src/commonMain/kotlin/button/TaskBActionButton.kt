@@ -33,12 +33,14 @@ fun TaskBActionButton(
         elevation = null,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         colors = ButtonDefaults.buttonColors(
-            backgroundColor = TaskBTheme.colors.accent.copy(alpha = 0.12f).compositeOver(TaskBTheme.colors.surface),
+            backgroundColor = TaskBTheme.colors.accent
+                .copy(alpha = 0.12f)
+                .compositeOver(background = TaskBTheme.colors.surface),
             contentColor = TaskBTheme.colors.text,
         ),
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(label)
+        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(size = 18.dp))
+        Spacer(modifier = Modifier.width(width = 8.dp))
+        Text(text = label)
     }
 }

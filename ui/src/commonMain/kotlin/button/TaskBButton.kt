@@ -61,8 +61,8 @@ private fun TaskBButtonPreview(darkTheme: Boolean) {
     TaskBTheme(darkTheme = darkTheme) {
         Surface(color = TaskBTheme.colors.surface) {
             Row(
-                modifier = Modifier.padding(24.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(all = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
             ) {
                 TaskBButton(label = "Create", onClick = {})
                 TaskBButton(label = "Create", onClick = {}, enabled = false)

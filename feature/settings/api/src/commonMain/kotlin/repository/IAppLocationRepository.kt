@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface IAppLocationRepository {
     fun observeLocation(): Flow<AppLocation?>
+
     suspend fun searchLocations(query: String): List<AppLocation>
+
     suspend fun setLocation(location: AppLocation?)
 }

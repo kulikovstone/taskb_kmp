@@ -31,11 +31,11 @@ import androidx.compose.ui.unit.sp
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
-import kotlin.time.Instant
 
 internal val calendarTaskPadding = 2.dp
 internal val calendarTaskCheckboxSize = 20.dp
@@ -45,11 +45,19 @@ internal val calendarTaskTitleInset = calendarTaskPadding + calendarTaskCheckbox
 internal fun calendarSidebarTaskTitleGap(task: CalendarItem) = if (task.isDailyRoutine) 4.dp else 6.dp
 
 @Composable
-internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle =
-    (if (dense) TaskBTheme.typography.button.copy(lineHeight = 17.sp)
-    else TaskBTheme.typography.body.copy(lineHeight = 18.sp)).copy(
-        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
-    )
+internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle {
+    return (if (dense) {
+        TaskBTheme.typography.button.copy(lineHeight = 17.sp)
+    } else {
+        TaskBTheme.typography.body.copy(lineHeight = 18.sp)
+    })
+        .copy(
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.None,
+            )
+        )
+}
 
 @Composable
 internal fun CalendarTaskRow(
@@ -63,79 +71,164 @@ internal fun CalendarTaskRow(
     dragging: Boolean = false,
     date: LocalDate? = task.dueDate,
     now: Instant = Clock.System.now(),
-    today: LocalDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
+    today: LocalDate = now.toLocalDateTime(timeZone = TimeZone.currentSystemDefault()).date,
+    contentPadding: PaddingValues = PaddingValues(all = 0.dp),
 ) {
     if (task is CalendarItem.HolidayItem) {
-        CalendarHolidayRow(task.holiday, modifier, dense, contentPadding, today)
+        CalendarHolidayRow(
+            holiday = task.holiday,
+            modifier = modifier,
+            dense = dense,
+            contentPadding = contentPadding,
+            today = today,
+        )
         return
     }
     if (task is CalendarItem.EventItem) {
-        CalendarEventRow(task.event, group, onOpenTask, modifier, dense, enabled, dragging, date, now, contentPadding)
+        CalendarEventRow(
+            event = task.event,
+            group = group,
+            onOpenEvent = onOpenTask,
+            modifier = modifier,
+            dense = dense,
+            enabled = enabled,
+            dragging = dragging,
+            date = date,
+            now = now,
+            contentPadding = contentPadding,
+        )
         return
     }
     val colors = TaskBTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
-    val lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
-    val titleStyle = calendarTaskTitleStyle(dense)
-    val overdue = !task.isCompleted && task.dueDate?.let { it < today } == true
-    Column(modifier.graphicsLayer { alpha = if (dragging) 0.25f else 1f }) {
+    val lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None,
+    )
+    val titleStyle = calendarTaskTitleStyle(dense = dense)
+    val overdue = !task.isCompleted && task.dueDate?.let { date -> date < today } == true
+    Column(modifier = modifier.graphicsLayer { alpha = if (dragging) 0.25f else 1f }) {
         Row(
-            Modifier.fillMaxWidth()
-                .clip(if (dense) RoundedCornerShape(8.dp) else RectangleShape)
-                .then(if (overdue) Modifier.background(colors.overdueTaskBackground) else Modifier)
-                .hoverable(interactionSource, enabled = enabled)
-                .indication(interactionSource, LocalIndication.current)
-                .padding(contentPadding)
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape = if (dense) RoundedCornerShape(size = 8.dp) else RectangleShape)
                 .then(
-                    if (dense) Modifier.padding(calendarTaskPadding)
-                    else Modifier.padding(vertical = 4.dp),
+                    other = if (overdue) Modifier.background(color = colors.overdueTaskBackground) else Modifier
+                )
+                .hoverable(interactionSource = interactionSource, enabled = enabled)
+                .indication(interactionSource = interactionSource, indication = LocalIndication.current)
+                .padding(paddingValues = contentPadding)
+                .then(
+                    other = if (dense) {
+                        Modifier.padding(all = calendarTaskPadding)
+                    } else {
+                        Modifier.padding(vertical = 4.dp)
+                    }
                 ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(if (dense) calendarTaskTitleGap else calendarSidebarTaskTitleGap(task)),
+            horizontalArrangement = Arrangement.spacedBy(
+                space = if (dense) calendarTaskTitleGap else calendarSidebarTaskTitleGap(task = task)
+            ),
         ) {
             Box(
-                (if (dense) Modifier.size(calendarTaskCheckboxSize) else Modifier.width(24.dp))
-                    .toggleable(task.isCompleted, interactionSource = interactionSource, indication = null,
-                        enabled = enabled, role = Role.Checkbox, onValueChange = { onToggle(task.id) })
-                    .semantics { contentDescription = if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}" }
-                    .then(if (dense) Modifier else Modifier.padding(vertical = 6.dp)),
+                modifier =
+                    (if (dense) Modifier.size(size = calendarTaskCheckboxSize) else Modifier.width(width = 24.dp))
+                        .toggleable(
+                            value = task.isCompleted,
+                            interactionSource = interactionSource,
+                            indication = null,
+                            enabled = enabled,
+                            role = Role.Checkbox,
+                            onValueChange = { onToggle(task.id) },
+                        )
+                        .semantics {
+                            contentDescription =
+                                if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}"
+                        }
+                        .then(other = if (dense) Modifier else Modifier.padding(vertical = 6.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked, null,
-                    tint = if (dense && group != null) group.color.color else if (task.isCompleted) colors.accent else colors.muted,
+                    imageVector = if (task.isCompleted) TaskBIcons.Checked else TaskBIcons.Unchecked,
+                    contentDescription = null,
+                    tint = if (dense && group != null) {
+                        group.color.color
+                    } else if (task.isCompleted) {
+                        colors.accent
+                    } else {
+                        colors.muted
+                    },
                     // Crop the icon's empty 3 dp margins without scaling its 18 dp glyph.
-                    modifier = if (dense) Modifier.size(calendarTaskCheckboxSize) else Modifier
-                        .size(width = 24.dp, height = 18.dp).clipToBounds()
-                        .wrapContentSize(Alignment.TopStart, unbounded = true)
-                        .requiredSize(24.dp).offset(x = (-3).dp, y = (-3).dp),
+                    modifier = if (dense) {
+                        Modifier.size(size = calendarTaskCheckboxSize)
+                    } else {
+                        Modifier.size(width = 24.dp, height = 18.dp)
+                            .clipToBounds()
+                            .wrapContentSize(align = Alignment.TopStart, unbounded = true)
+                            .requiredSize(size = 24.dp)
+                            .offset(x = (-3).dp, y = (-3).dp)
+                    },
                 )
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (dense) 4.dp else 2.dp)) {
+            Column(
+                modifier = Modifier.weight(weight = 1f),
+                verticalArrangement = Arrangement.spacedBy(space = if (dense) 4.dp else 2.dp),
+            ) {
                 Text(
-                    task.name,
-                    modifier = Modifier.fillMaxWidth().clickable(interactionSource = interactionSource, indication = null,
-                        enabled = enabled, role = Role.Button) { onOpenTask(task.id) },
+                    text = task.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            enabled = enabled,
+                            role = Role.Button,
+                        ) {
+                            onOpenTask(task.id)
+                        },
                     color = if (task.isCompleted) colors.completedText else colors.text,
                     style = titleStyle,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (!dense && task.description.isNotBlank()) Text(
-                    task.description,
-                    modifier = Modifier.fillMaxWidth().clickable(interactionSource = interactionSource, indication = null,
-                        enabled = enabled, role = Role.Button) { onOpenTask(task.id) },
-                    color = colors.muted,
-                    style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!dense && group != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(TaskBIcons.FolderFilled, null, tint = group.color.color, modifier = Modifier.size(14.dp))
-                    Text(group.name, color = colors.muted, style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
+                if (!dense && task.description.isNotBlank())
+                    Text(
+                        text = task.description,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                enabled = enabled,
+                                role = Role.Button,
+                            ) {
+                                onOpenTask(task.id)
+                            },
+                        color = colors.muted,
+                        style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                if (!dense && group != null)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
+                    ) {
+                        Icon(
+                            imageVector = TaskBIcons.FolderFilled,
+                            contentDescription = null,
+                            tint = group.color.color,
+                            modifier = Modifier.size(size = 14.dp),
+                        )
+                        Text(
+                            text = group.name,
+                            color = colors.muted,
+                            style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
             }
         }
     }

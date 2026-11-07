@@ -15,8 +15,10 @@ internal data class GroupSelectionState(
     val result: GroupSelectionResult? = null,
 ) {
     val matchingGroups: List<Group>
-        get() = groups.filter { it.name.contains(query.text.toString().trim(), ignoreCase = true) }
-            .sortedWith(compareBy<Group> { it.name.lowercase() }.thenBy { it.id })
+        get() = groups
+            .filter { group -> group.name.contains(other = query.text.toString().trim(), ignoreCase = true) }
+            .sortedWith(comparator = compareBy<Group> { group -> group.name.lowercase() }.thenBy(selector = Group::id))
+
     val isNoGroupVisible: Boolean
-        get() = showNoGroup && "No group".contains(query.text.toString().trim(), ignoreCase = true)
+        get() = showNoGroup && "No group".contains(other = query.text.toString().trim(), ignoreCase = true)
 }

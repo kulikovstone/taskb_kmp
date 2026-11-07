@@ -19,86 +19,162 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTestApi::class)
 class CalendarCompletedTasksUiTest {
     @Test
-    fun `completion moves tasks to the shared last section and reopening restores their section`() = runSkikoComposeUiTest(size = Size(1440f, 900f)) {
-        val preview = timedCalendarPreviewState()
-        val now = Instant.parse("2026-11-06T12:00:00Z")
-        val routine = preview.tasks.single { it.id == 310 }
-        val active = preview.tasks.single { it.id == 303 }
-        val completedRoutine = preview.tasks.single { it.id == 311 }.copy(completedAt = now - 1.hours)
-        val completedReview = Task(323, "Finished review", preview.selectedDate, completedAt = now - 2.hours)
-        val completedTask = Task(320, "Finished planning", preview.selectedDate, completedAt = now - 3.hours)
-        val undatedCompleted = Task(321, "Finished without a date", completedAt = now - 4.hours)
-        val undatedActive = Task(322, "Plan the weekend")
-        val state = mutableStateOf(preview.copy(now = now, events = emptyList(), tasks = listOf(
-            routine, active, completedTask, completedReview, completedRoutine, undatedCompleted, undatedActive,
-        )))
-        setContent {
-            TaskBTheme(false) {
-                CalendarScreen(state.value, { intent ->
-                    state.value = when (intent) {
-                        is CalendarIntent.ToggleCompleted -> state.value.copy(tasks = state.value.tasks.map { task ->
-                            if (task.id == intent.id && task.occurrenceId == intent.occurrenceId)
-                                task.copy(completedAt = if (task.isCompleted) null else now)
-                            else task
-                        })
-                        CalendarIntent.ShowUnscheduled -> state.value.copy(selectedDate = null)
-                        is CalendarIntent.SelectDay -> state.value.copy(selectedDate = intent.date)
-                        else -> state.value
-                    }
-                }, {}, {}, {})
+    fun `completion moves tasks to the shared last section and reopening restores their section`() {
+        runSkikoComposeUiTest(size = Size(width = 1440f, height = 900f)) {
+            val preview = timedCalendarPreviewState()
+            val now = Instant.parse(input = "2026-11-06T12:00:00Z")
+            val routine = preview.tasks.single { task -> task.id == 310 }
+            val active = preview.tasks.single { task -> task.id == 303 }
+            val completedRoutine = preview.tasks.single { task -> task.id == 311 }.copy(completedAt = now - 1.hours)
+            val completedReview = Task(
+                id = 323,
+                name = "Finished review",
+                dueDate = preview.selectedDate,
+                completedAt = now - 2.hours,
+            )
+            val completedTask = Task(
+                id = 320,
+                name = "Finished planning",
+                dueDate = preview.selectedDate,
+                completedAt = now - 3.hours,
+            )
+            val undatedCompleted = Task(id = 321, name = "Finished without a date", completedAt = now - 4.hours)
+            val undatedActive = Task(id = 322, name = "Plan the weekend")
+            val state = mutableStateOf(
+                value = preview.copy(
+                    now = now,
+                    events = emptyList(),
+                    tasks = listOf(
+                        routine,
+                        active,
+                        completedTask,
+                        completedReview,
+                        completedRoutine,
+                        undatedCompleted,
+                        undatedActive,
+                    ),
+                )
+            )
+            setContent {
+                TaskBTheme(darkTheme = false) {
+                    CalendarScreen(
+                        state = state.value,
+                        onIntent = { intent ->
+                            state.value = when (intent) {
+                                is CalendarIntent.ToggleCompleted -> state.value.copy(
+                                    tasks = state.value.tasks.map { task ->
+                                        if (
+                                            task.id == intent.id &&
+                                                task.occurrenceId == intent.occurrenceId
+                                        ) {
+                                            task.copy(completedAt = if (task.isCompleted) null else now)
+                                        } else {
+                                            task
+                                        }
+                                    }
+                                )
+                                CalendarIntent.ShowUnscheduled -> state.value.copy(selectedDate = null)
+                                is CalendarIntent.SelectDay -> state.value.copy(selectedDate = intent.date)
+                                else -> state.value
+                            }
+                        },
+                        onBack = {},
+                        onOpenTask = {},
+                        onCreateTask = {},
+                    )
+                }
             }
-        }
-        fun taskNode(task: Task) = onNode(
-            hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
-            useUnmergedTree = true,
-        )
-        fun assertCompletedOrder(tasks: List<Task>) {
-            var bottom = onNodeWithTag("calendar-sidebar-completed-heading").fetchSemanticsNode().boundsInRoot.bottom
-            for (task in tasks) {
-                val bounds = taskNode(task).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                assertTrue(bounds.top >= bottom)
-                bottom = bounds.bottom
-                onAllNodes(hasTestTag("calendar-task-${task.key}") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
-                    useUnmergedTree = true).assertCountEquals(1)
+            fun taskNode(task: Task): SemanticsNodeInteraction {
+                return onNode(
+                    matcher = hasTestTag(testTag = "calendar-task-${task.key}") and
+                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                    useUnmergedTree = true,
+                )
             }
+            fun assertCompletedOrder(tasks: List<Task>) {
+                var bottom = onNodeWithTag(testTag = "calendar-sidebar-completed-heading")
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                    .bottom
+                for (task in tasks) {
+                    val bounds = taskNode(task = task).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                    assertTrue(actual = bounds.top >= bottom)
+                    bottom = bounds.bottom
+                    onAllNodes(
+                            matcher = hasTestTag(testTag = "calendar-task-${task.key}") and
+                                hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                            useUnmergedTree = true,
+                        )
+                        .assertCountEquals(expectedSize = 1)
+                }
+            }
+
+            onNodeWithText(text = "Daily · 1").assertIsDisplayed()
+            onNodeWithText(text = "Tasks · 1").assertIsDisplayed()
+            onNodeWithTag(testTag = "calendar-sidebar-events-heading").assertDoesNotExist()
+            onNodeWithText(text = "Completed · 3").assertIsDisplayed()
+            assertTrue(
+                actual =
+                    onNodeWithTag(testTag = "calendar-sidebar-completed-heading")
+                        .fetchSemanticsNode()
+                        .boundsInRoot
+                        .top > taskNode(task = active).fetchSemanticsNode().boundsInRoot.bottom
+            )
+            assertCompletedOrder(tasks = listOf(completedRoutine, completedReview, completedTask))
+
+            onNodeWithContentDescription(label = "Complete ${routine.name}", useUnmergedTree = true).performClick()
+            onNodeWithTag(testTag = "calendar-sidebar-daily-heading").assertDoesNotExist()
+            onNodeWithText(text = "Completed · 4").assertIsDisplayed()
+            assertCompletedOrder(tasks = listOf(routine, completedRoutine, completedReview, completedTask))
+            val path = Path.of("build/reports/screenshots")
+            Files.createDirectories(path)
+            ImageIO.write(
+                onRoot().captureToImage().toAwtImage(),
+                "png",
+                path.resolve("calendar-completed-section.png").toFile(),
+            )
+
+            onNodeWithTag(testTag = "calendar-sidebar-completed-heading").performClick()
+            for (task in listOf(routine, completedRoutine, completedReview, completedTask)) taskNode(task = task)
+                .assertDoesNotExist()
+            taskNode(task = active).assertIsDisplayed()
+            onNodeWithTag(testTag = "calendar-sidebar-completed-heading").performClick()
+            onNodeWithContentDescription(label = "Mark ${routine.name} incomplete", useUnmergedTree = true)
+                .performClick()
+            onNodeWithText(text = "Daily · 1").assertIsDisplayed()
+            onNodeWithText(text = "Completed · 3").assertIsDisplayed()
+            assertTrue(
+                actual =
+                    taskNode(task = routine).fetchSemanticsNode().boundsInRoot.bottom <
+                        onNodeWithTag(testTag = "calendar-sidebar-completed-heading")
+                            .fetchSemanticsNode()
+                            .boundsInRoot
+                            .top
+            )
+
+            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+            onNodeWithText(text = "Completed · 1").assertIsDisplayed()
+            taskNode(task = undatedActive).assertIsDisplayed()
+            assertCompletedOrder(tasks = listOf(element = undatedCompleted))
+            assertTrue(
+                actual =
+                    taskNode(task = undatedActive).fetchSemanticsNode().boundsInRoot.bottom <
+                        onNodeWithTag(testTag = "calendar-sidebar-completed-heading")
+                            .fetchSemanticsNode()
+                            .boundsInRoot
+                            .top
+            )
+            onNodeWithTag(testTag = "calendar-sidebar-completed-heading").performClick()
+            onNodeWithTag(testTag = "calendar-day-number-${preview.selectedDate}", useUnmergedTree = true)
+                .performClick()
+            onNodeWithTag(testTag = "calendar-sidebar-completed-heading")
+                .assert(
+                    matcher = SemanticsMatcher.expectValue(
+                        key = SemanticsProperties.StateDescription,
+                        expectedValue = "Expanded",
+                    )
+                )
+            assertCompletedOrder(tasks = listOf(completedRoutine, completedReview, completedTask))
         }
-
-        onNodeWithText("Daily · 1").assertIsDisplayed()
-        onNodeWithText("Tasks · 1").assertIsDisplayed()
-        onNodeWithTag("calendar-sidebar-events-heading").assertDoesNotExist()
-        onNodeWithText("Completed · 3").assertIsDisplayed()
-        assertTrue(onNodeWithTag("calendar-sidebar-completed-heading").fetchSemanticsNode().boundsInRoot.top >
-            taskNode(active).fetchSemanticsNode().boundsInRoot.bottom)
-        assertCompletedOrder(listOf(completedRoutine, completedReview, completedTask))
-
-        onNodeWithContentDescription("Complete ${routine.name}", useUnmergedTree = true).performClick()
-        onNodeWithTag("calendar-sidebar-daily-heading").assertDoesNotExist()
-        onNodeWithText("Completed · 4").assertIsDisplayed()
-        assertCompletedOrder(listOf(routine, completedRoutine, completedReview, completedTask))
-        val path = Path.of("build/reports/screenshots")
-        Files.createDirectories(path)
-        ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", path.resolve("calendar-completed-section.png").toFile())
-
-        onNodeWithTag("calendar-sidebar-completed-heading").performClick()
-        for (task in listOf(routine, completedRoutine, completedReview, completedTask)) taskNode(task).assertDoesNotExist()
-        taskNode(active).assertIsDisplayed()
-        onNodeWithTag("calendar-sidebar-completed-heading").performClick()
-        onNodeWithContentDescription("Mark ${routine.name} incomplete", useUnmergedTree = true).performClick()
-        onNodeWithText("Daily · 1").assertIsDisplayed()
-        onNodeWithText("Completed · 3").assertIsDisplayed()
-        assertTrue(taskNode(routine).fetchSemanticsNode().boundsInRoot.bottom <
-            onNodeWithTag("calendar-sidebar-completed-heading").fetchSemanticsNode().boundsInRoot.top)
-
-        onNodeWithTag("calendar-sidebar-toggle").performClick()
-        onNodeWithText("Completed · 1").assertIsDisplayed()
-        taskNode(undatedActive).assertIsDisplayed()
-        assertCompletedOrder(listOf(undatedCompleted))
-        assertTrue(taskNode(undatedActive).fetchSemanticsNode().boundsInRoot.bottom <
-            onNodeWithTag("calendar-sidebar-completed-heading").fetchSemanticsNode().boundsInRoot.top)
-        onNodeWithTag("calendar-sidebar-completed-heading").performClick()
-        onNodeWithTag("calendar-day-number-${preview.selectedDate}", useUnmergedTree = true).performClick()
-        onNodeWithTag("calendar-sidebar-completed-heading")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
-        assertCompletedOrder(listOf(completedRoutine, completedReview, completedTask))
     }
 }

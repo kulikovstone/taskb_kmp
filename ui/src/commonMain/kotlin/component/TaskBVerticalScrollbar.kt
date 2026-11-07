@@ -5,5 +5,4 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /** Desktop supplies a draggable scrollbar; touch targets use the list's scrolling. */
-@Composable
-expect fun TaskBVerticalScrollbar(state: LazyListState, modifier: Modifier = Modifier)
+@Composable expect fun TaskBVerticalScrollbar(state: LazyListState, modifier: Modifier = Modifier)

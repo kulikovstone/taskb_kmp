@@ -16,9 +16,9 @@ internal class SettingsNavEntry : INavEntry {
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
         scope.entry<SettingsRoute> {
             val koin = getKoin()
-            val store = rememberNavEntryResource(SettingsStore::class) { SettingsStore(koin.get()) }
+            val store = rememberNavEntryResource(key = SettingsStore::class) { SettingsStore(locations = koin.get()) }
             val state by store.state.collectAsState()
-            SettingsScreen(state, store::accept, navigator::back)
+            SettingsScreen(state = state, onIntent = store::accept, onBack = navigator::back)
         }
     }
 }

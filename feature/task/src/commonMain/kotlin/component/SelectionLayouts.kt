@@ -18,23 +18,53 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
 internal fun SelectionScreen(title: String, onClose: () -> Unit, content: @Composable (Modifier) -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        TaskBTopAppBar(title, onClose, titleSpacing = 4.dp)
-        content(Modifier.weight(1f).padding(start = 24.dp, end = 24.dp, top = 24.dp))
+    Column(modifier = Modifier.fillMaxSize()) {
+        TaskBTopAppBar(title = title, onBack = onClose, titleSpacing = 4.dp)
+        content(Modifier.weight(weight = 1f).padding(start = 24.dp, end = 24.dp, top = 24.dp))
     }
 }
 
 @Composable
-internal fun SelectionDialog(title: String, onClose: () -> Unit, availableHeight: Dp, preferredHeight: Dp, content: @Composable (Modifier) -> Unit) {
-    TaskBDialog(onClose) {
-        Surface(shape = RoundedCornerShape(10.dp), color = TaskBTheme.colors.surface, elevation = 4.dp) {
-            Column(Modifier.width(480.dp).height(minOf(preferredHeight, (availableHeight - 48.dp).coerceAtLeast(160.dp))).padding(24.dp)) {
-                Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, style = TaskBTheme.typography.title, color = TaskBTheme.colors.heading, modifier = Modifier.weight(1f))
-                    IconButton(onClose) { Icon(TaskBIcons.Clear, "Close selection", tint = TaskBTheme.colors.muted) }
+internal fun SelectionDialog(
+    title: String,
+    onClose: () -> Unit,
+    availableHeight: Dp,
+    preferredHeight: Dp,
+    content: @Composable (Modifier) -> Unit,
+) {
+    TaskBDialog(onDismissRequest = onClose) {
+        Surface(shape = RoundedCornerShape(size = 10.dp), color = TaskBTheme.colors.surface, elevation = 4.dp) {
+            Column(
+                modifier = Modifier
+                    .width(width = 480.dp)
+                    .height(
+                        height = minOf(
+                            a = preferredHeight,
+                            b = (availableHeight - 48.dp).coerceAtLeast(minimumValue = 160.dp),
+                        )
+                    )
+                    .padding(all = 24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(height = 48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = title,
+                        style = TaskBTheme.typography.title,
+                        color = TaskBTheme.colors.heading,
+                        modifier = Modifier.weight(weight = 1f),
+                    )
+                    IconButton(onClick = onClose) {
+                        Icon(
+                            imageVector = TaskBIcons.Clear,
+                            contentDescription = "Close selection",
+                            tint = TaskBTheme.colors.muted,
+                        )
+                    }
                 }
-                Spacer(Modifier.height(16.dp))
-                content(Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(height = 16.dp))
+                content(Modifier.weight(weight = 1f))
             }
         }
     }

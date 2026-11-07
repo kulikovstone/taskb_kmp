@@ -13,6 +13,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -20,98 +21,133 @@ import kotlinx.coroutines.test.runTest
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupEditorStoreTest {
     @Test
-    fun `creation validates trims and prevents double submissions`() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val repository = FakeGroupRepository().apply { onWrite = { gate.await() } }
-        GroupEditorStore(repository, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            store.state.value.name.setTextAndPlaceCursorAtEnd("  ")
-            store.accept(GroupEditorIntent.Save)
-            runCurrent()
-            assertEquals(0, repository.writes)
-            store.state.value.name.setTextAndPlaceCursorAtEnd(" Work ")
-            store.accept(GroupEditorIntent.ColorChanged(GroupColor.Green))
-            repeat(4) { store.accept(GroupEditorIntent.Save) }
-            runCurrent()
-            assertEquals(1, repository.writes)
-            assertEquals(" Work ", store.state.value.name.text.toString())
-            gate.complete(Unit)
-            advanceUntilIdle()
-            assertEquals("Work", repository.lastWrite?.name)
-            assertEquals(GroupColor.Green, repository.lastWrite?.color)
-            assertTrue(store.state.value.isFinished)
+    fun `creation validates trims and prevents double submissions`(): TestResult {
+        return runTest {
+            val gate = CompletableDeferred<Unit>()
+            val repository = FakeGroupRepository().apply { onWrite = { gate.await() } }
+            GroupEditorStore(repository = repository, dispatcher = StandardTestDispatcher(scheduler = testScheduler))
+                .use { store ->
+                    store.state.value.name.setTextAndPlaceCursorAtEnd(text = "  ")
+                    store.accept(intent = GroupEditorIntent.Save)
+                    runCurrent()
+                    assertEquals(expected = 0, actual = repository.writes)
+                    store.state.value.name.setTextAndPlaceCursorAtEnd(text = " Work ")
+                    store.accept(intent = GroupEditorIntent.ColorChanged(color = GroupColor.Green))
+                    repeat(times = 4) { store.accept(intent = GroupEditorIntent.Save) }
+                    runCurrent()
+                    assertEquals(expected = 1, actual = repository.writes)
+                    assertEquals(expected = " Work ", actual = store.state.value.name.text.toString())
+                    gate.complete(value = Unit)
+                    advanceUntilIdle()
+                    assertEquals(expected = "Work", actual = repository.lastWrite?.name)
+                    assertEquals(expected = GroupColor.Green, actual = repository.lastWrite?.color)
+                    assertTrue(actual = store.state.value.isFinished)
+                }
         }
     }
 
     @Test
-    fun `conflict and failed save preserve edit draft and permit retry`() = runTest {
-        val repository = FakeGroupRepository()
-        GroupEditorStore(repository, 7, StandardTestDispatcher(testScheduler)).use { store ->
-            advanceUntilIdle()
-            assertFalse(store.state.value.canSave)
-            store.state.value.name.setTextAndPlaceCursorAtEnd("Personal")
-            repository.result = GroupWriteResult.NameConflict
-            store.accept(GroupEditorIntent.Save)
-            advanceUntilIdle()
-            assertEquals(GroupEditorDialog.NameConflict, store.state.value.dialog)
-            store.accept(GroupEditorIntent.DismissDialog)
-            repository.onWrite = { error("Disk full") }
-            store.accept(GroupEditorIntent.Save)
-            advanceUntilIdle()
-            assertTrue(store.state.value.dialog is GroupEditorDialog.Error)
-            assertEquals("Personal", store.state.value.name.text.toString())
-            store.accept(GroupEditorIntent.DismissDialog)
-            repository.onWrite = {}
-            repository.result = GroupWriteResult.Saved
-            store.accept(GroupEditorIntent.Save)
-            advanceUntilIdle()
-            assertTrue(store.state.value.isFinished)
+    fun `conflict and failed save preserve edit draft and permit retry`(): TestResult {
+        return runTest {
+            val repository = FakeGroupRepository()
+            GroupEditorStore(
+                    repository = repository,
+                    groupId = 7,
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                .use { store ->
+                    advanceUntilIdle()
+                    assertFalse(actual = store.state.value.canSave)
+                    store.state.value.name.setTextAndPlaceCursorAtEnd(text = "Personal")
+                    repository.result = GroupWriteResult.NameConflict
+                    store.accept(intent = GroupEditorIntent.Save)
+                    advanceUntilIdle()
+                    assertEquals(expected = GroupEditorDialog.NameConflict, actual = store.state.value.dialog)
+                    store.accept(intent = GroupEditorIntent.DismissDialog)
+                    repository.onWrite = { error(message = "Disk full") }
+                    store.accept(intent = GroupEditorIntent.Save)
+                    advanceUntilIdle()
+                    assertTrue(actual = store.state.value.dialog is GroupEditorDialog.Error)
+                    assertEquals(expected = "Personal", actual = store.state.value.name.text.toString())
+                    store.accept(intent = GroupEditorIntent.DismissDialog)
+                    repository.onWrite = {}
+                    repository.result = GroupWriteResult.Saved
+                    store.accept(intent = GroupEditorIntent.Save)
+                    advanceUntilIdle()
+                    assertTrue(actual = store.state.value.isFinished)
+                }
         }
     }
 
     @Test
-    fun `deletion requires confirmation and duplicate confirmations delete once for empty and populated groups`() = runTest {
-        for (hasTasks in listOf(false, true)) {
+    fun `deletion requires confirmation and duplicate confirmations delete once for empty and populated groups`():
+        TestResult {
+        return runTest {
+            for (hasTasks in listOf(false, true)) {
+                val repository = FakeGroupRepository().apply {
+                    if (hasTasks)
+                        group = requireNotNull(value = group).copy(tasks = GroupTaskSummary(completed = 1))
+                }
+                GroupEditorStore(
+                        repository = repository,
+                        groupId = 7,
+                        dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                    )
+                    .use { store ->
+                        advanceUntilIdle()
+                        store.accept(intent = GroupEditorIntent.ConfirmDelete)
+                        advanceUntilIdle()
+                        assertEquals(expected = 0, actual = repository.deletions)
+                        store.accept(intent = GroupEditorIntent.PrepareDelete)
+                        advanceUntilIdle()
+                        assertEquals(expected = GroupEditorDialog.ConfirmDelete, actual = store.state.value.dialog)
+                        store.accept(intent = GroupEditorIntent.DismissDialog)
+                        store.accept(intent = GroupEditorIntent.ConfirmDelete)
+                        advanceUntilIdle()
+                        assertEquals(expected = 0, actual = repository.deletions)
+                        store.accept(intent = GroupEditorIntent.PrepareDelete)
+                        repeat(times = 3) { store.accept(intent = GroupEditorIntent.ConfirmDelete) }
+                        advanceUntilIdle()
+                        assertEquals(expected = 1, actual = repository.deletions)
+                    }
+            }
+        }
+    }
+
+    @Test
+    fun `closing cancels writes and missing groups can never be saved`(): TestResult {
+        return runTest {
+            var cancelled = false
             val repository = FakeGroupRepository().apply {
-                if (hasTasks) group = requireNotNull(group).copy(tasks = GroupTaskSummary(completed = 1))
+                onWrite = {
+                    try {
+                        awaitCancellation()
+                    } finally {
+                        cancelled = true
+                    }
+                }
             }
-            GroupEditorStore(repository, 7, StandardTestDispatcher(testScheduler)).use { store ->
-                advanceUntilIdle()
-                store.accept(GroupEditorIntent.ConfirmDelete)
-                advanceUntilIdle()
-                assertEquals(0, repository.deletions)
-                store.accept(GroupEditorIntent.PrepareDelete)
-                advanceUntilIdle()
-                assertEquals(GroupEditorDialog.ConfirmDelete, store.state.value.dialog)
-                store.accept(GroupEditorIntent.DismissDialog)
-                store.accept(GroupEditorIntent.ConfirmDelete)
-                advanceUntilIdle()
-                assertEquals(0, repository.deletions)
-                store.accept(GroupEditorIntent.PrepareDelete)
-                repeat(3) { store.accept(GroupEditorIntent.ConfirmDelete) }
-                advanceUntilIdle()
-                assertEquals(1, repository.deletions)
-            }
-        }
-    }
-
-    @Test
-    fun `closing cancels writes and missing groups can never be saved`() = runTest {
-        var cancelled = false
-        val repository = FakeGroupRepository().apply {
-            onWrite = { try { awaitCancellation() } finally { cancelled = true } }
-        }
-        val store = GroupEditorStore(repository, dispatcher = StandardTestDispatcher(testScheduler))
-        store.state.value.name.setTextAndPlaceCursorAtEnd("Work")
-        store.accept(GroupEditorIntent.Save)
-        runCurrent()
-        store.close()
-        advanceUntilIdle()
-        assertTrue(cancelled)
-        repository.group = null
-        GroupEditorStore(repository, 7, StandardTestDispatcher(testScheduler)).use { missing ->
+            val store = GroupEditorStore(
+                repository = repository,
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+            )
+            store.state.value.name.setTextAndPlaceCursorAtEnd(text = "Work")
+            store.accept(intent = GroupEditorIntent.Save)
+            runCurrent()
+            store.close()
             advanceUntilIdle()
-            assertFalse(missing.state.value.canSave)
-            assertEquals("This group no longer exists.", missing.state.value.loadError)
+            assertTrue(actual = cancelled)
+            repository.group = null
+            GroupEditorStore(
+                    repository = repository,
+                    groupId = 7,
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                .use { missing ->
+                    advanceUntilIdle()
+                    assertFalse(actual = missing.state.value.canSave)
+                    assertEquals(expected = "This group no longer exists.", actual = missing.state.value.loadError)
+                }
         }
     }
 }

@@ -6,5 +6,5 @@ import androidx.room3.PrimaryKey
 @Entity(tableName = "application_settings")
 data class ApplicationSetting(
     @PrimaryKey val key: String,
-    val value: String
+    val value: String,
 )

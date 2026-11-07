@@ -15,31 +15,44 @@ import kotlinx.coroutines.flow.map
 
 internal class GroupRepository(private val dao: Lazy<IGroupDao>) : IGroupRepository {
     override val groups = flow {
-        emitAll(dao.value.observeGroupsWithTaskCounts().map { entities -> entities.map { it.toGroup() } })
+        emitAll(
+            flow = dao.value.observeGroupsWithTaskCounts().map { entities ->
+                entities.map { record -> record.toGroup() }
+            },
+        )
     }
 
-    override suspend fun getById(id: Int): Group? = dao.value.getWithTaskCounts(id)?.toGroup()
+    override suspend fun getById(id: Int): Group? = dao.value.getWithTaskCounts(id = id)?.toGroup()
 
     override suspend fun add(name: String, color: GroupColor): GroupWriteResult {
-        val normalized = name.trim().also { require(it.isNotEmpty()) }
-        return if (dao.value.insert(GroupEntity(name = normalized, color = color.color.toArgb())) == -1L) {
+        val normalized = name.trim().also { trimmedName -> require(value = trimmedName.isNotEmpty()) }
+        return if (dao.value.insert(group = GroupEntity(name = normalized, color = color.color.toArgb())) == -1L) {
             GroupWriteResult.NameConflict
-        } else GroupWriteResult.Saved
+        } else {
+            GroupWriteResult.Saved
+        }
     }
 
     override suspend fun update(group: Group): GroupWriteResult {
-        val normalized = group.name.trim().also { require(it.isNotEmpty()) }
-        val updated = dao.value.update(GroupEntity(group.id, normalized, group.color.color.toArgb()))
+        val normalized = group.name.trim().also { trimmedName -> require(value = trimmedName.isNotEmpty()) }
+        val updated = dao.value.update(
+            group = GroupEntity(id = group.id, name = normalized, color = group.color.color.toArgb())
+        )
         return when {
             updated > 0 -> GroupWriteResult.Saved
-            dao.value.getById(group.id) == null -> GroupWriteResult.NotFound
+            dao.value.getById(id = group.id) == null -> GroupWriteResult.NotFound
             else -> GroupWriteResult.NameConflict
         }
     }
 
-    override suspend fun delete(id: Int) = dao.value.deleteById(id)
+    override suspend fun delete(id: Int) = dao.value.deleteById(id = id)
 
-    private fun GroupWithTaskCounts.toGroup() = Group(
-        group.id, group.name, GroupColor.fromArgb(group.color), GroupTaskSummary(planned, completed),
-    )
+    private fun GroupWithTaskCounts.toGroup(): Group {
+        return Group(
+            id = group.id,
+            name = group.name,
+            color = GroupColor.fromArgb(argb = group.color),
+            tasks = GroupTaskSummary(planned = planned, completed = completed),
+        )
+    }
 }

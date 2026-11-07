@@ -19,14 +19,14 @@ import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestCoroutineScheduler
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.datetime.LocalDate
 
 @OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
 class TaskEditorDescriptionUiTest {
@@ -34,105 +34,159 @@ class TaskEditorDescriptionUiTest {
     fun `creation saves multiline description verbatim and Enter adds a newline`() {
         val scheduler = TestCoroutineScheduler()
         val repository = FakeTaskRepository()
-        TaskEditorStore(repository, FakeGroupRepository(), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
-            scheduler.runCurrent()
-            runSkikoComposeUiTest(size = Size(400f, 640f)) {
-                setContent {
-                    TaskBTheme(false) {
-                        Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-                            TaskEditorContent(store.state.collectAsState().value, store::accept, false, {}, {})
+        TaskEditorStore(
+                repository = repository,
+                groups = FakeGroupRepository(),
+                dispatcher = StandardTestDispatcher(scheduler = scheduler),
+            )
+            .use { store ->
+                scheduler.runCurrent()
+                runSkikoComposeUiTest(size = Size(width = 400f, height = 640f)) {
+                    setContent {
+                        TaskBTheme(darkTheme = false) {
+                            Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
+                                TaskEditorContent(
+                                    state = store.state.collectAsState().value,
+                                    onIntent = store::accept,
+                                    wide = false,
+                                    onBack = {},
+                                    onChooseGroup = {},
+                                )
+                            }
                         }
                     }
-                }
-                onNodeWithContentDescription("Task name").performTextInput("Draft task")
-                val description = onNodeWithContentDescription("Task description")
-                description.performClick().performTextInput("  First line")
-                description.performKeyInput { pressKey(Key.Enter) }
-                description.performTextInput("\nSecond line  \n")
-                val expected = "  First line\n\nSecond line  \n"
-                description.assertTextEquals(expected)
-                assertNull(repository.lastWrite)
+                    onNodeWithContentDescription(label = "Task name").performTextInput(text = "Draft task")
+                    val description = onNodeWithContentDescription(label = "Task description")
+                    description.performClick().performTextInput(text = "  First line")
+                    description.performKeyInput { pressKey(key = Key.Enter) }
+                    description.performTextInput(text = "\nSecond line  \n")
+                    val expected = "  First line\n\nSecond line  \n"
+                    description.assertTextEquals(expected)
+                    assertNull(actual = repository.lastWrite)
 
-                onNodeWithContentDescription("Save task").performClick()
-                scheduler.runCurrent()
-                assertEquals("Draft task", repository.lastWrite?.name)
-                assertEquals(expected, repository.lastWrite?.description)
+                    onNodeWithContentDescription(label = "Save task").performClick()
+                    scheduler.runCurrent()
+                    assertEquals(expected = "Draft task", actual = repository.lastWrite?.name)
+                    assertEquals(expected = expected, actual = repository.lastWrite?.description)
+                }
             }
-        }
     }
 
     @Test
     fun `description editing and selection survive delayed store updates and layout changes and can be cleared`() {
         val scheduler = TestCoroutineScheduler()
         val repository = FakeTaskRepository().apply {
-            values.value = listOf(Task(7, "Original task", description = "Old description\nSecond line"))
+            values.value = listOf(
+                element = Task(id = 7, name = "Original task", description = "Old description\nSecond line")
+            )
         }
-        val wide = mutableStateOf(false)
-        TaskEditorStore(repository, FakeGroupRepository(), 7, dispatcher = StandardTestDispatcher(scheduler)).use { store ->
-            scheduler.runCurrent()
-            runSkikoComposeUiTest(size = Size(1280f, 900f)) {
-                setContent {
-                    TaskBTheme(false) {
-                        Box(Modifier.width(if (wide.value) 1280.dp else 400.dp).fillMaxHeight()) {
-                            TaskEditorContent(store.state.collectAsState().value, store::accept, wide.value, {}, {})
+        val wide = mutableStateOf(value = false)
+        TaskEditorStore(
+                repository = repository,
+                groups = FakeGroupRepository(),
+                taskId = 7,
+                dispatcher = StandardTestDispatcher(scheduler = scheduler),
+            )
+            .use { store ->
+                scheduler.runCurrent()
+                runSkikoComposeUiTest(size = Size(width = 1280f, height = 900f)) {
+                    setContent {
+                        TaskBTheme(darkTheme = false) {
+                            Box(
+                                modifier = Modifier
+                                    .width(width = if (wide.value) 1280.dp else 400.dp)
+                                    .fillMaxHeight()
+                            ) {
+                                TaskEditorContent(
+                                    state = store.state.collectAsState().value,
+                                    onIntent = store::accept,
+                                    wide = wide.value,
+                                    onBack = {},
+                                    onChooseGroup = {},
+                                )
+                            }
                         }
                     }
-                }
-                val description = onNodeWithContentDescription("Task description")
-                description.assertTextEquals("Old description\nSecond line")
-                description.performClick()
-                description.performTextInputSelection(TextRange(0, 3))
-                description.performTextInput("New")
-                store.accept(TaskEditorIntent.DateChanged(LocalDate(2026, 11, 1)))
-                for (isWide in listOf(true, false)) {
-                    runOnIdle { wide.value = isWide }
+                    val description = onNodeWithContentDescription(label = "Task description")
+                    description.assertTextEquals("Old description\nSecond line")
+                    description.performClick()
+                    description.performTextInputSelection(selection = TextRange(start = 0, end = 3))
+                    description.performTextInput(text = "New")
+                    store.accept(
+                        intent = TaskEditorIntent.DateChanged(date = LocalDate(year = 2026, month = 11, day = 1))
+                    )
+                    for (isWide in listOf(true, false)) {
+                        runOnIdle { wide.value = isWide }
+                        waitForIdle()
+                        description.assertTextEquals("New description\nSecond line")
+                        description.assert(
+                            matcher = SemanticsMatcher.expectValue(
+                                key = SemanticsProperties.TextSelectionRange,
+                                expectedValue = TextRange(index = 3),
+                            )
+                        )
+                    }
+                    scheduler.runCurrent()
                     waitForIdle()
                     description.assertTextEquals("New description\nSecond line")
-                    description.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(3)))
+                    description.assert(
+                        matcher = SemanticsMatcher.expectValue(
+                            key = SemanticsProperties.TextSelectionRange,
+                            expectedValue = TextRange(index = 3),
+                        )
+                    )
+                    description.performTextClearance()
+                    onNodeWithContentDescription(label = "Save task").performClick()
+                    scheduler.runCurrent()
+                    assertEquals(expected = "", actual = repository.lastWrite?.description)
+                    assertEquals(expected = "Original task", actual = repository.lastWrite?.name)
                 }
-                scheduler.runCurrent()
-                waitForIdle()
-                description.assertTextEquals("New description\nSecond line")
-                description.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(3)))
-                description.performTextClearance()
-                onNodeWithContentDescription("Save task").performClick()
-                scheduler.runCurrent()
-                assertEquals("", repository.lastWrite?.description)
-                assertEquals("Original task", repository.lastWrite?.name)
             }
-        }
     }
 
     @Test
     fun `long description grows and the form scrolls to later fields while save stays fixed`() {
         val scheduler = TestCoroutineScheduler()
         val repository = FakeTaskRepository()
-        TaskEditorStore(repository, FakeGroupRepository(), dispatcher = StandardTestDispatcher(scheduler)).use { store ->
-            scheduler.runCurrent()
-            runSkikoComposeUiTest(size = Size(400f, 640f)) {
-                setContent {
-                    TaskBTheme(false) {
-                        Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-                            TaskEditorContent(store.state.collectAsState().value, store::accept, false, {}, {})
+        TaskEditorStore(
+                repository = repository,
+                groups = FakeGroupRepository(),
+                dispatcher = StandardTestDispatcher(scheduler = scheduler),
+            )
+            .use { store ->
+                scheduler.runCurrent()
+                runSkikoComposeUiTest(size = Size(width = 400f, height = 640f)) {
+                    setContent {
+                        TaskBTheme(darkTheme = false) {
+                            Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
+                                TaskEditorContent(
+                                    state = store.state.collectAsState().value,
+                                    onIntent = store::accept,
+                                    wide = false,
+                                    onBack = {},
+                                    onChooseGroup = {},
+                                )
+                            }
                         }
                     }
+                    onNodeWithContentDescription(label = "Task name").performTextInput(text = "Long task")
+                    val description = onNodeWithContentDescription(label = "Task description")
+                    val initialHeight = description.fetchSemanticsNode().boundsInRoot.height
+                    val saveTop = onNodeWithContentDescription(
+                        label = "Save task",
+                    ).fetchSemanticsNode().boundsInRoot.top
+                    val text = (1..24).joinToString(separator = "\n") { lineNumber -> "Description line $lineNumber" }
+                    description.performTextReplacement(text = text)
+                    waitForIdle()
+                    assertTrue(actual = description.fetchSemanticsNode().boundsInRoot.height > initialHeight)
+                    onNodeWithContentDescription(label = "Choose date").performScrollTo().assertIsDisplayed()
+                    onNodeWithContentDescription(label = "Task name").assertIsNotDisplayed()
+                    val save = onNodeWithContentDescription(label = "Save task").assertIsDisplayed()
+                    assertEquals(expected = saveTop, actual = save.fetchSemanticsNode().boundsInRoot.top)
+                    save.performClick()
+                    scheduler.runCurrent()
+                    assertEquals(expected = text, actual = repository.lastWrite?.description)
                 }
-                onNodeWithContentDescription("Task name").performTextInput("Long task")
-                val description = onNodeWithContentDescription("Task description")
-                val initialHeight = description.fetchSemanticsNode().boundsInRoot.height
-                val saveTop = onNodeWithContentDescription("Save task").fetchSemanticsNode().boundsInRoot.top
-                val text = (1..24).joinToString("\n") { "Description line $it" }
-                description.performTextReplacement(text)
-                waitForIdle()
-                assertTrue(description.fetchSemanticsNode().boundsInRoot.height > initialHeight)
-                onNodeWithContentDescription("Choose date").performScrollTo().assertIsDisplayed()
-                onNodeWithContentDescription("Task name").assertIsNotDisplayed()
-                val save = onNodeWithContentDescription("Save task").assertIsDisplayed()
-                assertEquals(saveTop, save.fetchSemanticsNode().boundsInRoot.top)
-                save.performClick()
-                scheduler.runCurrent()
-                assertEquals(text, repository.lastWrite?.description)
             }
-        }
     }
 }

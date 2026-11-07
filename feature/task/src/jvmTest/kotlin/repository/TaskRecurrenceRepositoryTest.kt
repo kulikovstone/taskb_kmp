@@ -2,224 +2,515 @@ package com.mkulikov.taskb.feature.task.repository
 
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
-import com.mkulikov.taskb.feature.task.api.model.*
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
+import com.mkulikov.taskb.feature.task.api.model.*
+import kotlin.test.*
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DayOfWeek.*
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
-import kotlin.test.*
-import kotlin.time.Clock
-import kotlin.time.Instant
 
 class TaskRecurrenceRepositoryTest {
     @get:Rule val folder = TemporaryFolder()
-    private val clock = object : Clock { override fun now() = Instant.parse("2026-11-04T10:00:00Z") }
-    private fun date(day: Int) = LocalDate(2026, 11, day)
-    private val weekly = TaskRecurrence(RecurrenceFrequency.Weekly, weekdays = setOf(TUESDAY, THURSDAY))
-    private suspend fun TaskRepository.events() = observeCalendar(date(1), date(30)).first().sortedBy { it.dueDate }
-    private fun event(events: List<Task>, day: Int) = events.single { it.dueDate == date(day) }
-    private fun id(task: Task) = requireNotNull(task.occurrenceId)
-    private fun withRepository(block: suspend (TaskRepository, AppDatabase) -> Unit) = runBlocking {
-        val db = AppDatabase.open(folder.root.toPath().resolve("test.db"))
-        try { block(TaskRepository(lazy { db }, clock), db) } finally { db.close() }
-    }
-
-    @Test fun `one task owns all events and renaming an event updates every occurrence`() = withRepository { repo, db ->
-        assertTrue(repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly)))
-        val original = repo.events()
-        assertEquals(listOf(3, 5, 10, 12, 17, 19, 24, 26), original.map { it.dueDate?.day })
-        assertEquals(1, original.map { it.id }.distinct().size)
-        assertEquals(8, original.map { it.key }.distinct().size)
-        assertTrue(repo.save(event(original, 10).copy(name = "Strength training")))
-        assertTrue(repo.events().all { it.name == "Strength training" })
-        assertEquals(1, db.taskDao().observeTasks().first().size)
-        assertEquals(1, db.taskDao().getRecord(original.first().id)?.schedules?.size)
-    }
-
-    @Test fun `description is shared by every occurrence and survives moves and schedule revisions`() = withRepository { repo, db ->
-        val description = "Warm up for 10 minutes.\n\nBring a towel."
-        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly, description = description))
-        val initial = repo.events()
-        assertTrue(initial.all { it.description == description })
-        val first = event(initial, 3)
-        repo.setOccurrenceCompleted(first.id, id(first), true)
-        val selected = event(initial, 5)
-        assertTrue(repo.saveOccurrence(selected.copy(description = "New plan\nThree sets"), TaskChangeScope.ThisOccurrence))
-        assertTrue(repo.events().all { it.description == "New plan\nThree sets" })
-        assertEquals(1, db.taskDao().getRecord(first.id)?.schedules?.size)
-
-        assertTrue(repo.moveOccurrence(selected.id, id(selected), date(5), date(6), TaskChangeScope.ThisAndFollowing))
-        assertTrue(repo.events().all { it.description == "New plan\nThree sets" })
-        val moved = event(repo.events(), 6)
-        val updatedDescription = "  Revised programme\nRest for 60 seconds.\n"
-        assertTrue(repo.save(moved.copy(recurrence = TaskRecurrence(RecurrenceFrequency.Daily), description = updatedDescription)))
-        assertTrue(repo.events().all { it.description == updatedDescription })
-        assertEquals(updatedDescription, repo.getById(first.id)?.description)
-        assertEquals(updatedDescription, repo.getOccurrence(first.id, id(first))?.description)
-        assertTrue(repo.observeTaskList(date(4)).first().all { it.description == updatedDescription })
-        assertTrue(event(repo.events(), 3).isCompleted)
-
-        assertTrue(repo.save(event(repo.events(), 6).copy(dueDate = date(7), description = "")))
-        assertTrue(repo.events().all { it.description.isEmpty() })
-        assertEquals("", db.taskDao().getById(first.id)?.description)
-    }
-
-    @Test fun `single moves keep stable identity completion and all other dates and support stale-safe undo`() = withRepository { repo, _ ->
-        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly))
-        val initial = repo.events()
-        val moved = event(initial, 5)
-        val done = event(initial, 3)
-        assertTrue(repo.setOccurrenceCompleted(done.id, id(done), true))
-        assertTrue(repo.moveOccurrence(moved.id, id(moved), date(5), date(6), TaskChangeScope.ThisOccurrence))
-        val events = repo.events()
-        assertTrue(event(events, 3).isCompleted)
-        assertEquals(moved.key, event(events, 6).key)
-        assertEquals(initial.filter { it.dueDate != date(3) && it.dueDate != date(5) }, events.filter { it.dueDate != date(3) && it.dueDate != date(6) })
-        assertFalse(repo.moveOccurrence(moved.id, id(moved), date(5), date(7), TaskChangeScope.ThisOccurrence))
-        assertTrue(repo.moveOccurrence(moved.id, id(moved), date(6), date(5), TaskChangeScope.ThisOccurrence))
-        assertEquals(moved, event(repo.events(), 5))
-    }
-
-    @Test fun `moved events enter another window and do not hide a nearer natural occurrence in the list`() = withRepository { repo, _ ->
-        repo.save(Task(name = "Daily", dueDate = date(1), recurrence = TaskRecurrence(RecurrenceFrequency.Daily)))
-        val moved = event(repo.events(), 5)
-        assertTrue(repo.moveOccurrence(moved.id, id(moved), date(5), LocalDate(2026, 12, 1), TaskChangeScope.ThisOccurrence))
-        val sameDay = repo.observeCalendar(LocalDate(2026, 12, 1), LocalDate(2026, 12, 1)).first()
-        assertEquals(2, sameDay.size)
-        assertEquals(2, sameDay.map { it.key }.distinct().size)
-        assertTrue(sameDay.any { it.key == moved.key })
-        assertEquals(listOf(3, 4), repo.observeTaskList(date(4)).first().filterNot { it.isCompleted }.sortedBy { it.dueDate }.map { it.dueDate?.day })
-        assertEquals(listOf(4, 6), repo.observeTaskList(date(5)).first().filterNot { it.isCompleted }.sortedBy { it.dueDate }.map { it.dueDate?.day })
-    }
-
-    @Test fun `skip delete following and delete entire task have different scopes`() = withRepository { repo, db ->
-        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly))
-        val initial = repo.events()
-        val skipped = event(initial, 5)
-        assertTrue(repo.deleteOccurrence(skipped.id, id(skipped), TaskChangeScope.ThisOccurrence))
-        assertEquals(listOf(3, 10, 12, 17, 19, 24, 26), repo.events().map { it.dueDate?.day })
-        val boundary = event(repo.events(), 10)
-        assertTrue(repo.deleteOccurrence(boundary.id, id(boundary), TaskChangeScope.ThisAndFollowing))
-        assertEquals(listOf(3), repo.events().map { it.dueDate?.day })
-        assertTrue(repo.observeCalendar(LocalDate(2027, 1, 1), LocalDate(2027, 12, 31)).first().isEmpty())
-        assertEquals(1, db.taskDao().observeTasks().first().size)
-        assertTrue(repo.deleteOccurrence(boundary.id, id(boundary), TaskChangeScope.EntireTask))
-        assertTrue(db.taskDao().observeRecords().first().isEmpty())
-    }
-
-    @Test fun `moving the remaining schedule preserves earlier events and remaining count`() = withRepository { repo, _ ->
-        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly.copy(occurrenceCount = 6)))
-        val done = event(repo.events(), 3)
-        repo.setOccurrenceCompleted(done.id, id(done), true)
-        val selected = event(repo.events(), 10)
-        assertTrue(repo.moveOccurrence(selected.id, id(selected), date(10), date(11), TaskChangeScope.ThisAndFollowing))
-        val events = repo.events()
-        assertEquals(listOf(3, 5, 11, 13, 18, 20), events.map { it.dueDate?.day })
-        assertTrue(event(events, 3).isCompleted)
-        assertEquals(1, events.map { it.id }.distinct().size)
-        assertEquals(setOf(WEDNESDAY, FRIDAY), event(events, 11).recurrence?.weekdays)
-    }
-
-    @Test fun `new schedule revisions retain completed history and share the task title`() = withRepository { repo, db ->
-        repo.save(Task(name = "Routine", dueDate = date(1), recurrence = TaskRecurrence(RecurrenceFrequency.Daily)))
-        val first = event(repo.events(), 1)
-        val second = event(repo.events(), 2)
-        repo.setOccurrenceCompleted(first.id, id(first), true)
-        repo.setOccurrenceCompleted(second.id, id(second), true)
-        val third = event(repo.events(), 3)
-        assertTrue(repo.save(third.copy(recurrence = weekly)))
-        val events = repo.events()
-        assertEquals(listOf(1, 2, 3, 5, 10, 12, 17, 19, 24, 26), events.map { it.dueDate?.day })
-        assertTrue(event(events, 1).isCompleted)
-        assertTrue(event(events, 2).isCompleted)
-        assertEquals(first.key, event(events, 1).key)
-        assertEquals(2, db.taskDao().getRecord(first.id)?.schedules?.size)
-        assertTrue(repo.save(event(events, 1).copy(name = "Renamed history")))
-        assertTrue(repo.events().all { it.name == "Renamed history" })
-        assertEquals(weekly, repo.getById(first.id)?.recurrence)
-    }
-
-    @Test fun `moving a previously moved event and following events anchors to the original series day`() = withRepository { repo, _ ->
-        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly))
-        val selected = event(repo.events(), 5)
-        repo.moveOccurrence(selected.id, id(selected), date(5), date(6), TaskChangeScope.ThisOccurrence)
-        assertTrue(repo.moveOccurrence(selected.id, id(selected), date(6), date(7), TaskChangeScope.ThisAndFollowing))
-        assertEquals(listOf(3, 7, 12, 14, 19, 21, 26, 28), repo.events().map { it.dueDate?.day })
-    }
-
-    @Test fun `finite series completion and reopening update group counts without completing other events`() = withRepository { repo, db ->
-        val group = db.groupDao().insert(GroupEntity(name = "Health", color = 0)).toInt()
-        repo.save(Task(name = "Routine", dueDate = date(1), groupId = group, recurrence = TaskRecurrence(RecurrenceFrequency.Daily, occurrenceCount = 3)))
-        val events = repo.events()
-        repo.setOccurrenceCompleted(events[0].id, id(events[0]), true)
-        assertEquals(1, db.groupDao().getWithTaskCounts(group)?.planned)
-        assertEquals(2, repo.events().count { !it.isCompleted })
-        for (event in events.drop(1)) repo.setOccurrenceCompleted(event.id, id(event), true)
-        assertEquals(0, db.groupDao().getWithTaskCounts(group)?.planned)
-        assertEquals(1, db.groupDao().getWithTaskCounts(group)?.completed)
-        repo.setOccurrenceCompleted(events[1].id, id(events[1]), false)
-        assertEquals(1, db.groupDao().getWithTaskCounts(group)?.planned)
-        assertEquals(1, repo.events().count { !it.isCompleted })
-    }
-
-    @Test fun `changing a completed event starts a future schedule without rewriting completed history`() = withRepository { repo, db ->
-        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly.copy(occurrenceCount = 6)))
-        val initial = repo.events()
-        val first = event(initial, 3)
-        val second = event(initial, 5)
-        repo.setOccurrenceCompleted(first.id, id(first), true)
-        repo.setOccurrenceCompleted(second.id, id(second), true)
-        assertTrue(repo.moveOccurrence(first.id, id(first), date(3), date(11), TaskChangeScope.ThisAndFollowing))
-        val events = repo.events()
-        assertEquals(listOf(3, 5, 11, 13, 18, 20), events.map { it.dueDate?.day })
-        assertEquals(first.key, event(events, 3).key)
-        assertEquals(second.key, event(events, 5).key)
-        assertEquals(2, events.count { it.isCompleted })
-        assertEquals(2, db.taskDao().getRecord(first.id)?.schedules?.size)
-    }
-
-    @Test fun `moving after completed history preserves the remaining duration of an end-date rule`() = withRepository { repo, _ ->
-        repo.save(Task(name = "Daily", dueDate = date(1), recurrence = TaskRecurrence(RecurrenceFrequency.Daily, endDate = date(10))))
-        val initial = repo.events()
-        for (event in initial.filter { requireNotNull(it.dueDate).day <= 5 }) repo.setOccurrenceCompleted(event.id, id(event), true)
-        val first = event(initial, 1)
-        assertTrue(repo.moveOccurrence(first.id, id(first), date(1), date(11), TaskChangeScope.ThisAndFollowing))
-        assertEquals((1..5).toList() + (11..15).toList(), repo.events().map { it.dueDate?.day })
-        assertEquals(5, repo.events().count { it.isCompleted })
-    }
-
-    @Test fun `list shows the latest pending overdue and nearest pending upcoming event`() = withRepository { repo, _ ->
-        repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly))
-        assertEquals(listOf(3, 5), repo.observeTaskList(date(4)).first().map { it.dueDate?.day })
-        val overdue = event(repo.events(), 3)
-        repo.setOccurrenceCompleted(overdue.id, id(overdue), true)
-        assertEquals(listOf(5), repo.observeTaskList(date(4)).first().filterNot { it.isCompleted }.map { it.dueDate?.day })
-    }
-
-    @Test fun `occurrence exceptions and revisions survive database reopening`() = runBlocking {
-        val path = folder.root.toPath().resolve("reopen.db")
-        var taskId = 0
-        AppDatabase.open(path).let { db ->
-            try {
-                val repo = TaskRepository(lazy { db }, clock)
-                repo.save(Task(name = "Workout", dueDate = date(3), recurrence = weekly))
-                val done = event(repo.events(), 3); taskId = done.id
-                repo.setOccurrenceCompleted(done.id, id(done), true)
-                val moved = event(repo.events(), 5)
-                repo.moveOccurrence(moved.id, id(moved), date(5), date(6), TaskChangeScope.ThisOccurrence)
-            } finally { db.close() }
+    private val clock =
+        object : Clock {
+            override fun now() = Instant.parse(input = "2026-11-04T10:00:00Z")
         }
-        AppDatabase.open(path).let { db ->
+
+    private fun date(day: Int) = LocalDate(year = 2026, month = 11, day = day)
+
+    private val weekly = TaskRecurrence(frequency = RecurrenceFrequency.Weekly, weekdays = setOf(TUESDAY, THURSDAY))
+
+    private suspend fun TaskRepository.events(): List<Task> {
+        return observeCalendar(
+            from = date(day = 1),
+            through = date(day = 30),
+        ).first().sortedBy(selector = Task::dueDate)
+    }
+
+    private fun event(events: List<Task>, day: Int) = events.single { task -> task.dueDate == date(day = day) }
+
+    private fun id(task: Task) = requireNotNull(value = task.occurrenceId)
+
+    private fun withRepository(block: suspend (TaskRepository, AppDatabase) -> Unit) {
+        runBlocking {
+            val db = AppDatabase.open(file = folder.root.toPath().resolve("test.db"))
             try {
-                val repo = TaskRepository(lazy { db }, clock)
-                assertEquals(weekly, repo.getById(taskId)?.recurrence)
-                assertTrue(event(repo.events(), 3).isCompleted)
-                assertNotNull(event(repo.events(), 6))
-                assertEquals(1, db.taskDao().observeTasks().first().size)
-            } finally { db.close() }
+                block(TaskRepository(database = lazy { db }, clock = clock), db)
+            } finally {
+                db.close()
+            }
+        }
+    }
+
+    @Test
+    fun `one task owns all events and renaming an event updates every occurrence`() {
+        withRepository { repo, db ->
+            assertTrue(actual = repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly)))
+            val original = repo.events()
+            assertEquals(
+                expected = listOf(3, 5, 10, 12, 17, 19, 24, 26),
+                actual = original.map { task -> task.dueDate?.day },
+            )
+            assertEquals(expected = 1, actual = original.map(transform = Task::id).distinct().size)
+            assertEquals(expected = 8, actual = original.map(transform = Task::key).distinct().size)
+            assertTrue(actual = repo.save(task = event(events = original, day = 10).copy(name = "Strength training")))
+            assertTrue(actual = repo.events().all { task -> task.name == "Strength training" })
+            assertEquals(expected = 1, actual = db.taskDao().observeTasks().first().size)
+            assertEquals(expected = 1, actual = db.taskDao().getRecord(id = original.first().id)?.schedules?.size)
+        }
+    }
+
+    @Test
+    fun `description is shared by every occurrence and survives moves and schedule revisions`() {
+        withRepository { repo, db ->
+            val description = "Warm up for 10 minutes.\n\nBring a towel."
+            repo.save(
+                task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly, description = description)
+            )
+            val initial = repo.events()
+            assertTrue(actual = initial.all { task -> task.description == description })
+            val first = event(events = initial, day = 3)
+            repo.setOccurrenceCompleted(id = first.id, occurrence = id(task = first), completed = true)
+            val selected = event(events = initial, day = 5)
+            assertTrue(
+                actual = repo.saveOccurrence(
+                    task = selected.copy(description = "New plan\nThree sets"),
+                    scope = TaskChangeScope.ThisOccurrence,
+                )
+            )
+            assertTrue(actual = repo.events().all { task -> task.description == "New plan\nThree sets" })
+            assertEquals(expected = 1, actual = db.taskDao().getRecord(id = first.id)?.schedules?.size)
+
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = selected.id,
+                    occurrence = id(task = selected),
+                    expectedDate = date(day = 5),
+                    date = date(day = 6),
+                    scope = TaskChangeScope.ThisAndFollowing,
+                )
+            )
+            assertTrue(actual = repo.events().all { task -> task.description == "New plan\nThree sets" })
+            val moved = event(events = repo.events(), day = 6)
+            val updatedDescription = "  Revised programme\nRest for 60 seconds.\n"
+            assertTrue(
+                actual = repo.save(
+                    task = moved.copy(
+                        recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+                        description = updatedDescription,
+                    )
+                )
+            )
+            assertTrue(actual = repo.events().all { task -> task.description == updatedDescription })
+            assertEquals(expected = updatedDescription, actual = repo.getById(id = first.id)?.description)
+            assertEquals(
+                expected = updatedDescription,
+                actual = repo.getOccurrence(id = first.id, occurrence = id(task = first))?.description,
+            )
+            assertTrue(
+                actual = repo.observeTaskList(
+                    today = date(day = 4),
+                ).first().all { task -> task.description == updatedDescription }
+            )
+            assertTrue(actual = event(events = repo.events(), day = 3).isCompleted)
+
+            assertTrue(
+                actual = repo.save(
+                    task = event(events = repo.events(), day = 6).copy(dueDate = date(day = 7), description = "")
+                )
+            )
+            assertTrue(actual = repo.events().all { task -> task.description.isEmpty() })
+            assertEquals(expected = "", actual = db.taskDao().getById(id = first.id)?.description)
+        }
+    }
+
+    @Test
+    fun `single moves keep stable identity completion and all other dates and support stale-safe undo`() {
+        withRepository { repo, _ ->
+            repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly))
+            val initial = repo.events()
+            val moved = event(events = initial, day = 5)
+            val done = event(events = initial, day = 3)
+            assertTrue(
+                actual = repo.setOccurrenceCompleted(id = done.id, occurrence = id(task = done), completed = true)
+            )
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = moved.id,
+                    occurrence = id(task = moved),
+                    expectedDate = date(day = 5),
+                    date = date(day = 6),
+                    scope = TaskChangeScope.ThisOccurrence,
+                )
+            )
+            val events = repo.events()
+            assertTrue(actual = event(events = events, day = 3).isCompleted)
+            assertEquals(expected = moved.key, actual = event(events = events, day = 6).key)
+            assertEquals(
+                expected = initial.filter { task -> task.dueDate != date(day = 3) && task.dueDate != date(day = 5) },
+                actual = events.filter { task -> task.dueDate != date(day = 3) && task.dueDate != date(day = 6) },
+            )
+            assertFalse(
+                actual = repo.moveOccurrence(
+                    id = moved.id,
+                    occurrence = id(task = moved),
+                    expectedDate = date(day = 5),
+                    date = date(day = 7),
+                    scope = TaskChangeScope.ThisOccurrence,
+                )
+            )
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = moved.id,
+                    occurrence = id(task = moved),
+                    expectedDate = date(day = 6),
+                    date = date(day = 5),
+                    scope = TaskChangeScope.ThisOccurrence,
+                )
+            )
+            assertEquals(expected = moved, actual = event(events = repo.events(), day = 5))
+        }
+    }
+
+    @Test
+    fun `moved events enter another window and do not hide a nearer natural occurrence in the list`() {
+        withRepository { repo, _ ->
+            repo.save(
+                task = Task(
+                    name = "Daily",
+                    dueDate = date(day = 1),
+                    recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+                )
+            )
+            val moved = event(events = repo.events(), day = 5)
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = moved.id,
+                    occurrence = id(task = moved),
+                    expectedDate = date(day = 5),
+                    date = LocalDate(year = 2026, month = 12, day = 1),
+                    scope = TaskChangeScope.ThisOccurrence,
+                )
+            )
+            val sameDay = repo
+                .observeCalendar(
+                    from = LocalDate(year = 2026, month = 12, day = 1),
+                    through = LocalDate(year = 2026, month = 12, day = 1),
+                )
+                .first()
+            assertEquals(expected = 2, actual = sameDay.size)
+            assertEquals(expected = 2, actual = sameDay.map(transform = Task::key).distinct().size)
+            assertTrue(actual = sameDay.any { task -> task.key == moved.key })
+            assertEquals(
+                expected = listOf(3, 4),
+                actual = repo
+                    .observeTaskList(today = date(day = 4))
+                    .first()
+                    .filterNot(predicate = Task::isCompleted)
+                    .sortedBy(selector = Task::dueDate)
+                    .map { task -> task.dueDate?.day },
+            )
+            assertEquals(
+                expected = listOf(4, 6),
+                actual = repo
+                    .observeTaskList(today = date(day = 5))
+                    .first()
+                    .filterNot(predicate = Task::isCompleted)
+                    .sortedBy(selector = Task::dueDate)
+                    .map { task -> task.dueDate?.day },
+            )
+        }
+    }
+
+    @Test
+    fun `skip delete following and delete entire task have different scopes`() {
+        withRepository { repo, db ->
+            repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly))
+            val initial = repo.events()
+            val skipped = event(events = initial, day = 5)
+            assertTrue(
+                actual = repo.deleteOccurrence(
+                    id = skipped.id,
+                    occurrence = id(task = skipped),
+                    scope = TaskChangeScope.ThisOccurrence,
+                )
+            )
+            assertEquals(
+                expected = listOf(3, 10, 12, 17, 19, 24, 26),
+                actual = repo.events().map { task -> task.dueDate?.day },
+            )
+            val boundary = event(events = repo.events(), day = 10)
+            assertTrue(
+                actual = repo.deleteOccurrence(
+                    id = boundary.id,
+                    occurrence = id(task = boundary),
+                    scope = TaskChangeScope.ThisAndFollowing,
+                )
+            )
+            assertEquals(expected = listOf(element = 3), actual = repo.events().map { task -> task.dueDate?.day })
+            assertTrue(
+                actual = repo
+                    .observeCalendar(
+                        from = LocalDate(year = 2027, month = 1, day = 1),
+                        through = LocalDate(year = 2027, month = 12, day = 31),
+                    )
+                    .first()
+                    .isEmpty()
+            )
+            assertEquals(expected = 1, actual = db.taskDao().observeTasks().first().size)
+            assertTrue(
+                actual = repo.deleteOccurrence(
+                    id = boundary.id,
+                    occurrence = id(task = boundary),
+                    scope = TaskChangeScope.EntireTask,
+                )
+            )
+            assertTrue(actual = db.taskDao().observeRecords().first().isEmpty())
+        }
+    }
+
+    @Test
+    fun `moving the remaining schedule preserves earlier events and remaining count`() {
+        withRepository { repo, _ ->
+            repo.save(
+                task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly.copy(occurrenceCount = 6))
+            )
+            val done = event(events = repo.events(), day = 3)
+            repo.setOccurrenceCompleted(id = done.id, occurrence = id(task = done), completed = true)
+            val selected = event(events = repo.events(), day = 10)
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = selected.id,
+                    occurrence = id(task = selected),
+                    expectedDate = date(day = 10),
+                    date = date(day = 11),
+                    scope = TaskChangeScope.ThisAndFollowing,
+                )
+            )
+            val events = repo.events()
+            assertEquals(expected = listOf(3, 5, 11, 13, 18, 20), actual = events.map { task -> task.dueDate?.day })
+            assertTrue(actual = event(events = events, day = 3).isCompleted)
+            assertEquals(expected = 1, actual = events.map(transform = Task::id).distinct().size)
+            assertEquals(
+                expected = setOf(WEDNESDAY, FRIDAY),
+                actual = event(events = events, day = 11).recurrence?.weekdays,
+            )
+        }
+    }
+
+    @Test
+    fun `new schedule revisions retain completed history and share the task title`() {
+        withRepository { repo, db ->
+            repo.save(
+                task = Task(
+                    name = "Routine",
+                    dueDate = date(day = 1),
+                    recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+                )
+            )
+            val first = event(events = repo.events(), day = 1)
+            val second = event(events = repo.events(), day = 2)
+            repo.setOccurrenceCompleted(id = first.id, occurrence = id(task = first), completed = true)
+            repo.setOccurrenceCompleted(id = second.id, occurrence = id(task = second), completed = true)
+            val third = event(events = repo.events(), day = 3)
+            assertTrue(actual = repo.save(task = third.copy(recurrence = weekly)))
+            val events = repo.events()
+            assertEquals(
+                expected = listOf(1, 2, 3, 5, 10, 12, 17, 19, 24, 26),
+                actual = events.map { task -> task.dueDate?.day },
+            )
+            assertTrue(actual = event(events = events, day = 1).isCompleted)
+            assertTrue(actual = event(events = events, day = 2).isCompleted)
+            assertEquals(expected = first.key, actual = event(events = events, day = 1).key)
+            assertEquals(expected = 2, actual = db.taskDao().getRecord(id = first.id)?.schedules?.size)
+            assertTrue(actual = repo.save(task = event(events = events, day = 1).copy(name = "Renamed history")))
+            assertTrue(actual = repo.events().all { task -> task.name == "Renamed history" })
+            assertEquals(expected = weekly, actual = repo.getById(id = first.id)?.recurrence)
+        }
+    }
+
+    @Test
+    fun `moving a previously moved event and following events anchors to the original series day`() {
+        withRepository { repo, _ ->
+            repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly))
+            val selected = event(events = repo.events(), day = 5)
+            repo.moveOccurrence(
+                id = selected.id,
+                occurrence = id(task = selected),
+                expectedDate = date(day = 5),
+                date = date(day = 6),
+                scope = TaskChangeScope.ThisOccurrence,
+            )
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = selected.id,
+                    occurrence = id(task = selected),
+                    expectedDate = date(day = 6),
+                    date = date(day = 7),
+                    scope = TaskChangeScope.ThisAndFollowing,
+                )
+            )
+            assertEquals(
+                expected = listOf(3, 7, 12, 14, 19, 21, 26, 28),
+                actual = repo.events().map { task -> task.dueDate?.day },
+            )
+        }
+    }
+
+    @Test
+    fun `finite series completion and reopening update group counts without completing other events`() {
+        withRepository { repo, db ->
+            val group = db.groupDao().insert(group = GroupEntity(name = "Health", color = 0)).toInt()
+            repo.save(
+                task = Task(
+                    name = "Routine",
+                    dueDate = date(day = 1),
+                    groupId = group,
+                    recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily, occurrenceCount = 3),
+                )
+            )
+            val events = repo.events()
+            repo.setOccurrenceCompleted(id = events[0].id, occurrence = id(task = events[0]), completed = true)
+            assertEquals(expected = 1, actual = db.groupDao().getWithTaskCounts(id = group)?.planned)
+            assertEquals(expected = 2, actual = repo.events().count { task -> !task.isCompleted })
+            for (event in events.drop(n = 1)) repo.setOccurrenceCompleted(
+                id = event.id,
+                occurrence = id(task = event),
+                completed = true,
+            )
+            assertEquals(expected = 0, actual = db.groupDao().getWithTaskCounts(id = group)?.planned)
+            assertEquals(expected = 1, actual = db.groupDao().getWithTaskCounts(id = group)?.completed)
+            repo.setOccurrenceCompleted(id = events[1].id, occurrence = id(task = events[1]), completed = false)
+            assertEquals(expected = 1, actual = db.groupDao().getWithTaskCounts(id = group)?.planned)
+            assertEquals(expected = 1, actual = repo.events().count { task -> !task.isCompleted })
+        }
+    }
+
+    @Test
+    fun `changing a completed event starts a future schedule without rewriting completed history`() {
+        withRepository { repo, db ->
+            repo.save(
+                task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly.copy(occurrenceCount = 6))
+            )
+            val initial = repo.events()
+            val first = event(events = initial, day = 3)
+            val second = event(events = initial, day = 5)
+            repo.setOccurrenceCompleted(id = first.id, occurrence = id(task = first), completed = true)
+            repo.setOccurrenceCompleted(id = second.id, occurrence = id(task = second), completed = true)
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = first.id,
+                    occurrence = id(task = first),
+                    expectedDate = date(day = 3),
+                    date = date(day = 11),
+                    scope = TaskChangeScope.ThisAndFollowing,
+                )
+            )
+            val events = repo.events()
+            assertEquals(expected = listOf(3, 5, 11, 13, 18, 20), actual = events.map { task -> task.dueDate?.day })
+            assertEquals(expected = first.key, actual = event(events = events, day = 3).key)
+            assertEquals(expected = second.key, actual = event(events = events, day = 5).key)
+            assertEquals(expected = 2, actual = events.count(predicate = Task::isCompleted))
+            assertEquals(expected = 2, actual = db.taskDao().getRecord(id = first.id)?.schedules?.size)
+        }
+    }
+
+    @Test
+    fun `moving after completed history preserves the remaining duration of an end-date rule`() {
+        withRepository { repo, _ ->
+            repo.save(
+                task = Task(
+                    name = "Daily",
+                    dueDate = date(day = 1),
+                    recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily, endDate = date(day = 10)),
+                )
+            )
+            val initial = repo.events()
+            for (event in initial.filter { task -> requireNotNull(value = task.dueDate).day <= 5 }) repo
+                .setOccurrenceCompleted(
+                    id = event.id,
+                    occurrence = id(task = event),
+                    completed = true,
+                )
+            val first = event(events = initial, day = 1)
+            assertTrue(
+                actual = repo.moveOccurrence(
+                    id = first.id,
+                    occurrence = id(task = first),
+                    expectedDate = date(day = 1),
+                    date = date(day = 11),
+                    scope = TaskChangeScope.ThisAndFollowing,
+                )
+            )
+            assertEquals(
+                expected = (1..5).toList() + (11..15).toList(),
+                actual = repo.events().map { task -> task.dueDate?.day },
+            )
+            assertEquals(expected = 5, actual = repo.events().count(predicate = Task::isCompleted))
+        }
+    }
+
+    @Test
+    fun `list shows the latest pending overdue and nearest pending upcoming event`() {
+        withRepository { repo, _ ->
+            repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly))
+            assertEquals(
+                expected = listOf(3, 5),
+                actual = repo.observeTaskList(today = date(day = 4)).first().map { task -> task.dueDate?.day },
+            )
+            val overdue = event(events = repo.events(), day = 3)
+            repo.setOccurrenceCompleted(id = overdue.id, occurrence = id(task = overdue), completed = true)
+            assertEquals(
+                expected = listOf(element = 5),
+                actual = repo
+                    .observeTaskList(today = date(day = 4))
+                    .first()
+                    .filterNot(predicate = Task::isCompleted)
+                    .map { task -> task.dueDate?.day },
+            )
+        }
+    }
+
+    @Test
+    fun `occurrence exceptions and revisions survive database reopening`() {
+        runBlocking {
+            val path = folder.root.toPath().resolve("reopen.db")
+            var taskId = 0
+            AppDatabase.open(file = path).let { db ->
+                try {
+                    val repo = TaskRepository(database = lazy { db }, clock = clock)
+                    repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly))
+                    val done = event(events = repo.events(), day = 3)
+                    taskId = done.id
+                    repo.setOccurrenceCompleted(id = done.id, occurrence = id(task = done), completed = true)
+                    val moved = event(events = repo.events(), day = 5)
+                    repo.moveOccurrence(
+                        id = moved.id,
+                        occurrence = id(task = moved),
+                        expectedDate = date(day = 5),
+                        date = date(day = 6),
+                        scope = TaskChangeScope.ThisOccurrence,
+                    )
+                } finally {
+                    db.close()
+                }
+            }
+            AppDatabase.open(file = path).let { db ->
+                try {
+                    val repo = TaskRepository(database = lazy { db }, clock = clock)
+                    assertEquals(expected = weekly, actual = repo.getById(id = taskId)?.recurrence)
+                    assertTrue(actual = event(events = repo.events(), day = 3).isCompleted)
+                    assertNotNull(actual = event(events = repo.events(), day = 6))
+                    assertEquals(expected = 1, actual = db.taskDao().observeTasks().first().size)
+                } finally {
+                    db.close()
+                }
+            }
         }
     }
 }

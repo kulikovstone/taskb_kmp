@@ -43,24 +43,30 @@ fun ColorSelector(
         else -> TaskBTheme.colors.text.copy(alpha = 0.24f)
     }
     Surface(
-        modifier = modifier.height(40.dp).clip(CircleShape)
-            .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick),
+        modifier = modifier
+            .height(height = 40.dp)
+            .clip(shape = CircleShape)
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick),
         shape = CircleShape,
         color = if (hasFill) color else Palette.Transparent,
         contentColor = contentColor,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(width = 1.dp, color = borderColor),
     ) {
         Row(
             modifier = Modifier.padding(start = 10.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (selected) {
-                Icon(TaskBIcons.Done, contentDescription = null, modifier = Modifier.size(20.dp))
+                Icon(
+                    imageVector = TaskBIcons.Done,
+                    contentDescription = null,
+                    modifier = Modifier.size(size = 20.dp),
+                )
             } else {
-                Box(Modifier.size(20.dp).clip(CircleShape).background(color))
+                Box(modifier = Modifier.size(size = 20.dp).clip(shape = CircleShape).background(color = color))
             }
-            Spacer(Modifier.width(8.dp))
-            Text(label, style = MaterialTheme.typography.body2)
+            Spacer(modifier = Modifier.width(width = 8.dp))
+            Text(text = label, style = MaterialTheme.typography.body2)
         }
     }
 }

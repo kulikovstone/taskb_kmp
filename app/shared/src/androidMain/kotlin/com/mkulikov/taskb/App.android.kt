@@ -9,5 +9,5 @@ import com.mkulikov.taskb.core.database.open
 @Composable
 actual fun App() {
     val context = LocalContext.current.applicationContext
-    App(databaseFactory = remember(context) { { AppDatabase.open(context) } })
+    App(databaseFactory = remember(key1 = context) { { AppDatabase.open(context = context) } })
 }

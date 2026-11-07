@@ -7,8 +7,14 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
+import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import java.nio.file.Files
+import java.nio.file.Path
+import javax.imageio.ImageIO
+import kotlin.test.*
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
@@ -17,109 +23,196 @@ import kotlinx.datetime.format.Padding
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import org.koin.compose.KoinIsolatedContext
-import java.nio.file.Files
-import java.nio.file.Path
-import javax.imageio.ImageIO
-import kotlin.test.*
-import kotlin.time.Clock
 
 @OptIn(ExperimentalTestApi::class)
 class TaskRecurrenceNavigationUiTest {
     @get:Rule val directory = TemporaryFolder()
 
-    @Test fun `one series is created moved skipped renamed and deleted through the real app`() {
-        withAppKoin(directory.root.toPath().resolve("recurrence.db")) { app ->
-            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-            val start = today.yearMonth.onDay(3)
+    @Test
+    fun `one series is created moved skipped renamed and deleted through the real app`() {
+        withAppKoin(file = directory.root.toPath().resolve("recurrence.db")) { app ->
+            val today = Clock.System.todayIn(timeZone = TimeZone.currentSystemDefault())
+            val start = today.yearMonth.onDay(day = 3)
             val repo = app.koin.get<ITaskRepository>()
             val db = app.koin.get<AppDatabase>()
             runBlocking { app.koin.get<IAppSettings>().completeWelcome() }
-            runSkikoComposeUiTest(size = Size(1440f, 1100f)) {
-                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
-                waitText("Calendar")
-                onNodeWithText("Calendar").performClick()
-                waitText("No date")
-                onNodeWithTag("calendar-sidebar-toggle").performClick()
-                onNodeWithText("Task").performClick()
-                waitText("Create task")
-                onNodeWithContentDescription("Task name").performTextReplacement("Recurring routine")
-                onNodeWithContentDescription("Choose date").performClick()
+            runSkikoComposeUiTest(size = Size(width = 1440f, height = 1100f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
+                }
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                waitText(text = "No date")
+                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+                onNodeWithText(text = "Task").performClick()
+                waitText(text = "Create task")
+                onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Recurring routine")
+                onNodeWithContentDescription(label = "Choose date").performClick()
                 val dateLabel = LocalDate.Format {
-                    monthName(MonthNames.ENGLISH_FULL); chars(" "); day(Padding.NONE); chars(", "); year()
-                }.format(start)
-                onNodeWithContentDescription("Choose $dateLabel").performClick()
-                onNodeWithContentDescription("Choose repeat pattern").performScrollTo().performClick()
-                waitText("Every month on day 3")
-                onNodeWithText("Daily").performClick()
-                waitText("Every day")
-                onNodeWithText("After").performScrollTo().performClick()
-                onNodeWithContentDescription("Repeat occurrence count").performScrollTo().performTextReplacement("3")
-                onNodeWithContentDescription("Save task").performClick()
-                waitText("No date")
-                var events = runBlocking { repo.observeCalendar(start, start.plus(10, DateTimeUnit.DAY)).first().sortedBy { it.dueDate } }
-                assertEquals(3, events.size)
-                assertEquals(1, runBlocking { db.taskDao().observeTasks().first().size })
+                        monthName(names = MonthNames.ENGLISH_FULL)
+                        chars(value = " ")
+                        day(padding = Padding.NONE)
+                        chars(value = ", ")
+                        year()
+                    }
+                    .format(value = start)
+                onNodeWithContentDescription(label = "Choose $dateLabel").performClick()
+                onNodeWithContentDescription(label = "Choose repeat pattern").performScrollTo().performClick()
+                waitText(text = "Every month on day 3")
+                onNodeWithText(text = "Daily").performClick()
+                waitText(text = "Every day")
+                onNodeWithText(text = "After").performScrollTo().performClick()
+                onNodeWithContentDescription(label = "Repeat occurrence count")
+                    .performScrollTo()
+                    .performTextReplacement(text = "3")
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitText(text = "No date")
+                var events = runBlocking {
+                    repo
+                        .observeCalendar(from = start, through = start.plus(value = 10, unit = DateTimeUnit.DAY))
+                        .first()
+                        .sortedBy(selector = Task::dueDate)
+                }
+                assertEquals(expected = 3, actual = events.size)
+                assertEquals(expected = 1, actual = runBlocking { db.taskDao().observeTasks().first().size })
                 val first = events[0]
                 val second = events[1]
                 val third = events[2]
-                onNodeWithTag("calendar-day-number-$start", useUnmergedTree = true).performClick()
-                waitText("Daily · 1")
-                onNodeWithText("Recurring routine", useUnmergedTree = true).assertIsDisplayed()
+                onNodeWithTag(testTag = "calendar-day-number-$start", useUnmergedTree = true).performClick()
+                waitText(text = "Daily · 1")
+                onNodeWithText(text = "Recurring routine", useUnmergedTree = true).assertIsDisplayed()
                 for (event in events) {
-                    onNode(hasTestTag("calendar-task-${event.key}") and
-                        hasAnyAncestor(hasTestTag("calendar-day-${event.dueDate}")), useUnmergedTree = true).assertDoesNotExist()
+                    onNode(
+                            matcher = hasTestTag(testTag = "calendar-task-${event.key}") and
+                                hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-${event.dueDate}")),
+                            useUnmergedTree = true,
+                        )
+                        .assertDoesNotExist()
                 }
-                onNode(hasContentDescription("Complete Recurring routine") and hasAnyAncestor(hasTestTag("calendar-task-${first.key}")), useUnmergedTree = true).performClick()
-                waitUntil(timeoutMillis = 10_000) { runBlocking { repo.getOccurrence(first.id, requireNotNull(first.occurrenceId)) }?.isCompleted == true }
-                onNodeWithTag("calendar-day-number-${second.dueDate}", useUnmergedTree = true).performClick()
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasTestTag("calendar-task-${second.key}"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
-                val source = onNodeWithTag("calendar-task-${second.key}", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
-                val targetDate = start.plus(3, DateTimeUnit.DAY)
-                val target = onNodeWithTag("calendar-day-$targetDate", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
-                onRoot().performMouseInput { moveTo(source); press(); moveTo(source + Offset(28f, 0f)); moveTo(target); release() }
-                waitText("Move repeating task")
-                onNodeWithText("Only this event").performClick()
-                waitUntil(timeoutMillis = 10_000) { runBlocking { repo.getOccurrence(second.id, requireNotNull(second.occurrenceId)) }?.dueDate == targetDate }
-                onNodeWithTag("calendar-day-number-$targetDate", useUnmergedTree = true).performClick()
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasTestTag("calendar-task-${second.key}"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
-                onNodeWithTag("calendar-task-${second.key}", useUnmergedTree = true).performClick()
-                waitText("Edit task")
-                onNodeWithContentDescription("Delete task").performClick()
-                waitText("Delete repeating task")
-                onNodeWithText("Only this event").performClick()
-                waitText("No date")
-                assertEquals(2, runBlocking { repo.observeCalendar(start, start.plus(10, DateTimeUnit.DAY)).first().size })
-                onNodeWithTag("calendar-day-number-${third.dueDate}", useUnmergedTree = true).performClick()
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasTestTag("calendar-task-${third.key}"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
-                onNodeWithTag("calendar-task-${third.key}", useUnmergedTree = true).performClick()
-                waitText("Edit task")
-                onNodeWithContentDescription("Task name").performTextReplacement("Renamed series")
-                onNodeWithContentDescription("Save task").performClick()
-                waitText("No date")
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText("Renamed series"), useUnmergedTree = true).fetchSemanticsNodes().size == 1 }
+                onNode(
+                        matcher = hasContentDescription(value = "Complete Recurring routine") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-task-${first.key}")),
+                        useUnmergedTree = true,
+                    )
+                    .performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    runBlocking {
+                        repo.getOccurrence(id = first.id, occurrence = requireNotNull(value = first.occurrenceId))
+                    }
+                        ?.isCompleted == true
+                }
+                onNodeWithTag(testTag = "calendar-day-number-${second.dueDate}", useUnmergedTree = true)
+                    .performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(
+                            matcher = hasTestTag(testTag = "calendar-task-${second.key}"),
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                val source = onNodeWithTag(testTag = "calendar-task-${second.key}", useUnmergedTree = true)
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                    .center
+                val targetDate = start.plus(value = 3, unit = DateTimeUnit.DAY)
+                val target = onNodeWithTag(testTag = "calendar-day-$targetDate", useUnmergedTree = true)
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                    .center
+                onRoot().performMouseInput {
+                    moveTo(position = source)
+                    press()
+                    moveTo(position = source + Offset(x = 28f, y = 0f))
+                    moveTo(position = target)
+                    release()
+                }
+                waitText(text = "Move repeating task")
+                onNodeWithText(text = "Only this event").performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    runBlocking {
+                        repo.getOccurrence(id = second.id, occurrence = requireNotNull(value = second.occurrenceId))
+                    }
+                        ?.dueDate == targetDate
+                }
+                onNodeWithTag(testTag = "calendar-day-number-$targetDate", useUnmergedTree = true).performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(
+                            matcher = hasTestTag(testTag = "calendar-task-${second.key}"),
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                onNodeWithTag(testTag = "calendar-task-${second.key}", useUnmergedTree = true).performClick()
+                waitText(text = "Edit task")
+                onNodeWithContentDescription(label = "Delete task").performClick()
+                waitText(text = "Delete repeating task")
+                onNodeWithText(text = "Only this event").performClick()
+                waitText(text = "No date")
+                assertEquals(
+                    expected = 2,
+                    actual = runBlocking {
+                        repo
+                            .observeCalendar(
+                                from = start,
+                                through = start.plus(value = 10, unit = DateTimeUnit.DAY),
+                            )
+                            .first()
+                            .size
+                    },
+                )
+                onNodeWithTag(testTag = "calendar-day-number-${third.dueDate}", useUnmergedTree = true)
+                    .performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(matcher = hasTestTag(testTag = "calendar-task-${third.key}"), useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                onNodeWithTag(testTag = "calendar-task-${third.key}", useUnmergedTree = true).performClick()
+                waitText(text = "Edit task")
+                onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Renamed series")
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitText(text = "No date")
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(matcher = hasText(text = "Renamed series"), useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .size == 1
+                }
                 val output = Path.of("build/reports/screenshots/recurrence-calendar.png")
                 Files.createDirectories(output.parent)
                 ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
-                events = runBlocking { repo.observeCalendar(start, start.plus(10, DateTimeUnit.DAY)).first() }
-                assertTrue(events.all { it.name == "Renamed series" })
-                assertEquals(1, events.count { it.isCompleted })
-                onNodeWithContentDescription("Back").performClick()
-                waitText("Tasks")
-                onNodeWithText("Tasks").performClick()
-                waitText("Renamed series")
-                assertEquals(1, onAllNodes(hasText("Renamed series")).fetchSemanticsNodes().size)
-                onNodeWithText("Renamed series").performClick()
-                waitText("Edit task")
-                onNodeWithContentDescription("Delete task").performClick()
-                waitText("Delete repeating task")
-                onNodeWithText("Entire task and all events").performClick()
-                waitText("No tasks yet.")
-                assertTrue(runBlocking { db.taskDao().observeRecords().first().isEmpty() })
+                events = runBlocking {
+                    repo
+                        .observeCalendar(from = start, through = start.plus(value = 10, unit = DateTimeUnit.DAY))
+                        .first()
+                }
+                assertTrue(actual = events.all { task -> task.name == "Renamed series" })
+                assertEquals(expected = 1, actual = events.count(predicate = Task::isCompleted))
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "Tasks")
+                onNodeWithText(text = "Tasks").performClick()
+                waitText(text = "Renamed series")
+                assertEquals(
+                    expected = 1,
+                    actual = onAllNodes(matcher = hasText(text = "Renamed series")).fetchSemanticsNodes().size,
+                )
+                onNodeWithText(text = "Renamed series").performClick()
+                waitText(text = "Edit task")
+                onNodeWithContentDescription(label = "Delete task").performClick()
+                waitText(text = "Delete repeating task")
+                onNodeWithText(text = "Entire task and all events").performClick()
+                waitText(text = "No tasks yet.")
+                assertTrue(actual = runBlocking { db.taskDao().observeRecords().first().isEmpty() })
             }
         }
     }
 
     private suspend fun SkikoComposeUiTest.waitText(text: String) {
-        waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText(text), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodes(matcher = hasText(text = text), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 }

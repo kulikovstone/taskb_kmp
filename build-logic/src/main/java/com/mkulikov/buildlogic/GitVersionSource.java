@@ -33,17 +33,25 @@ public abstract class GitVersionSource implements ValueSource<String, GitVersion
             throw new IllegalStateException("Не удалось прочитать " + VERSION_FILE, cause);
         }
         if (!baseVersion.matches("(0|[1-9]\\d*)\\.(0|[1-9]\\d*)")) {
-            throw new IllegalArgumentException(VERSION_FILE + " должен содержать версию из двух целых неотрицательных чисел через точку, например 1.16 или 2.0.");
+            throw new IllegalArgumentException(
+                VERSION_FILE
+                    + " должен содержать версию из двух целых неотрицательных чисел через"
+                    + " точку, например 1.16 или 2.0."
+            );
         }
         int separator = baseVersion.indexOf('.');
         String major = baseVersion.substring(0, separator);
         BigInteger initialRevision = new BigInteger(baseVersion.substring(separator + 1));
         if (git(directory, "rev-parse", "--is-shallow-repository").equals("true")) {
-            throw new IllegalStateException("Для вычисления версии нужна полная история Git. Выполните git fetch --unshallow; в CI используйте fetch-depth: 0.");
+            throw new IllegalStateException(
+                "Для вычисления версии нужна полная история Git. Выполните git fetch"
+                    + " --unshallow; в CI используйте fetch-depth: 0."
+            );
         }
 
         String baseline = null;
-        String changes = git(directory, "log", "--first-parent", "--format=%H", "HEAD", "--", VERSION_FILE);
+        String changes =
+                git(directory, "log", "--first-parent", "--format=%H", "HEAD", "--", VERSION_FILE);
         for (String commit : changes.lines().toList()) {
             if (commit.isBlank()) continue;
             // A deleted file or a different base version ends the current version series.
@@ -53,26 +61,49 @@ public abstract class GitVersionSource implements ValueSource<String, GitVersion
             baseline = commit;
         }
         // Uncommitted base versions have no additional commits yet.
-        String revision = baseline == null ? "0"
-                : git(directory, "rev-list", "--first-parent", "--count", baseline + "..HEAD");
+        String revision =
+                baseline == null
+                        ? "0"
+                        : git(
+                            directory,
+                            "rev-list",
+                            "--first-parent",
+                            "--count",
+                            baseline + "..HEAD"
+                        );
         return major + "." + initialRevision.add(new BigInteger(revision));
     }
 
     static String git(Path directory, String... arguments) {
-        var command = new ArrayList<>(List.of("git", "-c", "log.showSignature=false", "-c", "color.ui=false"));
+        var command =
+                new ArrayList<>(
+                    List.of("git", "-c", "log.showSignature=false", "-c", "color.ui=false")
+                );
         command.addAll(List.of(arguments));
         try {
-            Process process = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true).start();
+            Process process =
+                    new ProcessBuilder(command)
+                            .directory(directory.toFile())
+                            .redirectErrorStream(true)
+                            .start();
             final String output;
             try (var stream = process.getInputStream()) {
                 output = new String(stream.readAllBytes(), StandardCharsets.UTF_8).strip();
             }
             if (process.waitFor() != 0) {
-                throw new IllegalStateException("Не удалось вычислить версию приложения. Нужен Git-репозиторий с полной историей коммитов. " + output);
+                throw new IllegalStateException(
+                    "Не удалось вычислить версию приложения. Нужен Git-репозиторий с полной"
+                        + " историей коммитов. "
+                        + output
+                );
             }
             return output;
         } catch (IOException cause) {
-            throw new IllegalStateException("Не удалось вычислить версию приложения. Нужен установленный Git и полная история репозитория.", cause);
+            throw new IllegalStateException(
+                "Не удалось вычислить версию приложения. Нужен установленный Git и полная"
+                    + " история репозитория.",
+                cause
+            );
         } catch (InterruptedException cause) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Вычисление версии приложения прервано.", cause);

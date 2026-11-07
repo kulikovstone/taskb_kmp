@@ -48,15 +48,28 @@ fun TaskBTextField(
     inputTransformation: InputTransformation? = null,
 ) {
     val colors = TaskBTheme.colors
-    TaskBTextFieldContainer(state.text.toString(), state::clearText, description, modifier, placeholder, search, enabled, autoFocus, showClear) { fieldModifier, decoration ->
+    TaskBTextFieldContainer(
+        value = state.text.toString(),
+        onClear = state::clearText,
+        description = description,
+        modifier = modifier,
+        placeholder = placeholder,
+        search = search,
+        enabled = enabled,
+        autoFocus = autoFocus,
+        showClear = showClear,
+    ) { fieldModifier, decoration ->
         BasicTextField(
             state = state,
             inputTransformation = inputTransformation,
             enabled = enabled,
             lineLimits = TextFieldLineLimits.SingleLine,
             textStyle = TaskBTheme.typography.body.copy(color = colors.text),
-            cursorBrush = SolidColor(colors.accent),
-            keyboardOptions = KeyboardOptions(imeAction = if (search) ImeAction.Search else ImeAction.Done, keyboardType = keyboardType),
+            cursorBrush = SolidColor(value = colors.accent),
+            keyboardOptions = KeyboardOptions(
+                imeAction = if (search) ImeAction.Search else ImeAction.Done,
+                keyboardType = keyboardType,
+            ),
             onKeyboardAction = { onDone() },
             modifier = fieldModifier,
             decorator = TextFieldDecorator { inner -> decoration(inner) },
@@ -78,47 +91,74 @@ private fun TaskBTextFieldContainer(
     field: @Composable (Modifier, @Composable (@Composable () -> Unit) -> Unit) -> Unit,
 ) {
     val colors = TaskBTheme.colors
-    var focused by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(value = false) }
     val focusRequester = remember { FocusRequester() }
     Row(
-        modifier = modifier.height(44.dp).onFocusChanged { focused = it.hasFocus }.focusGroup(),
+        modifier = modifier
+            .height(height = 44.dp)
+            .onFocusChanged { focusState ->
+                focused = focusState.hasFocus
+            }
+            .focusGroup(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         field(
-            Modifier.weight(1f).height(44.dp).focusRequester(focusRequester)
-                .border(if (focused) 2.dp else 1.dp, if (focused) colors.accent else colors.border, RoundedCornerShape(8.dp))
-                .semantics { contentDescription = description },
+            Modifier.weight(weight = 1f)
+                .height(height = 44.dp)
+                .focusRequester(focusRequester = focusRequester)
+                .border(
+                    width = if (focused) 2.dp else 1.dp,
+                    color = if (focused) colors.accent else colors.border,
+                    shape = RoundedCornerShape(size = 8.dp),
+                )
+                .semantics { contentDescription = description }
         ) { inner ->
-            Row(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 if (search) {
-                    Icon(TaskBIcons.Search, contentDescription = null, tint = colors.muted, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        imageVector = TaskBIcons.Search,
+                        contentDescription = null,
+                        tint = colors.muted,
+                        modifier = Modifier.size(size = 18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(width = 8.dp))
                 }
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty()) Text(placeholder, color = colors.muted, style = TaskBTheme.typography.body)
+                Box(modifier = Modifier.weight(weight = 1f), contentAlignment = Alignment.CenterStart) {
+                    if (value.isEmpty())
+                        Text(text = placeholder, color = colors.muted, style = TaskBTheme.typography.body)
                     inner()
                 }
             }
         }
         if (showClear && focused && value.isNotEmpty()) {
-            Spacer(Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(width = 8.dp))
             Box(
-                modifier = Modifier.size(32.dp).clickable(
-                    enabled = enabled,
-                    interactionSource = null,
-                    indication = null,
-                    role = Role.Button,
-                ) {
-                    onClear()
-                    focusRequester.requestFocus()
-                },
+                modifier = Modifier
+                    .size(size = 32.dp)
+                    .clickable(
+                        enabled = enabled,
+                        interactionSource = null,
+                        indication = null,
+                        role = Role.Button,
+                    ) {
+                        onClear()
+                        focusRequester.requestFocus()
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(TaskBIcons.Cancel, contentDescription = "Clear ${description.lowercase()}", tint = colors.clearIcon, modifier = Modifier.size(24.dp))
+                Icon(
+                    imageVector = TaskBIcons.Cancel,
+                    contentDescription = "Clear ${description.lowercase()}",
+                    tint = colors.clearIcon,
+                    modifier = Modifier.size(size = 24.dp),
+                )
             }
         }
     }
-    LaunchedEffect(autoFocus) {
+    LaunchedEffect(key1 = autoFocus) {
         if (autoFocus) focusRequester.requestFocus()
     }
 }
@@ -140,8 +180,8 @@ private fun TaskBTextFieldPreview(darkTheme: Boolean) {
     TaskBTheme(darkTheme = darkTheme) {
         Surface(color = TaskBTheme.colors.surface) {
             Column(
-                modifier = Modifier.width(400.dp).padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.width(width = 400.dp).padding(all = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(space = 16.dp),
             ) {
                 TaskBTextField(
                     state = rememberTextFieldState(),
@@ -149,22 +189,22 @@ private fun TaskBTextFieldPreview(darkTheme: Boolean) {
                     placeholder = "Enter task name",
                 )
                 TaskBTextField(
-                    state = rememberTextFieldState("Plan the next release"),
+                    state = rememberTextFieldState(initialText = "Plan the next release"),
                     description = "Task name",
                 )
                 TaskBTextField(
-                    state = rememberTextFieldState("Write release notes"),
+                    state = rememberTextFieldState(initialText = "Write release notes"),
                     description = "Focused task name",
                     autoFocus = true,
                 )
                 TaskBTextField(
-                    state = rememberTextFieldState("release"),
+                    state = rememberTextFieldState(initialText = "release"),
                     description = "Search tasks",
                     placeholder = "Search tasks",
                     search = true,
                 )
                 TaskBTextField(
-                    state = rememberTextFieldState("Archived task"),
+                    state = rememberTextFieldState(initialText = "Archived task"),
                     description = "Disabled task name",
                     enabled = false,
                 )

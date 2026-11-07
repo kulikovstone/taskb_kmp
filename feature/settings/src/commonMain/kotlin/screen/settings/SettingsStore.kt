@@ -14,49 +14,75 @@ import kotlinx.coroutines.flow.map
 internal class SettingsStore(
     private val locations: IAppLocationRepository,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : CoroutineStore<SettingsIntent, SettingsState, SettingsMessage>(SettingsState(), ::reduceSettings, dispatcher) {
+) : CoroutineStore<SettingsIntent, SettingsState, SettingsMessage>(
+    initialState = SettingsState(),
+    reducer = ::reduceSettings,
+    context = dispatcher,
+) {
     private var search: Job? = null
     private var observation: Job? = null
 
-    init { accept(SettingsIntent.RetryLoad) }
+    init {
+        accept(intent = SettingsIntent.RetryLoad)
+    }
 
     override fun handleIntent(intent: SettingsIntent) {
         when (intent) {
             SettingsIntent.RetryLoad -> if (observation?.isActive != true) {
-                reduce(SettingsMessage.Loading)
-                observation = collectEffect(locations.observeLocation().map<AppLocation?, SettingsMessage> {
-                    SettingsMessage.Location(it)
-                }.catch {
-                    if (it is CancellationException) throw it
-                    emit(SettingsMessage.LoadFailed)
-                })
+                reduce(message = SettingsMessage.Loading)
+                observation = collectEffect(
+                    messages = locations
+                        .observeLocation()
+                        .map<AppLocation?, SettingsMessage> { location ->
+                            SettingsMessage.Location(value = location)
+                        }
+                        .catch { exception ->
+                            if (exception is CancellationException) throw exception
+                            emit(value = SettingsMessage.LoadFailed)
+                        }
+                )
             }
             is SettingsIntent.Search -> if (!state.value.isSaving) {
                 search?.cancel()
-                reduce(SettingsMessage.Query(intent.query))
-                if (intent.query.trim().length >= 2) search = launchEffect {
-                    delay(350)
-                    try {
-                        SettingsMessage.SearchResult(intent.query, locations.searchLocations(intent.query))
-                    } catch (exception: CancellationException) { throw exception }
-                    catch (_: Exception) { SettingsMessage.SearchResult(intent.query, emptyList(), failed = true) }
-                }
+                reduce(message = SettingsMessage.Query(value = intent.query))
+                if (intent.query.trim().length >= 2)
+                    search = launchEffect {
+                        delay(timeMillis = 350)
+                        try {
+                            SettingsMessage.SearchResult(
+                                query = intent.query,
+                                results = locations.searchLocations(query = intent.query),
+                            )
+                        } catch (exception: CancellationException) {
+                            throw exception
+                        } catch (_: Exception) {
+                            SettingsMessage.SearchResult(
+                                query = intent.query,
+                                results = emptyList(),
+                                failed = true,
+                            )
+                        }
+                    }
             }
-            is SettingsIntent.SelectLocation -> if (intent.location in state.value.results) save(intent.location)
-            SettingsIntent.ClearLocation -> save(null)
+            is SettingsIntent.SelectLocation ->
+                if (intent.location in state.value.results) save(location = intent.location)
+            SettingsIntent.ClearLocation -> save(location = null)
         }
     }
 
     private fun save(location: AppLocation?) {
         if (state.value.isSaving || state.value.isLoading) return
         search?.cancel()
-        reduce(SettingsMessage.Saving)
+        reduce(message = SettingsMessage.Saving)
         launchEffect {
             try {
-                locations.setLocation(location)
+                locations.setLocation(location = location)
                 SettingsMessage.Saved(failed = false)
-            } catch (exception: CancellationException) { throw exception }
-            catch (_: Exception) { SettingsMessage.Saved(failed = true) }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                SettingsMessage.Saved(failed = true)
+            }
         }
     }
 }

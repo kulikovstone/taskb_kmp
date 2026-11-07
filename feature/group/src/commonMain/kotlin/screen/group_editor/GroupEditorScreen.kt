@@ -16,15 +16,20 @@ import org.koin.compose.koinInject
 @Composable
 internal fun GroupEditorScreen(groupId: Int? = null, onBack: () -> Unit) {
     val repository = koinInject<IGroupRepository>()
-    val store = rememberNavEntryResource("group-editor") { GroupEditorStore(repository, groupId) }
+    val store = rememberNavEntryResource(key = "group-editor") {
+        GroupEditorStore(repository = repository, groupId = groupId)
+    }
     val state by store.state.collectAsState()
-    LaunchedEffect(store, state.isFinished) { if (state.isFinished) onBack() }
+    LaunchedEffect(key1 = store, key2 = state.isFinished) { if (state.isFinished) onBack() }
 
-    Surface(Modifier.fillMaxSize()) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            if (maxWidth >= 840.dp) GroupEditorWideScreen(state, store::accept, onBack)
-            else GroupEditorCompactScreen(state, store::accept, onBack)
+    Surface(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            if (maxWidth >= 840.dp) {
+                GroupEditorWideScreen(state = state, onIntent = store::accept, onBack = onBack)
+            } else {
+                GroupEditorCompactScreen(state = state, onIntent = store::accept, onBack = onBack)
+            }
         }
     }
-    GroupEditorDialogs(state, store::accept)
+    GroupEditorDialogs(state = state, onIntent = store::accept)
 }

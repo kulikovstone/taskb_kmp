@@ -74,7 +74,7 @@ internal val DarkTaskBColors = TaskBColors(
     onAction = Palette.White,
     selected = Palette.BlueGrey.s800,
     calendarSelectedDay = Palette.BlueGrey.s800,
-    overdueTaskBackground = Palette.Red.s900.copy(alpha = 0.16f).compositeOver(Palette.Grey.s900),
+    overdueTaskBackground = Palette.Red.s900.copy(alpha = 0.16f).compositeOver(background = Palette.Grey.s900),
     danger = Palette.Red.a100,
     dangerSoft = Palette.Red.s900,
     success = Palette.Green.s300,
@@ -85,5 +85,5 @@ internal val DarkTaskBColors = TaskBColors(
 )
 
 internal val LocalTaskBColors = staticCompositionLocalOf<TaskBColors> {
-    error("TaskBTheme is not present")
+    error(message = "TaskBTheme is not present")
 }

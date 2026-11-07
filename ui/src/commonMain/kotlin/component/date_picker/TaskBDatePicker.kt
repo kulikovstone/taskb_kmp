@@ -44,40 +44,79 @@ fun TaskBDatePicker(
     onDismiss: () -> Unit,
     availableHeight: Dp,
 ) {
-    val state = rememberSaveable(date, today, saver = DatePickerState.Saver) { DatePickerState((date ?: today).yearMonth) }
-    TaskBDialog(onDismiss) {
-        Box(Modifier.widthIn(max = 392.dp).padding(horizontal = 16.dp)) {
-            DatePickerContent(date, today, state, onChoose, onDismiss,
-                Modifier.fillMaxWidth().heightIn(max = (availableHeight - 48.dp).coerceAtLeast(240.dp)))
+    val state = rememberSaveable(date, today, saver = DatePickerState.Saver) {
+        DatePickerState(initialMonth = (date ?: today).yearMonth)
+    }
+    TaskBDialog(onDismissRequest = onDismiss) {
+        Box(modifier = Modifier.widthIn(max = 392.dp).padding(horizontal = 16.dp)) {
+            DatePickerContent(
+                date = date,
+                today = today,
+                state = state,
+                onChoose = onChoose,
+                onDismiss = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = (availableHeight - 48.dp).coerceAtLeast(minimumValue = 240.dp)),
+            )
         }
     }
 }
 
 @Composable
 internal fun DatePickerContent(
-    date: LocalDate?, today: LocalDate, state: DatePickerState,
-    onChoose: (LocalDate) -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier,
+    date: LocalDate?,
+    today: LocalDate,
+    state: DatePickerState,
+    onChoose: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val scroll = rememberScrollState()
-    LaunchedEffect(state.view) { scroll.scrollTo(0) }
-    val shape = RoundedCornerShape(10.dp)
-    Surface(modifier.shadow(4.dp, shape).testTag("date-picker-panel"), shape = shape, color = TaskBTheme.colors.surface) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Choose date", Modifier.height(28.dp), style = TaskBTheme.typography.title, color = TaskBTheme.colors.heading)
-            DatePickerNavigation(state)
-            Box(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(scroll)) {
+    LaunchedEffect(key1 = state.view) { scroll.scrollTo(value = 0) }
+    val shape = RoundedCornerShape(size = 10.dp)
+    Surface(
+        modifier = modifier.shadow(elevation = 4.dp, shape = shape).testTag(tag = "date-picker-panel"),
+        shape = shape,
+        color = TaskBTheme.colors.surface,
+    ) {
+        Column(
+            modifier = Modifier.padding(all = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(space = 16.dp),
+        ) {
+            Text(
+                text = "Choose date",
+                modifier = Modifier.height(height = 28.dp),
+                style = TaskBTheme.typography.title,
+                color = TaskBTheme.colors.heading,
+            )
+            DatePickerNavigation(state = state)
+            Box(
+                modifier = Modifier.weight(weight = 1f, fill = false).fillMaxWidth().verticalScroll(state = scroll)
+            ) {
                 when (state.view) {
-                    DatePickerState.View.Days -> DatePickerCalendar(state.month, date, today, onChoose)
-                    DatePickerState.View.Months -> DatePickerMonths(state)
-                    DatePickerState.View.Years -> DatePickerYears(state)
+                    DatePickerState.View.Days -> DatePickerCalendar(
+                        month = state.month,
+                        date = date,
+                        today = today,
+                        onChoose = onChoose,
+                    )
+                    DatePickerState.View.Months -> DatePickerMonths(state = state)
+                    DatePickerState.View.Years -> DatePickerYears(state = state)
                 }
             }
-            Row(Modifier.fillMaxWidth().height(40.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton({ state.showToday(today.yearMonth) }, Modifier.width(64.dp).fillMaxHeight()) {
-                    Text("Today", style = TaskBTheme.typography.button, color = TaskBTheme.colors.accent)
+            Row(
+                modifier = Modifier.fillMaxWidth().height(height = 40.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                TextButton(
+                    onClick = { state.showToday(today = today.yearMonth) },
+                    modifier = Modifier.width(width = 64.dp).fillMaxHeight(),
+                ) {
+                    Text(text = "Today", style = TaskBTheme.typography.button, color = TaskBTheme.colors.accent)
                 }
-                TextButton(onDismiss, Modifier.width(72.dp).fillMaxHeight()) {
-                    Text("Cancel", style = TaskBTheme.typography.button, color = TaskBTheme.colors.accent)
+                TextButton(onClick = onDismiss, modifier = Modifier.width(width = 72.dp).fillMaxHeight()) {
+                    Text(text = "Cancel", style = TaskBTheme.typography.button, color = TaskBTheme.colors.accent)
                 }
             }
         }
@@ -86,43 +125,130 @@ internal fun DatePickerContent(
 
 @Composable
 private fun DatePickerNavigation(state: DatePickerState) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val compact = maxWidth < 320.dp
         val small = maxWidth < 280.dp
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (small) 4.dp else 8.dp)) {
-            DatePickerArrow("Previous month", TaskBIcons.ChevronLeft, { state.moveMonth(false) }, state.canGoBack, if (small) 32.dp else 40.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(space = if (small) 4.dp else 8.dp),
+        ) {
+            DatePickerArrow(
+                description = "Previous month",
+                icon = TaskBIcons.ChevronLeft,
+                onClick = { state.moveMonth(forward = false) },
+                enabled = state.canGoBack,
+                width = if (small) 32.dp else 40.dp,
+            )
             val monthNames = if (compact) MonthNames.ENGLISH_ABBREVIATED else MonthNames.ENGLISH_FULL
-            PeriodSelector(monthNames.names[state.month.month.ordinal], "Choose month", state.view == DatePickerState.View.Months,
-                state::toggleMonths, Modifier.weight(1f))
-            PeriodSelector(state.month.year.toString(), "Choose year", state.view == DatePickerState.View.Years,
-                state::toggleYears, Modifier.width(if (compact) 80.dp else 96.dp))
-            DatePickerArrow("Next month", TaskBIcons.ChevronRight, { state.moveMonth(true) }, state.canGoForward, if (small) 32.dp else 40.dp)
+            PeriodSelector(
+                label = monthNames.names[state.month.month.ordinal],
+                description = "Choose month",
+                active = state.view == DatePickerState.View.Months,
+                onClick = state::toggleMonths,
+                modifier = Modifier.weight(weight = 1f),
+            )
+            PeriodSelector(
+                label = state.month.year.toString(),
+                description = "Choose year",
+                active = state.view == DatePickerState.View.Years,
+                onClick = state::toggleYears,
+                modifier = Modifier.width(width = if (compact) 80.dp else 96.dp),
+            )
+            DatePickerArrow(
+                description = "Next month",
+                icon = TaskBIcons.ChevronRight,
+                onClick = { state.moveMonth(forward = true) },
+                enabled = state.canGoForward,
+                width = if (small) 32.dp else 40.dp,
+            )
         }
     }
 }
 
 @Composable
-internal fun DatePickerArrow(description: String, icon: ImageVector, onClick: () -> Unit, enabled: Boolean = true, width: Dp = 40.dp, height: Dp = 44.dp) {
-    Box(Modifier.width(width).height(height).clip(RoundedCornerShape(8.dp)).clickable(enabled = enabled, role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, description, Modifier.size(18.dp), tint = TaskBTheme.colors.muted.copy(alpha = if (enabled) 1f else 0.38f))
+internal fun DatePickerArrow(
+    description: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    width: Dp = 40.dp,
+    height: Dp = 44.dp,
+) {
+    Box(
+        modifier = Modifier
+            .width(width = width)
+            .height(height = height)
+            .clip(shape = RoundedCornerShape(size = 8.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            modifier = Modifier.size(size = 18.dp),
+            tint = TaskBTheme.colors.muted.copy(alpha = if (enabled) 1f else 0.38f),
+        )
     }
 }
 
 @Composable
-private fun PeriodSelector(label: String, description: String, active: Boolean, onClick: () -> Unit, modifier: Modifier) {
-    val shape = RoundedCornerShape(8.dp)
-    Row(modifier.height(44.dp).clip(shape).background(if (active) TaskBTheme.colors.selected else TaskBTheme.colors.surface)
-        .border(1.dp, if (active) TaskBTheme.colors.accent else TaskBTheme.colors.border, shape)
-        .clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = description; selected = active }
-        .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, Modifier.weight(1f), style = TaskBTheme.typography.button, color = TaskBTheme.colors.text, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Icon(TaskBIcons.Dropdown, null, Modifier.size(18.dp), tint = TaskBTheme.colors.muted)
+private fun PeriodSelector(
+    label: String,
+    description: String,
+    active: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier,
+) {
+    val shape = RoundedCornerShape(size = 8.dp)
+    Row(
+        modifier = modifier
+            .height(height = 44.dp)
+            .clip(shape = shape)
+            .background(color = if (active) TaskBTheme.colors.selected else TaskBTheme.colors.surface)
+            .border(
+                width = 1.dp,
+                color = if (active) TaskBTheme.colors.accent else TaskBTheme.colors.border,
+                shape = shape,
+            )
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics {
+                contentDescription = description
+                selected = active
+            }
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(weight = 1f),
+            style = TaskBTheme.typography.button,
+            color = TaskBTheme.colors.text,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Icon(
+            imageVector = TaskBIcons.Dropdown,
+            contentDescription = null,
+            modifier = Modifier.size(size = 18.dp),
+            tint = TaskBTheme.colors.muted,
+        )
     }
 }
 
 @Preview(name = "Date picker", widthDp = 360, heightDp = 476)
 @Composable
 private fun DatePickerPreview() {
-    val today = LocalDate(2026, 11, 1)
-    TaskBTheme(false) { DatePickerContent(null, today, DatePickerState(today.yearMonth), {}, {}, Modifier.width(360.dp)) }
+    val today = LocalDate(year = 2026, month = 11, day = 1)
+    TaskBTheme(darkTheme = false) {
+        DatePickerContent(
+            date = null,
+            today = today,
+            state = DatePickerState(initialMonth = today.yearMonth),
+            onChoose = {},
+            onDismiss = {},
+            modifier = Modifier.width(width = 360.dp),
+        )
+    }
 }

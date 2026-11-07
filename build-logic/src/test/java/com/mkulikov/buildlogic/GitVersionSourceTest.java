@@ -16,18 +16,38 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class GitVersionSourceTest {
-    @Rule
-    public TemporaryFolder temporary = new TemporaryFolder();
+    @Rule public TemporaryFolder temporary = new TemporaryFolder();
 
     private record Repository(Path directory) {
         String git(String... arguments) throws IOException, InterruptedException {
-            var command = new ArrayList<>(List.of("git", "-c", "commit.gpgsign=false", "-c",
-                    "core.hooksPath=" + directory.resolve("disabled-hooks")));
+            var command =
+                    new ArrayList<>(
+                        List.of(
+                                "git",
+                                "-c",
+                                "commit.gpgsign=false",
+                                "-c",
+                                "core.hooksPath=" + directory.resolve("disabled-hooks")
+                            )
+                    );
             command.addAll(List.of(arguments));
-            var builder = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true);
-            builder.environment().putAll(java.util.Map.of(
-                    "GIT_AUTHOR_NAME", "Version test", "GIT_AUTHOR_EMAIL", "version@example.com",
-                    "GIT_COMMITTER_NAME", "Version test", "GIT_COMMITTER_EMAIL", "version@example.com"));
+            var builder =
+                    new ProcessBuilder(command)
+                            .directory(directory.toFile())
+                            .redirectErrorStream(true);
+            builder.environment()
+                    .putAll(
+                        java.util.Map.of(
+                                "GIT_AUTHOR_NAME",
+                                "Version test",
+                                "GIT_AUTHOR_EMAIL",
+                                "version@example.com",
+                                "GIT_COMMITTER_NAME",
+                                "Version test",
+                                "GIT_COMMITTER_EMAIL",
+                                "version@example.com"
+                            )
+                    );
             Process process = builder.start();
             String output;
             try (var stream = process.getInputStream()) {
@@ -83,7 +103,8 @@ public class GitVersionSourceTest {
     }
 
     @Test
-    public void changingEitherBaseComponentStartsANewSeriesIncludingWhenReusingABase() throws Exception {
+    public void changingEitherBaseComponentStartsANewSeriesIncludingWhenReusingABase()
+            throws Exception {
         var repository = repository();
         repository.write("version-major.txt", "1.16\n");
         repository.commit();
@@ -147,7 +168,21 @@ public class GitVersionSourceTest {
     @Test
     public void invalidBaseVersionIsRejected() throws Exception {
         var repository = repository();
-        for (String baseVersion : List.of("", "1", "1.", ".12", "1.2.3", "1,12", "-1.16", "1.-12", "01.16", "1.012", "abc", "<script>")) {
+        for (String baseVersion :
+                List.of(
+                    "",
+                    "1",
+                    "1.",
+                    ".12",
+                    "1.2.3",
+                    "1,12",
+                    "-1.16",
+                    "1.-12",
+                    "01.16",
+                    "1.012",
+                    "abc",
+                    "<script>"
+                )) {
             repository.write("version-major.txt", baseVersion);
             var error = assertThrows(IllegalArgumentException.class, repository::version);
             assertTrue(error.getMessage().contains("version-major.txt должен содержать"));
@@ -157,8 +192,13 @@ public class GitVersionSourceTest {
     @Test
     public void secondComponentIncrementsAsAnIntegerWithoutCarryingOrRounding() throws Exception {
         var repository = repository();
-        for (var versions : List.of(List.of("0.0", "0.1"), List.of("1.9", "1.10"),
-                List.of("1.99", "1.100"), List.of("7.9007199254740992", "7.9007199254740993"))) {
+        for (var versions :
+                List.of(
+                    List.of("0.0", "0.1"),
+                    List.of("1.9", "1.10"),
+                    List.of("1.99", "1.100"),
+                    List.of("7.9007199254740992", "7.9007199254740993")
+                )) {
             String base = versions.get(0);
             repository.write("version-major.txt", base + "\n");
             repository.commit();
@@ -193,8 +233,19 @@ public class GitVersionSourceTest {
         repository.write("initial.txt", "Change");
         repository.commit();
         Path shallow = temporary.newFolder("shallow").toPath();
-        repository.git("clone", "--quiet", "--depth", "1", repository.directory().toUri().toString(), shallow.toString());
-        var error = assertThrows(IllegalStateException.class, () -> GitVersionSource.calculate(shallow));
+        repository.git(
+            "clone",
+            "--quiet",
+            "--depth",
+            "1",
+            repository.directory().toUri().toString(),
+            shallow.toString()
+        );
+        var error =
+                assertThrows(
+                    IllegalStateException.class,
+                    () -> GitVersionSource.calculate(shallow)
+                );
         assertTrue(error.getMessage().contains("нужна полная история Git"));
     }
 
@@ -202,12 +253,17 @@ public class GitVersionSourceTest {
     public void missingGitHistoryIsRejected() throws Exception {
         Path directory = temporary.newFolder("archive").toPath();
         Files.writeString(directory.resolve("version-major.txt"), "1.16\n");
-        var error = assertThrows(IllegalStateException.class, () -> GitVersionSource.calculate(directory));
+        var error =
+                assertThrows(
+                    IllegalStateException.class,
+                    () -> GitVersionSource.calculate(directory)
+                );
         assertTrue(error.getMessage().contains("Git-репозиторий с полной историей"));
     }
 
     @Test
-    public void androidVersionCodeCountsFirstParentCommitsAcrossBaseChangesAndMerges() throws Exception {
+    public void androidVersionCodeCountsFirstParentCommitsAcrossBaseChangesAndMerges()
+            throws Exception {
         var repository = repository();
         assertEquals(1, GitCommitCountSource.calculate(repository.directory()));
         repository.write("version-major.txt", "1.38\n");

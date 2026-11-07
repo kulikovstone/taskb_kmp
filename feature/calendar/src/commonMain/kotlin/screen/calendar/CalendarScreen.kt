@@ -14,22 +14,22 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
+import com.mkulikov.taskb.feature.event.api.model.Event
+import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.component.date_picker.TaskBDatePicker
-import com.mkulikov.taskb.ui.theme.TaskBTheme
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.ui.dialog.TaskBChoiceDialog
 import com.mkulikov.taskb.ui.dialog.TaskBDialogChoice
-import kotlinx.datetime.LocalDate
+import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlin.math.roundToInt
+import kotlinx.datetime.LocalDate
 
 @Composable
 internal fun CalendarScreen(
@@ -43,51 +43,123 @@ internal fun CalendarScreen(
     onOpenEvent: (Event) -> Unit = {},
 ) {
     val drag = remember { CalendarDragState() }
-    var origin by remember { mutableStateOf(Offset.Zero) }
-    val openTask: (Task) -> Unit = { onOpenOccurrence?.invoke(it) ?: onOpenTask(it.id) }
-    val openItem: (CalendarItem) -> Unit = { item -> when (item) {
-        is CalendarItem.TaskItem -> openTask(item.task)
-        is CalendarItem.EventItem -> onOpenEvent(item.event)
-        is CalendarItem.HolidayItem -> Unit
-    } }
-    Surface(Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-        BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
+    var origin by remember { mutableStateOf(value = Offset.Zero) }
+    val openTask: (Task) -> Unit = { task -> onOpenOccurrence?.invoke(task) ?: onOpenTask(task.id) }
+    val openItem: (CalendarItem) -> Unit = { item ->
+        when (item) {
+            is CalendarItem.TaskItem -> openTask(item.task)
+            is CalendarItem.EventItem -> onOpenEvent(item.event)
+            is CalendarItem.HolidayItem -> Unit
+        }
+    }
+    Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    origin = coordinates.positionInRoot()
+                }
+        ) {
             if (maxWidth < 840.dp) {
-                Column(Modifier.fillMaxSize()) {
-                    TaskBTopAppBar("Calendar", onBack)
-                    Box(Modifier.weight(1f).fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("Calendar is available in wide windows.", color = TaskBTheme.colors.muted)
+                Column(modifier = Modifier.fillMaxSize()) {
+                    TaskBTopAppBar(title = "Calendar", onBack = onBack)
+                    Box(
+                        modifier = Modifier.weight(weight = 1f).fillMaxWidth().padding(all = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(text = "Calendar is available in wide windows.", color = TaskBTheme.colors.muted)
                     }
                 }
             } else {
-                Column(Modifier.fillMaxSize()) {
-                    CalendarTopBar(state, onIntent, onBack, { onCreateTask(state.selectedDate) }, { onCreateEvent(state.selectedDate) })
+                Column(modifier = Modifier.fillMaxSize()) {
+                    CalendarTopBar(
+                        state = state,
+                        onIntent = onIntent,
+                        onBack = onBack,
+                        onCreateTask = { onCreateTask(state.selectedDate) },
+                        onCreateEvent = { onCreateEvent(state.selectedDate) },
+                    )
                     when {
-                        state.isLoading -> TaskBLoading(Modifier.weight(1f))
-                        state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(CalendarIntent.RetryLoad) })
-                        else -> Row(Modifier.weight(1f).fillMaxWidth()) {
-                            CalendarSidebar(state, drag, onIntent, openItem)
-                            CalendarMonthGrid(state, drag, onIntent, openItem, Modifier.weight(1f).fillMaxHeight())
+                        state.isLoading -> TaskBLoading(modifier = Modifier.weight(weight = 1f))
+                        state.loadError != null -> TaskBLoadError(
+                            message = state.loadError,
+                            onRetry = { onIntent(CalendarIntent.RetryLoad) },
+                        )
+                        else -> Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
+                            CalendarSidebar(
+                                state = state,
+                                drag = drag,
+                                onIntent = onIntent,
+                                onOpenTask = openItem,
+                            )
+                            CalendarMonthGrid(
+                                state = state,
+                                drag = drag,
+                                onIntent = onIntent,
+                                onOpenTask = openItem,
+                                modifier = Modifier.weight(weight = 1f).fillMaxHeight(),
+                            )
                         }
                     }
                 }
-                if (state.error != null) Surface(
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(34.dp).widthIn(max = 480.dp),
-                    shape = RoundedCornerShape(8.dp), color = TaskBTheme.colors.dangerSoft, elevation = 4.dp,
-                ) {
-                    Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(state.error, color = TaskBTheme.colors.danger, style = TaskBTheme.typography.body, modifier = Modifier.weight(1f, fill = false))
-                        TextButton({ onIntent(CalendarIntent.DismissError) }) { Text("Dismiss", color = TaskBTheme.colors.danger) }
-                    }
-                } else state.undo?.let { move ->
+                if (state.error != null) {
                     Surface(
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(34.dp).testTag("calendar-undo"),
-                        shape = RoundedCornerShape(8.dp), color = TaskBTheme.colors.inverseSurface, elevation = 4.dp,
+                        modifier = Modifier
+                            .align(alignment = Alignment.BottomEnd)
+                            .padding(all = 34.dp)
+                            .widthIn(max = 480.dp),
+                        shape = RoundedCornerShape(size = 8.dp),
+                        color = TaskBTheme.colors.dangerSoft,
+                        elevation = 4.dp,
                     ) {
-                        Row(Modifier.heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                            Text("${if (move.isEvent) "Event" else "Task"} moved to ${calendarDateLabel.format(move.date)}", color = TaskBTheme.colors.onInverseSurface, style = TaskBTheme.typography.body)
-                            TextButton({ onIntent(CalendarIntent.UndoMove) }, enabled = state.pendingMove == null && move.taskId !in state.pendingCompletion) {
-                                Text("Undo", color = TaskBTheme.colors.inverseAccent, style = TaskBTheme.typography.button)
+                        Row(
+                            modifier = Modifier.padding(start = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = state.error,
+                                color = TaskBTheme.colors.danger,
+                                style = TaskBTheme.typography.body,
+                                modifier = Modifier.weight(weight = 1f, fill = false),
+                            )
+                            TextButton(onClick = { onIntent(CalendarIntent.DismissError) }) {
+                                Text(text = "Dismiss", color = TaskBTheme.colors.danger)
+                            }
+                        }
+                    }
+                } else {
+                    state.undo?.let { move ->
+                        Surface(
+                            modifier = Modifier
+                                .align(alignment = Alignment.BottomEnd)
+                                .padding(all = 34.dp)
+                                .testTag(tag = "calendar-undo"),
+                            shape = RoundedCornerShape(size = 8.dp),
+                            color = TaskBTheme.colors.inverseSurface,
+                            elevation = 4.dp,
+                        ) {
+                            Row(
+                                modifier = Modifier.heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
+                            ) {
+                                Text(
+                                    text =
+                                        ("${if (move.isEvent) "Event" else "Task"} moved to " +
+                                            "${calendarDateLabel.format(value = move.date)}"),
+                                    color = TaskBTheme.colors.onInverseSurface,
+                                    style = TaskBTheme.typography.body,
+                                )
+                                TextButton(
+                                    onClick = { onIntent(CalendarIntent.UndoMove) },
+                                    enabled = state.pendingMove == null && move.taskId !in state.pendingCompletion,
+                                ) {
+                                    Text(
+                                        text = "Undo",
+                                        color = TaskBTheme.colors.inverseAccent,
+                                        style = TaskBTheme.typography.button,
+                                    )
+                                }
                             }
                         }
                     }
@@ -98,53 +170,108 @@ internal fun CalendarScreen(
                     val horizontalPadding = when {
                         dense -> calendarTaskTitleGap - calendarTaskPadding
                         task.startDateTime != null -> 8.dp
-                        else -> calendarSidebarTaskTitleGap(task)
+                        else -> calendarSidebarTaskTitleGap(task = task)
                     }
                     val verticalPadding = 2.dp
-                    val sourceHorizontalPadding = if (dense) 0.dp else
-                        calendarSidebarTaskPadding.calculateLeftPadding(LayoutDirection.Ltr) +
-                            calendarSidebarTaskPadding.calculateRightPadding(LayoutDirection.Ltr)
+                    val sourceHorizontalPadding = if (dense) {
+                        0.dp
+                    } else {
+                        calendarSidebarTaskPadding.calculateLeftPadding(layoutDirection = LayoutDirection.Ltr) +
+                            calendarSidebarTaskPadding.calculateRightPadding(
+                                layoutDirection = LayoutDirection.Ltr
+                            )
+                    }
                     Surface(
                         modifier = Modifier
-                            .offset { IntOffset((drag.position.x - origin.x + 12.dp.toPx()).roundToInt(), (drag.position.y - origin.y + 12.dp.toPx()).roundToInt()) }
+                            .offset {
+                                    IntOffset(
+                                        x = (drag.position.x - origin.x + 12.dp.toPx()).roundToInt(),
+                                        y = (drag.position.y - origin.y + 12.dp.toPx()).roundToInt(),
+                                    )
+                                }
                             .requiredSize(
-                                with(density) { drag.size.width.toDp() } - sourceHorizontalPadding + horizontalPadding * 2,
-                                with(density) { drag.size.height.toDp() } + verticalPadding * 2,
+                                width = with(receiver = density) { drag.size.width.toDp() } -
+                                    sourceHorizontalPadding + horizontalPadding * 2,
+                                height = with(receiver = density) { drag.size.height.toDp() } + verticalPadding * 2,
                             )
-                            .testTag("calendar-drag-preview"),
-                        shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, TaskBTheme.colors.accent),
-                        color = TaskBTheme.colors.surface, elevation = 4.dp,
+                            .testTag(tag = "calendar-drag-preview"),
+                        shape = RoundedCornerShape(size = 8.dp),
+                        border = BorderStroke(width = 1.dp, color = TaskBTheme.colors.accent),
+                        color = TaskBTheme.colors.surface,
+                        elevation = 4.dp,
                     ) {
                         CalendarTaskRow(
-                            task, state.groups.find { it.id == task.groupId }, {}, {},
+                            task = task,
+                            group = state.groups.find { group -> group.id == task.groupId },
+                            onOpenTask = {},
+                            onToggle = {},
                             modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-                            dense = dense, enabled = false, date = drag.sourceDate, now = state.now, today = state.today,
+                            dense = dense,
+                            enabled = false,
+                            date = drag.sourceDate,
+                            now = state.now,
+                            today = state.today,
                         )
                     }
                 }
             }
             if (state.isDatePickerOpen) {
-                TaskBDatePicker(state.selectedDate, state.today,
-                    { onIntent(CalendarIntent.DateChosen(it)) }, { onIntent(CalendarIntent.DismissDatePicker) }, maxHeight)
+                TaskBDatePicker(
+                    date = state.selectedDate,
+                    today = state.today,
+                    onChoose = { date -> onIntent(CalendarIntent.DateChosen(date = date)) },
+                    onDismiss = { onIntent(CalendarIntent.DismissDatePicker) },
+                    availableHeight = maxHeight,
+                )
             }
         }
     }
     state.moveChoice?.let { move ->
-        TaskBChoiceDialog(if (move.isEvent) "Move repeating event" else "Move repeating task", "Move only this event, or start the remaining schedule on ${move.date}?" + if (move.isEvent) "" else " Completed events keep their dates.", listOf(
-            TaskBDialogChoice("Only this event", { onIntent(CalendarIntent.ConfirmMove(TaskChangeScope.ThisOccurrence)) }),
-            TaskBDialogChoice("This and following events", { onIntent(CalendarIntent.ConfirmMove(TaskChangeScope.ThisAndFollowing)) }),
-        ), { onIntent(CalendarIntent.DismissMoveChoice) })
+        TaskBChoiceDialog(
+            title = if (move.isEvent) "Move repeating event" else "Move repeating task",
+            message = "Move only this event, or start the remaining schedule on ${move.date}?" +
+                if (move.isEvent) "" else " Completed events keep their dates.",
+            choices = listOf(
+                TaskBDialogChoice(
+                    label = "Only this event",
+                    onClick = { onIntent(CalendarIntent.ConfirmMove(scope = TaskChangeScope.ThisOccurrence)) },
+                ),
+                TaskBDialogChoice(
+                    label = "This and following events",
+                    onClick = {
+                        onIntent(CalendarIntent.ConfirmMove(scope = TaskChangeScope.ThisAndFollowing))
+                    },
+                ),
+            ),
+            onDismiss = { onIntent(CalendarIntent.DismissMoveChoice) },
+        )
     }
 }
 
 @Preview(name = "Calendar", widthDp = 1440, heightDp = 900)
 @Composable
 private fun CalendarScreenPreview() {
-    TaskBTheme(darkTheme = false) { CalendarScreen(calendarPreviewState(), {}, {}, {}, {}) }
+    TaskBTheme(darkTheme = false) {
+        CalendarScreen(
+            state = calendarPreviewState(),
+            onIntent = {},
+            onBack = {},
+            onOpenTask = {},
+            onCreateTask = {},
+        )
+    }
 }
 
 @Preview(name = "Calendar with timed tasks", widthDp = 1440, heightDp = 900)
 @Composable
 private fun CalendarTimedScreenPreview() {
-    TaskBTheme(darkTheme = false) { CalendarScreen(timedCalendarPreviewState(), {}, {}, {}, {}) }
+    TaskBTheme(darkTheme = false) {
+        CalendarScreen(
+            state = timedCalendarPreviewState(),
+            onIntent = {},
+            onBack = {},
+            onOpenTask = {},
+            onCreateTask = {},
+        )
+    }
 }

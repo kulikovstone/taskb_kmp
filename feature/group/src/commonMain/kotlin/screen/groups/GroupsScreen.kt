@@ -15,12 +15,27 @@ import org.koin.compose.koinInject
 @Composable
 internal fun GroupsScreen(onBack: () -> Unit, onCreateGroup: () -> Unit, onEditGroup: (Int) -> Unit) {
     val repository = koinInject<IGroupRepository>()
-    val store = rememberNavEntryResource("task-groups") { GroupsStore(repository) }
+    val store = rememberNavEntryResource(key = "task-groups") { GroupsStore(repository = repository) }
     val state by store.state.collectAsState()
-    Surface(Modifier.fillMaxSize()) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            if (maxWidth >= 840.dp) GroupsWideScreen(state, store::accept, onBack, onCreateGroup, onEditGroup)
-            else GroupsCompactScreen(state, store::accept, onBack, onCreateGroup, onEditGroup)
+    Surface(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            if (maxWidth >= 840.dp) {
+                GroupsWideScreen(
+                    state = state,
+                    onIntent = store::accept,
+                    onBack = onBack,
+                    onCreateGroup = onCreateGroup,
+                    onEditGroup = onEditGroup,
+                )
+            } else {
+                GroupsCompactScreen(
+                    state = state,
+                    onIntent = store::accept,
+                    onBack = onBack,
+                    onCreateGroup = onCreateGroup,
+                    onEditGroup = onEditGroup,
+                )
+            }
         }
     }
 }

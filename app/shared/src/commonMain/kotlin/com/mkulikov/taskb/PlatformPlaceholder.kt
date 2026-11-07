@@ -18,12 +18,12 @@ internal fun PlatformPlaceholder() {
     TaskBTheme {
         Surface(color = TaskBTheme.colors.surface) {
             Column(
-                modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(all = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(space = 16.dp, alignment = Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("TaskB", style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
-                Text("Support for this platform is planned.", color = TaskBTheme.colors.muted)
+                Text(text = "TaskB", style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
+                Text(text = "Support for this platform is planned.", color = TaskBTheme.colors.muted)
             }
         }
     }

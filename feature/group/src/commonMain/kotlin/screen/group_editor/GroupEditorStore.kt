@@ -12,61 +12,89 @@ internal class GroupEditorStore(
     private val groupId: Int? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : CoroutineStore<GroupEditorIntent, GroupEditorState, GroupEditorMessage>(
-    GroupEditorState(
+    initialState = GroupEditorState(
         isNew = groupId == null,
         color = if (groupId == null) GroupColor.entries.random() else GroupColor.Grey,
-    ), ::reduceGroupEditor, dispatcher,
+    ),
+    reducer = ::reduceGroupEditor,
+    context = dispatcher,
 ) {
     private var loadRequested = false
 
-    init { if (groupId != null) accept(GroupEditorIntent.RetryLoad) }
+    init {
+        if (groupId != null) accept(intent = GroupEditorIntent.RetryLoad)
+    }
 
     override fun handleIntent(intent: GroupEditorIntent) {
         val current = state.value
         if (current.isFinished) return
         when (intent) {
-            is GroupEditorIntent.ColorChanged -> if (!current.isBusy && current.loadError == null && current.dialog == null) {
-                reduce(GroupEditorMessage.ColorChanged(intent.color))
-            }
+            is GroupEditorIntent.ColorChanged ->
+                if (!current.isBusy && current.loadError == null && current.dialog == null) {
+                    reduce(message = GroupEditorMessage.ColorChanged(color = intent.color))
+                }
             GroupEditorIntent.Save -> {
                 if (!current.canSave || current.dialog != null) return
-                reduce(GroupEditorMessage.Saving)
+                reduce(message = GroupEditorMessage.Saving)
                 launchEffect {
-                    recover(GroupEditorMessage.SaveFailed) {
-                        val result = if (current.isNew) repository.add(current.normalizedName, current.color)
-                        else repository.update(requireNotNull(current.original).copy(name = current.normalizedName, color = current.color))
-                        GroupEditorMessage.Saved(result)
+                    recover(failure = GroupEditorMessage.SaveFailed) {
+                        val result = if (current.isNew) {
+                            repository.add(name = current.normalizedName, color = current.color)
+                        } else {
+                            repository.update(
+                                group = requireNotNull(value = current.original)
+                                    .copy(name = current.normalizedName, color = current.color)
+                            )
+                        }
+                        GroupEditorMessage.Saved(result = result)
                     }
                 }
             }
-            GroupEditorIntent.PrepareDelete -> if (current.original != null && !current.isBusy && current.dialog == null) {
-                reduce(GroupEditorMessage.AskDelete)
-            }
+            GroupEditorIntent.PrepareDelete ->
+                if (current.original != null && !current.isBusy && current.dialog == null) {
+                    reduce(message = GroupEditorMessage.AskDelete)
+                }
             GroupEditorIntent.ConfirmDelete -> {
                 if (current.dialog != GroupEditorDialog.ConfirmDelete || current.isBusy || groupId == null) return
-                reduce(GroupEditorMessage.Deleting)
+                reduce(message = GroupEditorMessage.Deleting)
                 launchEffect {
-                    recover(GroupEditorMessage.DeleteFailed) {
-                        repository.delete(groupId)
+                    recover(failure = GroupEditorMessage.DeleteFailed) {
+                        repository.delete(id = groupId)
                         GroupEditorMessage.Deleted
                     }
                 }
             }
-            GroupEditorIntent.DismissDialog -> if (!current.isBusy) reduce(GroupEditorMessage.DismissDialog)
+            GroupEditorIntent.DismissDialog -> if (!current.isBusy) reduce(message = GroupEditorMessage.DismissDialog)
             GroupEditorIntent.RetryLoad -> {
-                if (groupId == null || current.original != null || current.isSaving || current.isDeleting || current.isLoading && loadRequested) return
+                if (
+                    groupId == null ||
+                        current.original != null ||
+                        current.isSaving ||
+                        current.isDeleting ||
+                        current.isLoading && loadRequested
+                )
+                    return
                 loadRequested = true
-                reduce(GroupEditorMessage.Loading)
-                launchEffect { recover(GroupEditorMessage.LoadFailed) { GroupEditorMessage.Loaded(repository.getById(groupId)) } }
+                reduce(message = GroupEditorMessage.Loading)
+                launchEffect {
+                    recover(failure = GroupEditorMessage.LoadFailed) {
+                        GroupEditorMessage.Loaded(group = repository.getById(id = groupId))
+                    }
+                }
             }
         }
     }
 
-    private suspend fun recover(failure: GroupEditorMessage, block: suspend () -> GroupEditorMessage): GroupEditorMessage = try {
-        block()
-    } catch (exception: CancellationException) {
-        throw exception
-    } catch (_: Exception) {
-        failure
+    private suspend fun recover(
+        failure: GroupEditorMessage,
+        block: suspend () -> GroupEditorMessage,
+    ): GroupEditorMessage {
+        return try {
+            block()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            failure
+        }
     }
 }

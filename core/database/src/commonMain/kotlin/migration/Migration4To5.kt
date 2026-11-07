@@ -4,10 +4,11 @@ import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 
-internal class Migration4To5 : Migration(4, 5) {
+internal class Migration4To5 : Migration(startVersion = 4, endVersion = 5) {
     override suspend fun migrate(connection: SQLiteConnection) {
-        connection.execSQL("ALTER TABLE tasks ADD COLUMN recurring INTEGER NOT NULL DEFAULT 0")
-        connection.execSQL("""
+        connection.execSQL(sql = "ALTER TABLE tasks ADD COLUMN recurring INTEGER NOT NULL DEFAULT 0")
+        connection.execSQL(
+            sql = """
             CREATE TABLE IF NOT EXISTS task_schedules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 taskId INTEGER NOT NULL, startDate INTEGER NOT NULL,
@@ -16,9 +17,14 @@ internal class Migration4To5 : Migration(4, 5) {
                 occurrenceCount INTEGER, closedBefore INTEGER,
                 FOREIGN KEY(taskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE
             )
-        """.trimIndent())
-        connection.execSQL("CREATE INDEX IF NOT EXISTS index_task_schedules_taskId ON task_schedules (taskId)")
-        connection.execSQL("""
+            """
+                .trimIndent()
+        )
+        connection.execSQL(
+            sql = "CREATE INDEX IF NOT EXISTS index_task_schedules_taskId ON task_schedules (taskId)"
+        )
+        connection.execSQL(
+            sql = """
             CREATE TABLE IF NOT EXISTS task_occurrences (
                 scheduleId INTEGER NOT NULL, scheduledDate INTEGER NOT NULL, taskId INTEGER NOT NULL,
                 movedDate INTEGER, completedAt INTEGER, skipped INTEGER NOT NULL,
@@ -26,8 +32,14 @@ internal class Migration4To5 : Migration(4, 5) {
                 FOREIGN KEY(scheduleId) REFERENCES task_schedules(id) ON UPDATE NO ACTION ON DELETE CASCADE,
                 FOREIGN KEY(taskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE
             )
-        """.trimIndent())
-        connection.execSQL("CREATE INDEX IF NOT EXISTS index_task_occurrences_taskId ON task_occurrences (taskId)")
-        connection.execSQL("CREATE INDEX IF NOT EXISTS index_task_occurrences_scheduleId ON task_occurrences (scheduleId)")
+            """
+                .trimIndent()
+        )
+        connection.execSQL(
+            sql = "CREATE INDEX IF NOT EXISTS index_task_occurrences_taskId ON task_occurrences (taskId)"
+        )
+        connection.execSQL(
+            sql = "CREATE INDEX IF NOT EXISTS index_task_occurrences_scheduleId ON task_occurrences (scheduleId)"
+        )
     }
 }

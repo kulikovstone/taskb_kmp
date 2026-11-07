@@ -23,27 +23,27 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 @Composable
 internal fun HelloScreen(state: HelloState, onIntent: (HelloIntent) -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxSize().padding(all = 32.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier.widthIn(max = 480.dp).verticalScroll(rememberScrollState()),
+            modifier = Modifier.widthIn(max = 480.dp).verticalScroll(state = rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(space = 24.dp),
         ) {
             Text(
                 text = "Welcome to TaskB",
                 style = MaterialTheme.typography.h4,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Button(
                 onClick = { onIntent(HelloIntent.Continue) },
-                enabled = !state.isContinuing && !state.isCompleted
+                enabled = !state.isContinuing && !state.isCompleted,
             ) {
                 if (state.isContinuing) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(size = 20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Continue", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    Text(text = "Continue", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                 }
             }
             if (state.error != null) {
@@ -51,7 +51,7 @@ internal fun HelloScreen(state: HelloState, onIntent: (HelloIntent) -> Unit) {
                     text = state.error.orEmpty(),
                     color = TaskBTheme.colors.danger,
                     style = MaterialTheme.typography.body2,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
             }
         }

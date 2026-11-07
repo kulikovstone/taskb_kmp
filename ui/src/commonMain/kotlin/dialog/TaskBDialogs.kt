@@ -12,10 +12,10 @@ import androidx.compose.ui.unit.dp
 fun TaskBMessageDialog(title: String, message: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, style = MaterialTheme.typography.subtitle1) },
-        text = { Text(message) },
-        shape = RoundedCornerShape(28.dp),
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+        title = { Text(text = title, style = MaterialTheme.typography.subtitle1) },
+        text = { Text(text = message) },
+        shape = RoundedCornerShape(size = 28.dp),
+        confirmButton = { TextButton(onClick = onDismiss) { Text(text = "OK") } },
     )
 }
 
@@ -29,10 +29,10 @@ fun TaskBConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, style = MaterialTheme.typography.subtitle1) },
-        text = { Text(message) },
-        shape = RoundedCornerShape(28.dp),
-        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmText) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = { Text(text = title, style = MaterialTheme.typography.subtitle1) },
+        text = { Text(text = message) },
+        shape = RoundedCornerShape(size = 28.dp),
+        confirmButton = { TextButton(onClick = onConfirm) { Text(text = confirmText) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(text = "Cancel") } },
     )
 }

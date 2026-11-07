@@ -12,10 +12,10 @@ data class AppLocation(
     val regionName: String? = null,
 ) {
     init {
-        require(name.isNotBlank())
-        require(latitude.isFinite() && latitude in -90.0..90.0)
-        require(longitude.isFinite() && longitude in -180.0..180.0)
-        require(countryCode == null || countryCode.matches(Regex("[A-Z]{2}")))
-        TimeZone.of(timeZone)
+        require(value = name.isNotBlank())
+        require(value = latitude.isFinite() && latitude in -90.0..90.0)
+        require(value = longitude.isFinite() && longitude in -180.0..180.0)
+        require(value = countryCode == null || countryCode.matches(regex = Regex(pattern = "[A-Z]{2}")))
+        TimeZone.of(zoneId = timeZone)
     }
 }

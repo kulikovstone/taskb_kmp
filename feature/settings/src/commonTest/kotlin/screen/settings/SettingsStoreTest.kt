@@ -2,102 +2,136 @@ package com.mkulikov.taskb.feature.settings.screen.settings
 
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
+import kotlin.test.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
-import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsStoreTest {
-    private val city = AppLocation("Paris, France", 48.85, 2.35, "Europe/Paris")
+    private val city = AppLocation(
+        name = "Paris, France",
+        latitude = 48.85,
+        longitude = 2.35,
+        timeZone = "Europe/Paris",
+    )
 
     @Test
-    fun `search is debounced and selecting or clearing a city saves the shared location`() = runTest {
-        val repository = Locations(city)
-        SettingsStore(repository, StandardTestDispatcher(testScheduler)).use { store ->
-            runCurrent()
-            assertFalse(store.state.value.isLoading)
-            store.accept(SettingsIntent.Search("Pa"))
-            runCurrent()
-            advanceTimeBy(200)
-            store.accept(SettingsIntent.Search("Paris"))
-            runCurrent()
-            advanceTimeBy(349)
-            runCurrent()
-            assertTrue(repository.searches.isEmpty())
-            advanceTimeBy(1)
-            runCurrent()
-            assertEquals(listOf("Paris"), repository.searches)
-            assertEquals(listOf(city), store.state.value.results)
-            store.accept(SettingsIntent.SelectLocation(city))
-            runCurrent()
-            assertEquals(city, store.state.value.location)
-            assertEquals("", store.state.value.query)
-            store.accept(SettingsIntent.ClearLocation)
-            runCurrent()
-            assertNull(store.state.value.location)
+    fun `search is debounced and selecting or clearing a city saves the shared location`(): TestResult {
+        return runTest {
+            val repository = Locations(city = city)
+            SettingsStore(locations = repository, dispatcher = StandardTestDispatcher(scheduler = testScheduler)).use {
+                store ->
+                runCurrent()
+                assertFalse(actual = store.state.value.isLoading)
+                store.accept(intent = SettingsIntent.Search(query = "Pa"))
+                runCurrent()
+                advanceTimeBy(delayTimeMillis = 200)
+                store.accept(intent = SettingsIntent.Search(query = "Paris"))
+                runCurrent()
+                advanceTimeBy(delayTimeMillis = 349)
+                runCurrent()
+                assertTrue(actual = repository.searches.isEmpty())
+                advanceTimeBy(delayTimeMillis = 1)
+                runCurrent()
+                assertEquals(expected = listOf(element = "Paris"), actual = repository.searches)
+                assertEquals(expected = listOf(element = city), actual = store.state.value.results)
+                store.accept(intent = SettingsIntent.SelectLocation(location = city))
+                runCurrent()
+                assertEquals(expected = city, actual = store.state.value.location)
+                assertEquals(expected = "", actual = store.state.value.query)
+                store.accept(intent = SettingsIntent.ClearLocation)
+                runCurrent()
+                assertNull(actual = store.state.value.location)
+            }
         }
     }
 
     @Test
-    fun `failed saves retain the selected city and search can recover after a network failure`() = runTest {
-        val repository = Locations(city).apply { location.value = city; failSearch = true; failSave = true }
-        SettingsStore(repository, StandardTestDispatcher(testScheduler)).use { store ->
-            runCurrent()
-            store.accept(SettingsIntent.Search("Paris"))
-            advanceTimeBy(350)
-            runCurrent()
-            assertNotNull(store.state.value.error)
-            repository.failSearch = false
-            store.accept(SettingsIntent.Search("Paris"))
-            advanceTimeBy(350)
-            runCurrent()
-            assertEquals(listOf(city), store.state.value.results)
-            store.accept(SettingsIntent.ClearLocation)
-            runCurrent()
-            assertEquals(city, store.state.value.location)
-            assertFalse(store.state.value.isSaving)
-            assertNotNull(store.state.value.error)
-            repository.failSave = false
-            store.accept(SettingsIntent.ClearLocation)
-            runCurrent()
-            assertNull(store.state.value.location)
-            assertNull(store.state.value.error)
+    fun `failed saves retain the selected city and search can recover after a network failure`(): TestResult {
+        return runTest {
+            val repository = Locations(city = city).apply {
+                location.value = city
+                failSearch = true
+                failSave = true
+            }
+            SettingsStore(locations = repository, dispatcher = StandardTestDispatcher(scheduler = testScheduler)).use {
+                store ->
+                runCurrent()
+                store.accept(intent = SettingsIntent.Search(query = "Paris"))
+                advanceTimeBy(delayTimeMillis = 350)
+                runCurrent()
+                assertNotNull(actual = store.state.value.error)
+                repository.failSearch = false
+                store.accept(intent = SettingsIntent.Search(query = "Paris"))
+                advanceTimeBy(delayTimeMillis = 350)
+                runCurrent()
+                assertEquals(expected = listOf(element = city), actual = store.state.value.results)
+                store.accept(intent = SettingsIntent.ClearLocation)
+                runCurrent()
+                assertEquals(expected = city, actual = store.state.value.location)
+                assertFalse(actual = store.state.value.isSaving)
+                assertNotNull(actual = store.state.value.error)
+                repository.failSave = false
+                store.accept(intent = SettingsIntent.ClearLocation)
+                runCurrent()
+                assertNull(actual = store.state.value.location)
+                assertNull(actual = store.state.value.error)
+            }
         }
     }
 
     @Test
-    fun `old search results cannot replace results for a newer query and close cancels pending search`() = runTest {
-        val state = SettingsState(query = "London", isSearching = true)
-        assertEquals(state, reduceSettings(state, SettingsMessage.SearchResult("Paris", listOf(city))))
-        val repository = Locations(city).apply { pending = true }
-        val store = SettingsStore(repository, StandardTestDispatcher(testScheduler))
-        store.accept(SettingsIntent.Search("Paris"))
-        advanceTimeBy(350)
-        runCurrent()
-        store.close()
-        runCurrent()
-        assertTrue(repository.cancelled)
+    fun `old search results cannot replace results for a newer query and close cancels pending search`(): TestResult {
+        return runTest {
+            val state = SettingsState(query = "London", isSearching = true)
+            assertEquals(
+                expected = state,
+                actual = reduceSettings(
+                    state = state,
+                    message = SettingsMessage.SearchResult(query = "Paris", results = listOf(element = city)),
+                ),
+            )
+            val repository = Locations(city = city).apply { pending = true }
+            val store = SettingsStore(
+                locations = repository,
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+            )
+            store.accept(intent = SettingsIntent.Search(query = "Paris"))
+            advanceTimeBy(delayTimeMillis = 350)
+            runCurrent()
+            store.close()
+            runCurrent()
+            assertTrue(actual = repository.cancelled)
+        }
     }
 
     private class Locations(private val city: AppLocation) : IAppLocationRepository {
-        val location = MutableStateFlow<AppLocation?>(null)
+        val location = MutableStateFlow<AppLocation?>(value = null)
         val searches = mutableListOf<String>()
         var failSearch = false
         var failSave = false
         var pending = false
         var cancelled = false
+
         override fun observeLocation() = location
+
         override suspend fun setLocation(location: AppLocation?) {
-            if (failSave) error("Disk unavailable")
+            if (failSave) error(message = "Disk unavailable")
             this.location.value = location
         }
+
         override suspend fun searchLocations(query: String): List<AppLocation> {
             searches += query
-            if (failSearch) error("Offline")
-            if (pending) try { awaitCancellation() } finally { cancelled = true }
-            return listOf(city)
+            if (failSearch) error(message = "Offline")
+            if (pending)
+                try {
+                    awaitCancellation()
+                } finally {
+                    cancelled = true
+                }
+            return listOf(element = city)
         }
     }
 }

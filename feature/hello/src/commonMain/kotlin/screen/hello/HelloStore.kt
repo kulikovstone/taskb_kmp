@@ -19,7 +19,7 @@ internal class HelloStore(
         when (intent) {
             HelloIntent.Continue -> {
                 if (state.value.isContinuing || state.value.isCompleted) return
-                reduce(HelloMessage.Continue)
+                reduce(message = HelloMessage.Continue)
                 launchEffect {
                     try {
                         settings.completeWelcome()

@@ -9,34 +9,38 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
 private val shortDate = LocalDate.Format {
-    monthName(MonthNames.ENGLISH_ABBREVIATED)
-    chars(" ")
-    day(Padding.NONE)
+    monthName(names = MonthNames.ENGLISH_ABBREVIATED)
+    chars(value = " ")
+    day(padding = Padding.NONE)
 }
 private val dateWithYear = LocalDate.Format {
-    monthName(MonthNames.ENGLISH_ABBREVIATED)
-    chars(" ")
-    day(Padding.NONE)
-    chars(", ")
+    monthName(names = MonthNames.ENGLISH_ABBREVIATED)
+    chars(value = " ")
+    day(padding = Padding.NONE)
+    chars(value = ", ")
     year()
 }
 private val dateWithWeekday = LocalDate.Format {
-    dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
-    chars(", ")
-    monthName(MonthNames.ENGLISH_ABBREVIATED)
-    chars(" ")
-    day(Padding.NONE)
+    dayOfWeek(names = DayOfWeekNames.ENGLISH_ABBREVIATED)
+    chars(value = ", ")
+    monthName(names = MonthNames.ENGLISH_ABBREVIATED)
+    chars(value = " ")
+    day(padding = Padding.NONE)
 }
 
 fun dateLabel(date: LocalDate, today: LocalDate, includeDate: Boolean = false): String {
     val relative = when (date) {
-        today.minus(1, DateTimeUnit.DAY) -> "Yesterday"
+        today.minus(value = 1, unit = DateTimeUnit.DAY) -> "Yesterday"
         today -> "Today"
-        today.plus(1, DateTimeUnit.DAY) -> "Tomorrow"
+        today.plus(value = 1, unit = DateTimeUnit.DAY) -> "Tomorrow"
         else -> null
     }
-    val formatted = (if (date.year != today.year) dateWithYear else shortDate).format(date)
-    return if (relative != null) if (includeDate) "$relative, $formatted" else relative
-    else if (includeDate || date.year != today.year) formatted
-    else dateWithWeekday.format(date)
+    val formatted = (if (date.year != today.year) dateWithYear else shortDate).format(value = date)
+    return if (relative != null) {
+        if (includeDate) "$relative, $formatted" else relative
+    } else if (includeDate || date.year != today.year) {
+        formatted
+    } else {
+        dateWithWeekday.format(value = date)
+    }
 }

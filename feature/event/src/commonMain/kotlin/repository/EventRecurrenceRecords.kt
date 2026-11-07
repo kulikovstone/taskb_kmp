@@ -3,91 +3,189 @@ package com.mkulikov.taskb.feature.event.repository
 import com.mkulikov.taskb.feature.event.api.database.EventOccurrenceEntity
 import com.mkulikov.taskb.feature.event.api.database.EventRecord
 import com.mkulikov.taskb.feature.event.api.database.EventScheduleEntity
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
 import com.mkulikov.taskb.feature.event.api.model.EventRecurrence
 import com.mkulikov.taskb.feature.event.api.model.overlapsDates
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.feature.task.api.recurrence.recurrenceDates
+import kotlin.time.Instant
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import kotlin.time.Instant
 
-internal fun EventScheduleEntity.rule() = EventRecurrence(
-    frequency = RecurrenceFrequency.valueOf(frequency), interval = interval,
-    weekdays = DayOfWeek.entries.filter { weekdays and (1 shl it.ordinal) != 0 }.toSet(),
-    dayOfMonth = dayOfMonth, month = month, endDate = endDate?.let(LocalDate::fromEpochDays), occurrenceCount = occurrenceCount,
-)
+internal fun EventScheduleEntity.rule(): TaskRecurrence {
+    return EventRecurrence(
+        frequency = RecurrenceFrequency.valueOf(value = frequency),
+        interval = interval,
+        weekdays = DayOfWeek.entries.filter { weekday -> weekdays and (1 shl weekday.ordinal) != 0 }.toSet(),
+        dayOfMonth = dayOfMonth,
+        month = month,
+        endDate = endDate?.let(block = LocalDate::fromEpochDays),
+        occurrenceCount = occurrenceCount,
+    )
+}
 
 internal fun LocalTime.minuteOfDay() = hour * 60 + minute
-internal fun Int.localTime() = LocalTime(this / 60, this % 60)
-internal fun normalizedEventDuration(startTimeMinutes: Int?, durationMinutes: Int?): Int? =
-    if (startTimeMinutes == null) null else durationMinutes ?: 60
 
-internal fun EventRecurrence.entity(eventId: Int, start: LocalDate, startTime: LocalTime? = null, durationMinutes: Int? = null, durationDays: Int = 1) = EventScheduleEntity(
-    eventId = eventId, startDate = start.toEpochDays(), frequency = frequency.name, interval = interval,
-    weekdays = weekdays.fold(0) { mask, day -> mask or (1 shl day.ordinal) }, dayOfMonth = dayOfMonth, month = month,
-    endDate = endDate?.toEpochDays(), occurrenceCount = occurrenceCount,
-    startTimeMinutes = startTime?.minuteOfDay(), durationMinutes = normalizedEventDuration(startTime?.minuteOfDay(), durationMinutes),
-    durationDays = durationDays,
-)
+internal fun Int.localTime() = LocalTime(hour = this / 60, minute = this % 60)
 
-internal val EventRecord.currentSchedule get() = schedules.filter { it.closedBefore == null }.maxByOrNull { it.id }
-private val EventRecord.displaySchedule get() = currentSchedule ?: schedules.maxByOrNull { it.id }?.takeIf { event.recurring }
+internal fun normalizedEventDuration(startTimeMinutes: Int?, durationMinutes: Int?): Int? {
+    return if (startTimeMinutes == null) null else durationMinutes ?: 60
+}
+
+internal fun EventRecurrence.entity(
+    eventId: Int,
+    start: LocalDate,
+    startTime: LocalTime? = null,
+    durationMinutes: Int? = null,
+    durationDays: Int = 1,
+): EventScheduleEntity {
+    return EventScheduleEntity(
+        eventId = eventId,
+        startDate = start.toEpochDays(),
+        frequency = frequency.name,
+        interval = interval,
+        weekdays = weekdays.fold(initial = 0) { mask, day -> mask or (1 shl day.ordinal) },
+        dayOfMonth = dayOfMonth,
+        month = month,
+        endDate = endDate?.toEpochDays(),
+        occurrenceCount = occurrenceCount,
+        startTimeMinutes = startTime?.minuteOfDay(),
+        durationMinutes = normalizedEventDuration(
+            startTimeMinutes = startTime?.minuteOfDay(),
+            durationMinutes = durationMinutes,
+        ),
+        durationDays = durationDays,
+    )
+}
+
+internal val EventRecord.currentSchedule
+    get() = schedules.filter { schedule -> schedule.closedBefore == null }.maxByOrNull { schedule -> schedule.id }
+private val EventRecord.displaySchedule
+    get() = currentSchedule ?: schedules.maxByOrNull(selector = EventScheduleEntity::id)?.takeIf { event.recurring }
 
 internal fun EventRecord.event(): Event {
     val time = if (event.recurring) displaySchedule?.startTimeMinutes else event.startTimeMinutes
     val duration = if (event.recurring) displaySchedule?.durationMinutes else event.durationMinutes
     return Event(
-        id = event.id, name = event.name, dueDate = event.dueDate?.let(LocalDate::fromEpochDays), groupId = event.groupId,
-        createdAt = Instant.fromEpochMilliseconds(event.createdAt),
+        id = event.id,
+        name = event.name,
+        dueDate = event.dueDate?.let(block = LocalDate::fromEpochDays),
+        groupId = event.groupId,
+        createdAt = Instant.fromEpochMilliseconds(epochMilliseconds = event.createdAt),
         recurrence = displaySchedule?.rule(),
         description = event.description,
-        startTime = time?.localTime(), durationMinutes = normalizedEventDuration(time, duration),
+        startTime = time?.localTime(),
+        durationMinutes = normalizedEventDuration(startTimeMinutes = time, durationMinutes = duration),
         durationDays = if (event.recurring) displaySchedule?.durationDays ?: 1 else event.durationDays,
     )
 }
 
-private fun EventRecord.exceptionIndex() = occurrences.associateBy { it.scheduleId to it.scheduledDate }
+private fun EventRecord.exceptionIndex(): Map<Pair<Long, Long>, EventOccurrenceEntity> {
+    return occurrences.associateBy { occurrence -> occurrence.scheduleId to occurrence.scheduledDate }
+}
 
 internal fun EventRecord.occurrence(
-    schedule: EventScheduleEntity, date: LocalDate,
+    schedule: EventScheduleEntity,
+    date: LocalDate,
     exceptions: Map<Pair<Long, Long>, EventOccurrenceEntity> = exceptionIndex(),
 ): Event? {
-    if (schedule.closedBefore?.let { date.toEpochDays() >= it } == true) return null
-    if (recurrenceDates(schedule.rule(), LocalDate.fromEpochDays(schedule.startDate), date, date).isEmpty()) return null
+    if (schedule.closedBefore?.let { closedBefore -> date.toEpochDays() >= closedBefore } == true) return null
+    if (
+        recurrenceDates(
+                rule = schedule.rule(),
+                start = LocalDate.fromEpochDays(epochDays = schedule.startDate),
+                from = date,
+                through = date,
+            )
+            .isEmpty()
+    )
+        return null
     val exception = exceptions[schedule.id to date.toEpochDays()]
     if (exception?.skipped == true) return null
     val time = if (exception?.overridesTiming == true) exception.startTimeMinutes else schedule.startTimeMinutes
     val duration = if (exception?.overridesTiming == true) exception.durationMinutes else schedule.durationMinutes
-    return event().copy(
-        dueDate = exception?.movedDate?.let(LocalDate::fromEpochDays) ?: date,
-        recurrence = schedule.rule(), occurrenceId = EventOccurrenceId(schedule.id, date),
-        startTime = time?.localTime(), durationMinutes = normalizedEventDuration(time, duration),
-        durationDays = if (exception?.overridesTiming == true) exception.durationDays else schedule.durationDays,
-    )
+    return event()
+        .copy(
+            dueDate = exception?.movedDate?.let(block = LocalDate::fromEpochDays) ?: date,
+            recurrence = schedule.rule(),
+            occurrenceId = EventOccurrenceId(scheduleId = schedule.id, scheduledDate = date),
+            startTime = time?.localTime(),
+            durationMinutes = normalizedEventDuration(startTimeMinutes = time, durationMinutes = duration),
+            durationDays = if (exception?.overridesTiming == true) exception.durationDays else schedule.durationDays,
+        )
 }
 
-internal fun EventRecord.calendar(from: LocalDate, through: LocalDate): List<Event> = buildList {
-    val exceptions = exceptionIndex()
-    val longestDuration = (schedules.mapNotNull { normalizedEventDuration(it.startTimeMinutes, it.durationMinutes) } +
-        occurrences.mapNotNull { normalizedEventDuration(it.startTimeMinutes, it.durationMinutes) } +
-        listOfNotNull(normalizedEventDuration(event.startTimeMinutes, event.durationMinutes))).maxOrNull() ?: 0
-    // Include starts before the window when their duration extends into the visible dates.
-    val longestDays = (schedules.map { it.durationDays } + occurrences.map { it.durationDays } + event.durationDays).maxOrNull() ?: 1
-    val lookback = maxOf((longestDuration.toLong() + 1439) / 1440, longestDays.toLong() - 1)
-    val searchFrom = LocalDate.fromEpochDays(from.toEpochDays() - lookback)
-    if (!event.recurring) event().takeIf { it.dueDate == null || it.overlapsDates(from, through) }?.let(::add)
-    for (schedule in schedules) {
-        val end = minOf(through.toEpochDays(), schedule.closedBefore?.minus(1) ?: through.toEpochDays())
-        if (end >= searchFrom.toEpochDays()) {
-            for (date in recurrenceDates(schedule.rule(), LocalDate.fromEpochDays(schedule.startDate), searchFrom, LocalDate.fromEpochDays(end))) {
-                occurrence(schedule, date, exceptions)?.takeIf { it.overlapsDates(from, through) }?.let(::add)
+internal fun EventRecord.calendar(from: LocalDate, through: LocalDate): List<Event> {
+    return buildList {
+        val exceptions = exceptionIndex()
+        val longestDuration = (schedules.mapNotNull { schedule ->
+                normalizedEventDuration(
+                    startTimeMinutes = schedule.startTimeMinutes,
+                    durationMinutes = schedule.durationMinutes,
+                )
+            } +
+                occurrences.mapNotNull { occurrence ->
+                    normalizedEventDuration(
+                        startTimeMinutes = occurrence.startTimeMinutes,
+                        durationMinutes = occurrence.durationMinutes,
+                    )
+                } +
+                listOfNotNull(
+                    element = normalizedEventDuration(
+                        startTimeMinutes = event.startTimeMinutes,
+                        durationMinutes = event.durationMinutes,
+                    )
+                ))
+            .maxOrNull() ?: 0
+        // Include starts before the window when their duration extends into the visible dates.
+        val longestDays =
+            (schedules.map { schedule ->
+                schedule.durationDays
+            } + occurrences.map(transform = EventOccurrenceEntity::durationDays) + event.durationDays).maxOrNull()
+                ?: 1
+        val lookback = maxOf(a = (longestDuration.toLong() + 1439) / 1440, b = longestDays.toLong() - 1)
+        val searchFrom = LocalDate.fromEpochDays(epochDays = from.toEpochDays() - lookback)
+        if (!event.recurring)
+            event()
+                .takeIf { event -> event.dueDate == null || event.overlapsDates(from = from, through = through) }
+                ?.let(block = ::add)
+        for (schedule in schedules) {
+            val end = minOf(
+                a = through.toEpochDays(),
+                b = schedule.closedBefore?.minus(other = 1) ?: through.toEpochDays(),
+            )
+            if (end >= searchFrom.toEpochDays()) {
+                for (date in
+                    recurrenceDates(
+                        rule = schedule.rule(),
+                        start = LocalDate.fromEpochDays(epochDays = schedule.startDate),
+                        from = searchFrom,
+                        through = LocalDate.fromEpochDays(epochDays = end),
+                    )) {
+                    occurrence(schedule = schedule, date = date, exceptions = exceptions)
+                        ?.takeIf { event -> event.overlapsDates(from = from, through = through) }
+                        ?.let(block = ::add)
+                }
+            }
+            for (moved in
+                occurrences.filter { occurrence ->
+                    occurrence.scheduleId == schedule.id &&
+                        occurrence.movedDate?.let { day ->
+                            day in searchFrom.toEpochDays()..through.toEpochDays()
+                        } == true
+                }) {
+                occurrence(
+                        schedule = schedule,
+                        date = LocalDate.fromEpochDays(epochDays = moved.scheduledDate),
+                        exceptions = exceptions,
+                    )
+                    ?.takeIf { event -> event.overlapsDates(from = from, through = through) }
+                    ?.let(block = ::add)
             }
         }
-        for (moved in occurrences.filter { it.scheduleId == schedule.id && it.movedDate?.let { day -> day in searchFrom.toEpochDays()..through.toEpochDays() } == true }) {
-            occurrence(schedule, LocalDate.fromEpochDays(moved.scheduledDate), exceptions)?.takeIf { it.overlapsDates(from, through) }?.let(::add)
-        }
     }
-}.distinctBy { it.key }
+        .distinctBy(selector = Event::key)
+}

@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.hello.navigation
 
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.mkulikov.taskb.core.navigation.IAppNavigator
@@ -19,13 +19,13 @@ internal class HelloNavEntry : INavEntry {
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
         scope.entry<HelloRoute> { route ->
             val koin = getKoin()
-            val store = rememberNavEntryResource(HelloStore::class) {
+            val store = rememberNavEntryResource(key = HelloStore::class) {
                 koin.get<HelloStore> { parametersOf(route) }
             }
             val state by store.state.collectAsState()
 
-            LaunchedEffect(store, state.isCompleted) {
-                if (state.isCompleted) navigator.replaceAll(HomeRoute)
+            LaunchedEffect(key1 = store, key2 = state.isCompleted) {
+                if (state.isCompleted) navigator.replaceAll(key = HomeRoute)
             }
 
             HelloScreen(state = state, onIntent = store::accept)

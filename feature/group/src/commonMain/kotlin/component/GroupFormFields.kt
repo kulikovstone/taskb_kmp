@@ -35,25 +35,43 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 @Composable
 internal fun GroupColorPicker(selected: GroupColor, onSelect: (GroupColor) -> Unit, enabled: Boolean) {
     val colors = TaskBTheme.colors
-    Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth().height(18.dp)) {
-            Text("Color", style = TaskBTheme.typography.label, color = colors.text)
-            Spacer(Modifier.weight(1f))
-            Text(selected.label, style = TaskBTheme.typography.small, color = colors.muted)
+    Column(
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().height(height = 18.dp)) {
+            Text(text = "Color", style = TaskBTheme.typography.label, color = colors.text)
+            Spacer(modifier = Modifier.weight(weight = 1f))
+            Text(text = selected.label, style = TaskBTheme.typography.small, color = colors.muted)
         }
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(space = 12.dp),
         ) {
             GroupColor.entries.forEach { color ->
                 Box(
-                    Modifier.size(24.dp).clip(CircleShape).background(color.color, CircleShape).border(1.dp, colors.border, CircleShape)
-                        .selectable(selected == color, enabled = enabled, role = Role.RadioButton, onClick = { onSelect(color) })
+                    modifier = Modifier
+                        .size(size = 24.dp)
+                        .clip(shape = CircleShape)
+                        .background(color = color.color, shape = CircleShape)
+                        .border(width = 1.dp, color = colors.border, shape = CircleShape)
+                        .selectable(
+                            selected = selected == color,
+                            enabled = enabled,
+                            role = Role.RadioButton,
+                            onClick = { onSelect(color) },
+                        )
                         .semantics { contentDescription = color.label },
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (selected == color) Icon(TaskBIcons.Done, contentDescription = null, tint = Palette.Black, modifier = Modifier.size(16.dp))
+                    if (selected == color)
+                        Icon(
+                            imageVector = TaskBIcons.Done,
+                            contentDescription = null,
+                            tint = Palette.Black,
+                            modifier = Modifier.size(size = 16.dp),
+                        )
                 }
             }
         }
@@ -63,16 +81,18 @@ internal fun GroupColorPicker(selected: GroupColor, onSelect: (GroupColor) -> Un
 @Composable
 internal fun GroupStatistics(tasks: GroupTaskSummary) {
     val colors = TaskBTheme.colors
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 8.dp)) {
         listOf("Planned" to tasks.planned, "Completed" to tasks.completed).forEach { (label, value) ->
             Column(
-                Modifier.weight(1f).height(78.dp)
-                    .background(colors.subtle, RoundedCornerShape(10.dp))
+                modifier = Modifier
+                    .weight(weight = 1f)
+                    .height(height = 78.dp)
+                    .background(color = colors.subtle, shape = RoundedCornerShape(size = 10.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(space = 4.dp),
             ) {
-                Text(label, style = TaskBTheme.typography.small, color = colors.secondary, maxLines = 1)
-                Text(value.toString(), style = TaskBTheme.typography.number, color = colors.text)
+                Text(text = label, style = TaskBTheme.typography.small, color = colors.secondary, maxLines = 1)
+                Text(text = value.toString(), style = TaskBTheme.typography.number, color = colors.text)
             }
         }
     }

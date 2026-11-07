@@ -15,9 +15,9 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.TimePickerLayoutType
 import androidx.compose.material3.Typography
+import androidx.compose.material3.isInputValid
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.material3.isInputValid
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,32 +34,57 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalTime
 
 @Composable
-internal fun EventTimeFields(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean, wide: Boolean) {
-    if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-        Column(Modifier.weight(1f)) { EventStartTimeField(state, onIntent, enabled) }
-        Column(Modifier.weight(1f)) { if (state.startTime != null) EventEndTimeField(state, onIntent, enabled) }
+internal fun EventTimeFields(
+    state: EventEditorState,
+    onIntent: (EventEditorIntent) -> Unit,
+    enabled: Boolean,
+    wide: Boolean,
+) {
+    if (wide) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
+            Column(modifier = Modifier.weight(weight = 1f)) {
+                EventStartTimeField(state = state, onIntent = onIntent, enabled = enabled)
+            }
+            Column(modifier = Modifier.weight(weight = 1f)) {
+                if (state.startTime != null)
+                    EventEndTimeField(state = state, onIntent = onIntent, enabled = enabled)
+            }
+        }
     } else {
-        EventStartTimeField(state, onIntent, enabled)
+        EventStartTimeField(state = state, onIntent = onIntent, enabled = enabled)
         if (state.startTime != null) {
-            Spacer(Modifier.height(24.dp))
-            EventEndTimeField(state, onIntent, enabled)
+            Spacer(modifier = Modifier.height(height = 24.dp))
+            EventEndTimeField(state = state, onIntent = onIntent, enabled = enabled)
         }
     }
 }
 
 @Composable
 private fun EventStartTimeField(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
-    Text("Time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
-    Spacer(Modifier.height(8.dp))
-    EventSelectionField(state.startTime?.let(::eventTimeLabel) ?: "Choose time", TaskBIcons.Schedule, TaskBTheme.colors.muted,
-        state.startTime == null, "Choose start time", enabled,
-        { onIntent(EventEditorIntent.ChooseStartTime) }, state.startTime?.let { { onIntent(EventEditorIntent.StartTimeChanged(null)) } }, "Clear start time")
+    Text(text = "Time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
+    Spacer(modifier = Modifier.height(height = 8.dp))
+    EventSelectionField(
+        label = state.startTime?.let(block = ::eventTimeLabel) ?: "Choose time",
+        icon = TaskBIcons.Schedule,
+        tint = TaskBTheme.colors.muted,
+        placeholder = state.startTime == null,
+        description = "Choose start time",
+        enabled = enabled,
+        onClick = { onIntent(EventEditorIntent.ChooseStartTime) },
+        onClear = state.startTime?.let { { onIntent(EventEditorIntent.StartTimeChanged(time = null)) } },
+        clearDescription = "Clear start time",
+    )
     if (state.startTime != null && state.endDate == state.dueDate) {
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(modifier = Modifier.height(height = 8.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 8.dp)) {
             for ((minutes, label) in listOf(15 to "15 min", 30 to "30 min", 60 to "1 hour")) {
-                TaskBSelectionButton(label, state.editedDurationMinutes == minutes,
-                    { onIntent(EventEditorIntent.DurationChanged(minutes)) }, Modifier.weight(1f), enabled)
+                TaskBSelectionButton(
+                    label = label,
+                    selected = state.editedDurationMinutes == minutes,
+                    onClick = { onIntent(EventEditorIntent.DurationChanged(minutes = minutes)) },
+                    modifier = Modifier.weight(weight = 1f),
+                    enabled = enabled,
+                )
             }
         }
     }
@@ -67,59 +92,136 @@ private fun EventStartTimeField(state: EventEditorState, onIntent: (EventEditorI
 
 @Composable
 private fun EventEndTimeField(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
-    Text("End time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
-    Spacer(Modifier.height(8.dp))
-    EventSelectionField(state.endTime?.let(::eventTimeLabel) ?: "Choose end time", TaskBIcons.Schedule, TaskBTheme.colors.muted,
-        state.endTime == null, "Choose end time", enabled, { onIntent(EventEditorIntent.ChooseEndTime) }, null, "")
+    Text(text = "End time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
+    Spacer(modifier = Modifier.height(height = 8.dp))
+    EventSelectionField(
+        label = state.endTime?.let(block = ::eventTimeLabel) ?: "Choose end time",
+        icon = TaskBIcons.Schedule,
+        tint = TaskBTheme.colors.muted,
+        placeholder = state.endTime == null,
+        description = "Choose end time",
+        enabled = enabled,
+        onClick = { onIntent(EventEditorIntent.ChooseEndTime) },
+        onClear = null,
+        clearDescription = "",
+    )
 }
 
 @Composable
-internal fun EventTimePickerDialog(title: String, initialTime: LocalTime?, availableHeight: Dp, onConfirm: (LocalTime) -> Unit, onDismiss: () -> Unit) {
+internal fun EventTimePickerDialog(
+    title: String,
+    initialTime: LocalTime?,
+    availableHeight: Dp,
+    onConfirm: (LocalTime) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val colors = TaskBTheme.colors
     val type = TaskBTheme.typography
-    val picker = rememberTimePickerState(initialHour = initialTime?.hour ?: 9, initialMinute = initialTime?.minute ?: 0, is24Hour = true)
-    var keyboard by remember { mutableStateOf(availableHeight < 600.dp) }
+    val picker = rememberTimePickerState(
+        initialHour = initialTime?.hour ?: 9,
+        initialMinute = initialTime?.minute ?: 0,
+        is24Hour = true,
+    )
+    var keyboard by remember { mutableStateOf(value = availableHeight < 600.dp) }
     val typography = Typography().let { base ->
         val family = type.body.fontFamily
-        base.copy(displayLarge = base.displayLarge.copy(fontFamily = family), displayMedium = base.displayMedium.copy(fontFamily = family),
-            displaySmall = base.displaySmall.copy(fontFamily = family), headlineLarge = base.headlineLarge.copy(fontFamily = family),
-            headlineMedium = base.headlineMedium.copy(fontFamily = family), headlineSmall = base.headlineSmall.copy(fontFamily = family),
-            titleLarge = base.titleLarge.copy(fontFamily = family), titleMedium = base.titleMedium.copy(fontFamily = family), titleSmall = base.titleSmall.copy(fontFamily = family),
-            bodyLarge = base.bodyLarge.copy(fontFamily = family), bodyMedium = base.bodyMedium.copy(fontFamily = family), bodySmall = base.bodySmall.copy(fontFamily = family),
-            labelLarge = base.labelLarge.copy(fontFamily = family), labelMedium = base.labelMedium.copy(fontFamily = family), labelSmall = base.labelSmall.copy(fontFamily = family))
+        base.copy(
+            displayLarge = base.displayLarge.copy(fontFamily = family),
+            displayMedium = base.displayMedium.copy(fontFamily = family),
+            displaySmall = base.displaySmall.copy(fontFamily = family),
+            headlineLarge = base.headlineLarge.copy(fontFamily = family),
+            headlineMedium = base.headlineMedium.copy(fontFamily = family),
+            headlineSmall = base.headlineSmall.copy(fontFamily = family),
+            titleLarge = base.titleLarge.copy(fontFamily = family),
+            titleMedium = base.titleMedium.copy(fontFamily = family),
+            titleSmall = base.titleSmall.copy(fontFamily = family),
+            bodyLarge = base.bodyLarge.copy(fontFamily = family),
+            bodyMedium = base.bodyMedium.copy(fontFamily = family),
+            bodySmall = base.bodySmall.copy(fontFamily = family),
+            labelLarge = base.labelLarge.copy(fontFamily = family),
+            labelMedium = base.labelMedium.copy(fontFamily = family),
+            labelSmall = base.labelSmall.copy(fontFamily = family),
+        )
     }
-    TaskBDialog(onDismiss) {
-        MaterialTheme(colorScheme = lightColorScheme(primary = colors.accent, onPrimary = colors.onAction, surface = colors.surface,
-            onSurface = colors.text, onSurfaceVariant = colors.muted, surfaceVariant = colors.subtle, secondaryContainer = colors.selected,
-            onSecondaryContainer = colors.text, outline = colors.border, error = colors.danger), typography = typography) {
-            Surface(shape = RoundedCornerShape(16.dp), color = colors.surface) {
-                Column(Modifier.width(360.dp).heightIn(max = (availableHeight - 48.dp).coerceAtLeast(240.dp))
-                    .verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(title, style = type.section, color = colors.text)
-                    val pickerColors = TimePickerDefaults.colors(clockDialColor = colors.subtle, clockDialSelectedContentColor = colors.onAction,
-                        clockDialUnselectedContentColor = colors.text, selectorColor = colors.actionFill, containerColor = colors.surface,
-                        periodSelectorBorderColor = colors.border, periodSelectorSelectedContainerColor = colors.selected,
-                        periodSelectorUnselectedContainerColor = colors.surface, periodSelectorSelectedContentColor = colors.text,
-                        periodSelectorUnselectedContentColor = colors.muted, timeSelectorSelectedContainerColor = colors.selected,
-                        timeSelectorUnselectedContainerColor = colors.subtle, timeSelectorSelectedContentColor = colors.text,
-                        timeSelectorUnselectedContentColor = colors.text)
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        if (keyboard) TimeInput(picker, colors = pickerColors)
-                        else TimePicker(picker,
-                            // Isolate the dial's Clear/Xor blending from the dialog's render target.
-                            modifier = Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-                            colors = pickerColors, layoutType = TimePickerLayoutType.Vertical)
-                    }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton({ keyboard = !keyboard }) {
-                            Icon(if (keyboard) TaskBIcons.Schedule else TaskBIcons.Keyboard,
-                                if (keyboard) "Switch to clock input" else "Switch to keyboard input", tint = colors.muted)
+    TaskBDialog(onDismissRequest = onDismiss) {
+        MaterialTheme(
+            colorScheme = lightColorScheme(
+                primary = colors.accent,
+                onPrimary = colors.onAction,
+                surface = colors.surface,
+                onSurface = colors.text,
+                onSurfaceVariant = colors.muted,
+                surfaceVariant = colors.subtle,
+                secondaryContainer = colors.selected,
+                onSecondaryContainer = colors.text,
+                outline = colors.border,
+                error = colors.danger,
+            ),
+            typography = typography,
+        ) {
+            Surface(shape = RoundedCornerShape(size = 16.dp), color = colors.surface) {
+                Column(
+                    modifier = Modifier
+                        .width(width = 360.dp)
+                        .heightIn(max = (availableHeight - 48.dp).coerceAtLeast(minimumValue = 240.dp))
+                        .verticalScroll(state = rememberScrollState())
+                        .padding(all = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(space = 16.dp),
+                ) {
+                    Text(text = title, style = type.section, color = colors.text)
+                    val pickerColors = TimePickerDefaults.colors(
+                        clockDialColor = colors.subtle,
+                        clockDialSelectedContentColor = colors.onAction,
+                        clockDialUnselectedContentColor = colors.text,
+                        selectorColor = colors.actionFill,
+                        containerColor = colors.surface,
+                        periodSelectorBorderColor = colors.border,
+                        periodSelectorSelectedContainerColor = colors.selected,
+                        periodSelectorUnselectedContainerColor = colors.surface,
+                        periodSelectorSelectedContentColor = colors.text,
+                        periodSelectorUnselectedContentColor = colors.muted,
+                        timeSelectorSelectedContainerColor = colors.selected,
+                        timeSelectorUnselectedContainerColor = colors.subtle,
+                        timeSelectorSelectedContentColor = colors.text,
+                        timeSelectorUnselectedContentColor = colors.text,
+                    )
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        if (keyboard) {
+                            TimeInput(state = picker, colors = pickerColors)
+                        } else {
+                            TimePicker(
+                                state = picker,
+                                // Isolate the dial's Clear/Xor blending from the dialog's render target.
+                                modifier = Modifier
+                                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+                                colors = pickerColors,
+                                layoutType = TimePickerLayoutType.Vertical,
+                            )
                         }
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onDismiss) { Text("Cancel", color = colors.accent, style = type.button) }
-                        TextButton({ onConfirm(LocalTime(picker.hour, picker.minute)) }, enabled = !keyboard || picker.isInputValid,
-                            modifier = Modifier.semantics { contentDescription = "Apply time" }) {
-                            Text("OK", color = if (!keyboard || picker.isInputValid) colors.accent else colors.muted, style = type.button)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { keyboard = !keyboard }) {
+                            Icon(
+                                imageVector = if (keyboard) TaskBIcons.Schedule else TaskBIcons.Keyboard,
+                                contentDescription =
+                                    if (keyboard) "Switch to clock input" else "Switch to keyboard input",
+                                tint = colors.muted,
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(weight = 1f))
+                        TextButton(onClick = onDismiss) {
+                            Text(text = "Cancel", color = colors.accent, style = type.button)
+                        }
+                        TextButton(
+                            onClick = { onConfirm(LocalTime(hour = picker.hour, minute = picker.minute)) },
+                            enabled = !keyboard || picker.isInputValid,
+                            modifier = Modifier.semantics { contentDescription = "Apply time" },
+                        ) {
+                            Text(
+                                text = "OK",
+                                color = if (!keyboard || picker.isInputValid) colors.accent else colors.muted,
+                                style = type.button,
+                            )
                         }
                     }
                 }
@@ -128,4 +230,7 @@ internal fun EventTimePickerDialog(title: String, initialTime: LocalTime?, avail
     }
 }
 
-internal fun eventTimeLabel(time: LocalTime): String = "${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}"
+internal fun eventTimeLabel(time: LocalTime): String {
+    return ("${time.hour.toString().padStart(length = 2, padChar = '0')}:" +
+        time.minute.toString().padStart(length = 2, padChar = '0'))
+}

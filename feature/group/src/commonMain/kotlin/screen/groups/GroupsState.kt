@@ -12,27 +12,45 @@ internal data class GroupsState(
     val isLoading: Boolean = true,
     val loadError: String? = null,
 ) {
-    val withTasksCount: Int get() = groups.count { it.tasks.planned > 0 }
-    val emptyCount: Int get() = groups.size - withTasksCount
-    val visibleGroups: List<Group> get() {
-        val matching = groups.filter {
-            it.name.contains(query.text.toString().trim(), ignoreCase = true) && when (filter) {
-                GroupFilter.All -> true
-                GroupFilter.WithTasks -> it.tasks.planned > 0
-                GroupFilter.Empty -> it.tasks.planned == 0
+    val withTasksCount: Int
+        get() = groups.count { group -> group.tasks.planned > 0 }
+
+    val emptyCount: Int
+        get() = groups.size - withTasksCount
+
+    val visibleGroups: List<Group>
+        get() {
+            val matching = groups.filter { group ->
+                group.name.contains(other = query.text.toString().trim(), ignoreCase = true) &&
+                    when (filter) {
+                        GroupFilter.All -> true
+                        GroupFilter.WithTasks -> group.tasks.planned > 0
+                        GroupFilter.Empty -> group.tasks.planned == 0
+                    }
             }
+            val byName = compareBy<Group> { group -> group.name.lowercase() }.thenBy(selector = Group::id)
+            val comparator = when (sort) {
+                GroupSort.Name -> byName
+                GroupSort.Tasks -> compareByDescending<Group> { group -> group.tasks.planned }.then(comparator = byName)
+            }
+            return matching.sortedWith(comparator = if (reverseSort) comparator.reversed() else comparator)
         }
-        val byName = compareBy<Group> { it.name.lowercase() }.thenBy { it.id }
-        val comparator = when (sort) {
-            GroupSort.Name -> byName
-            GroupSort.Tasks -> compareByDescending<Group> { it.tasks.planned }.then(byName)
+
+    val summary: String
+        get() = if (query.text.isBlank() && filter == GroupFilter.All) {
+            "${groups.size} ${if (groups.size == 1) "group" else "groups"}"
+        } else {
+            "${visibleGroups.size} of ${groups.size} groups"
         }
-        return matching.sortedWith(if (reverseSort) comparator.reversed() else comparator)
-    }
-    val summary: String get() = if (query.text.isBlank() && filter == GroupFilter.All) {
-        "${groups.size} ${if (groups.size == 1) "group" else "groups"}"
-    } else "${visibleGroups.size} of ${groups.size} groups"
 }
 
-internal enum class GroupFilter { All, WithTasks, Empty }
-internal enum class GroupSort { Name, Tasks }
+internal enum class GroupFilter {
+    All,
+    WithTasks,
+    Empty,
+}
+
+internal enum class GroupSort {
+    Name,
+    Tasks,
+}

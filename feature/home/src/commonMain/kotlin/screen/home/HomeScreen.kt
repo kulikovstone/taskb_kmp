@@ -27,8 +27,8 @@ internal fun HomeScreen(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.align(Alignment.Center).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(30.dp),
+            modifier = Modifier.align(alignment = Alignment.Center).padding(all = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(space = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TaskBButton(label = "Groups", onClick = onGroupsClick)
@@ -38,7 +38,7 @@ internal fun HomeScreen(
         }
         Text(
             text = "Version $appVersion",
-            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+            modifier = Modifier.align(alignment = Alignment.BottomCenter).padding(all = 16.dp),
             style = MaterialTheme.typography.caption,
             color = TaskBTheme.colors.text.copy(alpha = ContentAlpha.medium),
         )

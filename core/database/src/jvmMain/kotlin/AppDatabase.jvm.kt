@@ -12,5 +12,5 @@ fun AppDatabase.Companion.open(file: Path = DatabasePaths.databaseFile()): AppDa
         name = absoluteFile.toString(),
         factory = AppDatabaseConstructor::initialize,
     )
-    return open(builder, BundledSQLiteDriver())
+    return open(builder = builder, driver = BundledSQLiteDriver())
 }

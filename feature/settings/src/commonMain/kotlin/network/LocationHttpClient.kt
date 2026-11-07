@@ -8,7 +8,7 @@ internal expect fun createLocationHttpClient(): HttpClient?
 
 internal fun HttpClientConfig<*>.configureLocationClient() {
     expectSuccess = true
-    install(HttpTimeout) {
+    install(plugin = HttpTimeout) {
         requestTimeoutMillis = 15_000
         connectTimeoutMillis = 10_000
         socketTimeoutMillis = 15_000

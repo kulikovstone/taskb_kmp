@@ -8,12 +8,11 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 import org.koin.compose.KoinIsolatedContext
 import org.koin.compose.koinInject
 
-@Composable
-expect fun App()
+@Composable expect fun App()
 
 @Composable
 internal fun App(databaseFactory: () -> AppDatabase) {
-    val graph = remember(databaseFactory) { AppDependencyGraph(databaseFactory) }
+    val graph = remember(key1 = databaseFactory) { AppDependencyGraph(databaseFactory = databaseFactory) }
     KoinIsolatedContext(context = graph.application) {
         TaskBTheme {
             TaskBApp(settings = koinInject())

@@ -17,71 +17,174 @@ import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.test.*
 import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 @OptIn(ExperimentalTestApi::class)
 class CalendarHolidaysUiTest {
     @Test
-    fun `holiday rows stay read-only and single-line with green thicker markers and correct ordering`() = runSkikoComposeUiTest(size = Size(1440f, 1000f)) {
-        val date = LocalDate(2026, 11, 4)
-        val holiday = PublicHoliday("ru-unity", date,
-            "Day of National Unity with a very long official holiday name that must fit on one calendar line", "RU")
-        val now = Instant.parse("2026-11-06T10:00:00Z")
-        val state = mutableStateOf(CalendarState(LocalDate(2026, 11, 6), selectedDate = date, isLoading = false, now = now,
-            groups = listOf(Group(1, "Work", GroupColor.Blue)),
-            tasks = listOf(Task(1, "Overdue work", date, createdAt = now)),
-            events = listOf(Event(1, "All-day review", date, groupId = 1, createdAt = now),
-                Event(2, "Meeting", date, groupId = 1, createdAt = now, startTime = LocalTime(12, 0))),
-            holidayCalendar = HolidayCalendar(holidays = listOf(holiday))))
-        val intents = mutableListOf<CalendarIntent>()
-        val opened = mutableListOf<Int>()
-        setContent { TaskBTheme(false) { CalendarScreen(state.value, intents::add, {}, opened::add, {}, onOpenEvent = { opened += it.id }) } }
-        val cell = hasAnyAncestor(hasTestTag("calendar-day-$date"))
-        val sidebar = hasAnyAncestor(hasTestTag("calendar-sidebar-list"))
-        val holidayTag = "calendar-holiday:${holiday.id}"
-        val monthHoliday = onNode(hasTestTag(holidayTag) and cell, useUnmergedTree = true).assertIsDisplayed().assertHasNoClickAction()
-        val sidebarHoliday = onNode(hasTestTag(holidayTag) and sidebar, useUnmergedTree = true).assertIsDisplayed().assertHasNoClickAction()
-        val marker = onNode(hasTestTag("calendar-holiday-marker-${holiday.id}") and cell, useUnmergedTree = true)
-        assertEquals(5f, marker.fetchSemanticsNode().boundsInRoot.width, 0.5f)
-        val markerPixels = marker.captureToImage().toPixelMap()
-        assertEquals(Palette.Green.s800, markerPixels[markerPixels.width / 2, markerPixels.height / 2])
-        val layouts = mutableListOf<TextLayoutResult>()
-        onNode(hasTestTag("calendar-holiday-title-${holiday.id}") and cell, useUnmergedTree = true)
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-        assertEquals(1, layouts.single().lineCount)
-        assertTrue(layouts.single().hasVisualOverflow)
-        assertEquals(Palette.Grey.s400, layouts.single().layoutInput.style.color)
-        val monthTask = onNode(hasTestTag("calendar-task-1") and cell, useUnmergedTree = true)
-        val monthEvent = onNode(hasTestTag("calendar-event:1") and cell, useUnmergedTree = true)
-        assertTrue(monthTask.fetchSemanticsNode().boundsInRoot.top < monthHoliday.fetchSemanticsNode().boundsInRoot.top)
-        assertTrue(monthHoliday.fetchSemanticsNode().boundsInRoot.top < monthEvent.fetchSemanticsNode().boundsInRoot.top)
-        val sidebarEvent = onNode(hasTestTag("calendar-event:1") and sidebar, useUnmergedTree = true)
-        assertTrue(sidebarHoliday.fetchSemanticsNode().boundsInRoot.top < sidebarEvent.fetchSemanticsNode().boundsInRoot.top)
-        onNodeWithContentDescription("Complete ${holiday.name}", useUnmergedTree = true).assertDoesNotExist()
+    fun `holiday rows stay read-only and single-line with green thicker markers and correct ordering`() {
+        runSkikoComposeUiTest(size = Size(width = 1440f, height = 1000f)) {
+            val date = LocalDate(year = 2026, month = 11, day = 4)
+            val holiday = PublicHoliday(
+                id = "ru-unity",
+                date = date,
+                name =
+                    ("Day of National Unity with a very long official holiday name that must fit " +
+                        "on one calendar line"),
+                countryCode = "RU",
+            )
+            val now = Instant.parse(input = "2026-11-06T10:00:00Z")
+            val state = mutableStateOf(
+                value = CalendarState(
+                    today = LocalDate(year = 2026, month = 11, day = 6),
+                    selectedDate = date,
+                    isLoading = false,
+                    now = now,
+                    groups = listOf(element = Group(id = 1, name = "Work", color = GroupColor.Blue)),
+                    tasks = listOf(
+                        element = Task(id = 1, name = "Overdue work", dueDate = date, createdAt = now)
+                    ),
+                    events = listOf(
+                        Event(
+                            id = 1,
+                            name = "All-day review",
+                            dueDate = date,
+                            groupId = 1,
+                            createdAt = now,
+                        ),
+                        Event(
+                            id = 2,
+                            name = "Meeting",
+                            dueDate = date,
+                            groupId = 1,
+                            createdAt = now,
+                            startTime = LocalTime(hour = 12, minute = 0),
+                        ),
+                    ),
+                    holidayCalendar = HolidayCalendar(holidays = listOf(element = holiday)),
+                )
+            )
+            val intents = mutableListOf<CalendarIntent>()
+            val opened = mutableListOf<Int>()
+            setContent {
+                TaskBTheme(darkTheme = false) {
+                    CalendarScreen(
+                        state = state.value,
+                        onIntent = intents::add,
+                        onBack = {},
+                        onOpenTask = opened::add,
+                        onCreateTask = {},
+                        onOpenEvent = { event -> opened += event.id },
+                    )
+                }
+            }
+            val cell = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-$date"))
+            val sidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list"))
+            val holidayTag = "calendar-holiday:${holiday.id}"
+            val monthHoliday = onNode(matcher = hasTestTag(testTag = holidayTag) and cell, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .assertHasNoClickAction()
+            val sidebarHoliday = onNode(matcher = hasTestTag(testTag = holidayTag) and sidebar, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .assertHasNoClickAction()
+            val marker = onNode(
+                matcher = hasTestTag(testTag = "calendar-holiday-marker-${holiday.id}") and cell,
+                useUnmergedTree = true,
+            )
+            assertEquals(
+                expected = 5f,
+                actual = marker.fetchSemanticsNode().boundsInRoot.width,
+                absoluteTolerance = 0.5f,
+            )
+            val markerPixels = marker.captureToImage().toPixelMap()
+            assertEquals(
+                expected = Palette.Green.s800,
+                actual = markerPixels[markerPixels.width / 2, markerPixels.height / 2],
+            )
+            val layouts = mutableListOf<TextLayoutResult>()
+            onNode(
+                    matcher = hasTestTag(testTag = "calendar-holiday-title-${holiday.id}") and cell,
+                    useUnmergedTree = true,
+                )
+                .performSemanticsAction(key = SemanticsActions.GetTextLayoutResult) { getLayoutResult ->
+                    getLayoutResult(layouts)
+                }
+            assertEquals(expected = 1, actual = layouts.single().lineCount)
+            assertTrue(actual = layouts.single().hasVisualOverflow)
+            assertEquals(expected = Palette.Grey.s400, actual = layouts.single().layoutInput.style.color)
+            val monthTask = onNode(matcher = hasTestTag(testTag = "calendar-task-1") and cell, useUnmergedTree = true)
+            val monthEvent = onNode(matcher = hasTestTag(testTag = "calendar-event:1") and cell, useUnmergedTree = true)
+            assertTrue(
+                actual =
+                    monthTask.fetchSemanticsNode().boundsInRoot.top <
+                        monthHoliday.fetchSemanticsNode().boundsInRoot.top
+            )
+            assertTrue(
+                actual =
+                    monthHoliday.fetchSemanticsNode().boundsInRoot.top <
+                        monthEvent.fetchSemanticsNode().boundsInRoot.top
+            )
+            val sidebarEvent = onNode(
+                matcher = hasTestTag(testTag = "calendar-event:1") and sidebar,
+                useUnmergedTree = true,
+            )
+            assertTrue(
+                actual =
+                    sidebarHoliday.fetchSemanticsNode().boundsInRoot.top <
+                        sidebarEvent.fetchSemanticsNode().boundsInRoot.top
+            )
+            onNodeWithContentDescription(label = "Complete ${holiday.name}", useUnmergedTree = true)
+                .assertDoesNotExist()
 
-        monthHoliday.performMouseInput { click(center) }
-        sidebarHoliday.performMouseInput { click(center) }
-        runOnIdle {
-            assertTrue(opened.isEmpty())
-            assertTrue(intents.all { it is CalendarIntent.SelectDay })
+            monthHoliday.performMouseInput { click(position = center) }
+            sidebarHoliday.performMouseInput { click(position = center) }
+            runOnIdle {
+                assertTrue(actual = opened.isEmpty())
+                assertTrue(actual = intents.all { intent -> intent is CalendarIntent.SelectDay })
+            }
+            val origin = monthHoliday.fetchSemanticsNode().boundsInRoot.center
+            val target = onNodeWithTag(testTag = "calendar-day-2026-11-05", useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .center
+            onRoot().performMouseInput {
+                moveTo(position = origin)
+                press()
+                moveTo(position = origin + Offset(x = 30f, y = 0f))
+                moveTo(position = target)
+                release()
+            }
+            onNodeWithTag(testTag = "calendar-drag-preview", useUnmergedTree = true).assertDoesNotExist()
+            runOnIdle {
+                assertTrue(
+                    actual = intents.none { intent ->
+                        intent is CalendarIntent.MoveTask ||
+                            intent is CalendarIntent.MoveEvent ||
+                            intent is CalendarIntent.ToggleCompleted
+                    }
+                )
+            }
+            val output = Path.of("build/reports/screenshots/calendar-holidays.png")
+            Files.createDirectories(output.parent)
+            ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
+
+            runOnIdle { state.value = state.value.copy(today = date) }
+            assertTrue(
+                actual =
+                    monthHoliday.fetchSemanticsNode().boundsInRoot.top <
+                        monthEvent.fetchSemanticsNode().boundsInRoot.top
+            )
+            assertTrue(
+                actual =
+                    monthEvent.fetchSemanticsNode().boundsInRoot.top <
+                        monthTask.fetchSemanticsNode().boundsInRoot.top
+            )
         }
-        val origin = monthHoliday.fetchSemanticsNode().boundsInRoot.center
-        val target = onNodeWithTag("calendar-day-2026-11-05", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
-        onRoot().performMouseInput { moveTo(origin); press(); moveTo(origin + Offset(30f, 0f)); moveTo(target); release() }
-        onNodeWithTag("calendar-drag-preview", useUnmergedTree = true).assertDoesNotExist()
-        runOnIdle { assertTrue(intents.none { it is CalendarIntent.MoveTask || it is CalendarIntent.MoveEvent || it is CalendarIntent.ToggleCompleted }) }
-        val output = Path.of("build/reports/screenshots/calendar-holidays.png")
-        Files.createDirectories(output.parent)
-        ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
-
-        runOnIdle { state.value = state.value.copy(today = date) }
-        assertTrue(monthHoliday.fetchSemanticsNode().boundsInRoot.top < monthEvent.fetchSemanticsNode().boundsInRoot.top)
-        assertTrue(monthEvent.fetchSemanticsNode().boundsInRoot.top < monthTask.fetchSemanticsNode().boundsInRoot.top)
     }
 }

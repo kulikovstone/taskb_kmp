@@ -8,8 +8,7 @@ import org.gradle.work.DisableCachingByDefault
 
 @DisableCachingByDefault(because = "Prints the current version without producing an output file")
 abstract class PrintVersion : DefaultTask() {
-    @get:Input
-    abstract val versionName: Property<String>
+    @get:Input abstract val versionName: Property<String>
 
     @TaskAction
     fun print() {

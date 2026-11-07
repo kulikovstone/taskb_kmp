@@ -40,33 +40,45 @@ fun TaskBEditorButton(
     val foreground = if (destructive) colors.danger else if (enabled) colors.onAction else colors.muted
     Button(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(height = 44.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(10.dp),
-        border = if (!enabled && !destructive) BorderStroke(1.dp, colors.border) else null,
+        shape = RoundedCornerShape(size = 10.dp),
+        border = if (!enabled && !destructive) BorderStroke(width = 1.dp, color = colors.border) else null,
         colors = ButtonDefaults.buttonColors(
             backgroundColor = if (destructive) Palette.Transparent else colors.actionFill,
-            contentColor = foreground, disabledBackgroundColor = if (destructive) Palette.Transparent else colors.surface,
+            contentColor = foreground,
+            disabledBackgroundColor = if (destructive) Palette.Transparent else colors.surface,
             disabledContentColor = colors.muted.copy(alpha = 0.5f),
         ),
         elevation = null,
         contentPadding = PaddingValues(horizontal = 16.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = foreground.copy(alpha = if (enabled) 1f else 0.5f), modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(label, style = TaskBTheme.typography.button, maxLines = 1)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = foreground.copy(alpha = if (enabled) 1f else 0.5f),
+            modifier = Modifier.size(size = 18.dp),
+        )
+        Spacer(modifier = Modifier.width(width = 8.dp))
+        Text(text = label, style = TaskBTheme.typography.button, maxLines = 1)
     }
 }
 
 @Composable
 fun TaskBLoading(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp)) }
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(modifier = Modifier.size(size = 28.dp))
+    }
 }
 
 @Composable
 fun TaskBLoadError(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(message, color = TaskBTheme.colors.muted, style = TaskBTheme.typography.body)
-        TextButton(onClick = onRetry) { Text("Retry") }
+    Column(
+        modifier = modifier.fillMaxWidth().padding(all = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(space = 12.dp),
+    ) {
+        Text(text = message, color = TaskBTheme.colors.muted, style = TaskBTheme.typography.body)
+        TextButton(onClick = onRetry) { Text(text = "Retry") }
     }
 }

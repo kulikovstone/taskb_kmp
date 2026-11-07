@@ -1,78 +1,92 @@
 package com.mkulikov.taskb
 
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.core.database.AppDatabase
+import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
-import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import java.nio.file.Files
+import java.nio.file.Path
+import javax.imageio.ImageIO
+import kotlin.test.*
+import kotlin.time.Clock
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
 import kotlinx.datetime.format.MonthNames
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import org.koin.compose.KoinIsolatedContext
-import kotlin.test.*
-import kotlin.time.Clock
-import java.nio.file.Files
-import java.nio.file.Path
-import javax.imageio.ImageIO
 
 @OptIn(ExperimentalTestApi::class)
 class CalendarNavigationUiTest {
-    @get:Rule
-    val directory = TemporaryFolder()
+    @get:Rule val directory = TemporaryFolder()
 
     @Test
     fun `shared date picker cancels without navigating and choosing a distant date loads its tasks`() {
-        withAppKoin(directory.root.toPath().resolve("calendar-date-picker.db")) { app ->
-            val target = LocalDate(2036, 6, 12)
+        withAppKoin(file = directory.root.toPath().resolve("calendar-date-picker.db")) { app ->
+            val target = LocalDate(year = 2036, month = 6, day = 12)
             val db = app.koin.get<AppDatabase>()
             runBlocking {
                 app.koin.get<IAppSettings>().completeWelcome()
-                db.taskDao().insert(TaskEntity(name = "Anniversary", description = "Chosen date details", dueDate = target.toEpochDays()))
+                db.taskDao()
+                    .insert(
+                        task = TaskEntity(
+                            name = "Anniversary",
+                            description = "Chosen date details",
+                            dueDate = target.toEpochDays(),
+                        )
+                    )
             }
-            runSkikoComposeUiTest(size = Size(1440f, 900f)) {
-                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
-                waitText("Calendar")
-                onNodeWithText("Calendar").performClick()
-                waitText("Task")
-                onNodeWithTag("calendar-sidebar-toggle").performClick()
-                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
-                onNodeWithTag("calendar-choose-date").assertIsEnabled().performClick()
-                onNodeWithTag("date-picker-panel").assertIsDisplayed()
-                onNode(isDialog()).screenshot("calendar-date-picker")
-                onNodeWithText("Cancel").performClick()
-                onNodeWithTag("date-picker-panel").assertDoesNotExist()
-                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
+            runSkikoComposeUiTest(size = Size(width = 1440f, height = 900f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
+                }
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                waitText(text = "Task")
+                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
+                onNodeWithTag(testTag = "calendar-choose-date").assertIsEnabled().performClick()
+                onNodeWithTag(testTag = "date-picker-panel").assertIsDisplayed()
+                onNode(matcher = isDialog()).screenshot(name = "calendar-date-picker")
+                onNodeWithText(text = "Cancel").performClick()
+                onNodeWithTag(testTag = "date-picker-panel").assertDoesNotExist()
+                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
 
-                onNodeWithTag("calendar-choose-date").performClick()
-                onNodeWithContentDescription("Choose year").performClick()
-                onNodeWithContentDescription("Year").performTextReplacement("2036")
-                onNodeWithContentDescription("Year").performImeAction()
-                onNodeWithContentDescription("Choose month").performClick()
-                onNodeWithContentDescription("Choose June 2036").performClick()
-                onNodeWithContentDescription("Choose June 12, 2036").performClick()
-                waitText("Chosen date details")
-                onNodeWithTag("date-picker-panel").assertDoesNotExist()
-                onNodeWithText("June 2036").assertIsDisplayed()
-                onNodeWithTag("calendar-sidebar-title").assertTextEquals("Jun 12, 2036")
-                onNodeWithTag("calendar-day-$target", useUnmergedTree = true).assertIsSelected()
-                onNode(hasText("Anniversary") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true)
+                onNodeWithTag(testTag = "calendar-choose-date").performClick()
+                onNodeWithContentDescription(label = "Choose year").performClick()
+                onNodeWithContentDescription(label = "Year").performTextReplacement(text = "2036")
+                onNodeWithContentDescription(label = "Year").performImeAction()
+                onNodeWithContentDescription(label = "Choose month").performClick()
+                onNodeWithContentDescription(label = "Choose June 2036").performClick()
+                onNodeWithContentDescription(label = "Choose June 12, 2036").performClick()
+                waitText(text = "Chosen date details")
+                onNodeWithTag(testTag = "date-picker-panel").assertDoesNotExist()
+                onNodeWithText(text = "June 2036").assertIsDisplayed()
+                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("Jun 12, 2036")
+                onNodeWithTag(testTag = "calendar-day-$target", useUnmergedTree = true).assertIsSelected()
+                onNode(
+                        matcher = hasText(text = "Anniversary") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        useUnmergedTree = true,
+                    )
                     .assertIsDisplayed()
-                onRoot().screenshot("calendar-chosen-date")
+                onRoot().screenshot(name = "calendar-chosen-date")
 
-                onNodeWithTag("calendar-choose-date").performClick()
-                onNodeWithContentDescription("Choose June 12, 2036").assertIsSelected()
-                onNodeWithText("Cancel").performClick()
-                onNodeWithText("June 2036").assertIsDisplayed()
+                onNodeWithTag(testTag = "calendar-choose-date").performClick()
+                onNodeWithContentDescription(label = "Choose June 12, 2036").assertIsSelected()
+                onNodeWithText(text = "Cancel").performClick()
+                onNodeWithText(text = "June 2036").assertIsDisplayed()
             }
         }
     }
@@ -80,196 +94,305 @@ class CalendarNavigationUiTest {
     @Test
     fun `calendar remembers explicitly chosen groups for the app session including cancelled drafts and clearing`() {
         val file = directory.root.toPath().resolve("calendar-create-group.db")
-        withAppKoin(file) { app ->
+        withAppKoin(file = file) { app ->
             val db = app.koin.get<AppDatabase>()
             val groupIds = runBlocking {
                 app.koin.get<IAppSettings>().completeWelcome()
                 listOf("Work", "Personal").associateWith { name ->
-                    db.groupDao().insert(GroupEntity(name = name, color = Palette.Blue.s400.toArgb())).toInt()
+                    db.groupDao()
+                        .insert(group = GroupEntity(name = name, color = Palette.Blue.s400.toArgb()))
+                        .toInt()
                 }
             }
-            runSkikoComposeUiTest(size = Size(1440f, 1000f)) {
-                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
-                waitText("Calendar")
-                onNodeWithText("Calendar").performClick()
-                waitText("Task")
-                openNewTask("No group")
-                chooseTaskGroup("Work")
-                saveNewTask("First in Work")
-                assertEquals(groupIds.getValue("Work"), runBlocking { db.taskDao().getById(1) }?.groupId)
-
-                openNewTask("Work")
-                chooseTaskGroup("Personal")
-                onNodeWithContentDescription("Back").performClick()
-                waitText("First in Work")
-                onNodeWithTag("calendar-sidebar-toggle").performClick()
-                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
-                openNewTask("Personal")
-                saveNewTask("Second in Personal")
-                assertEquals(groupIds.getValue("Personal"), runBlocking { db.taskDao().getById(2) }?.groupId)
-
-                onNodeWithTag("calendar-sidebar-toggle").performClick()
-                waitText("First in Work")
-                onNode(hasText("First in Work") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).performClick()
-                waitText("Edit task")
-                onNodeWithContentDescription("Clear task group").performClick()
-                onNodeWithContentDescription("Save task").performClick()
-                waitUntil(timeoutMillis = 10_000) {
-                    onAllNodes(hasText("First in Work") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
-                        useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+            runSkikoComposeUiTest(size = Size(width = 1440f, height = 1000f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
                 }
-                openNewTask("Personal")
-                onNodeWithContentDescription("Clear task group").performClick()
-                saveNewTask("No group task")
-                assertNull(runBlocking { db.taskDao().getById(3) }?.groupId)
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                waitText(text = "Task")
+                openNewTask(group = "No group")
+                chooseTaskGroup(group = "Work")
+                saveNewTask(name = "First in Work")
+                assertEquals(
+                    expected = groupIds.getValue(key = "Work"),
+                    actual = runBlocking { db.taskDao().getById(id = 1) }?.groupId,
+                )
 
-                openNewTask("No group")
-                chooseTaskGroup("Work")
-                onNodeWithContentDescription("Back").performClick()
-                waitText("First in Work")
-                onNodeWithContentDescription("Back").performClick()
-                waitText("Tasks")
-                onNodeWithText("Tasks").performClick()
-                waitText("3 tasks")
-                onNodeWithContentDescription("Choose group").performClick()
-                val personal = hasText("Personal") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
-                waitUntil(timeoutMillis = 10_000) { onAllNodes(personal).fetchSemanticsNodes().isNotEmpty() }
-                onNode(personal).performClick()
-                waitText("1 of 3 tasks")
-                openNewTask("Personal", "New task")
-                onNodeWithContentDescription("Clear task group").performClick()
-                onNodeWithContentDescription("Back").performClick()
-                waitText("1 of 3 tasks")
-                onNodeWithContentDescription("Back").performClick()
-                waitText("Calendar")
-                onNodeWithText("Calendar").performClick()
-                waitText("Task")
-                openNewTask("Work")
-                onNodeWithContentDescription("Back").performClick()
-                waitText("First in Work")
+                openNewTask(group = "Work")
+                chooseTaskGroup(group = "Personal")
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "First in Work")
+                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
+                openNewTask(group = "Personal")
+                saveNewTask(name = "Second in Personal")
+                assertEquals(
+                    expected = groupIds.getValue(key = "Personal"),
+                    actual = runBlocking { db.taskDao().getById(id = 2) }?.groupId,
+                )
 
-                runBlocking { db.groupDao().deleteById(groupIds.getValue("Work")) }
-                openNewTask("No group")
-                chooseTaskGroup("Personal")
-                onNodeWithContentDescription("Back").performClick()
-                waitText("First in Work")
+                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+                waitText(text = "First in Work")
+                onNode(
+                        matcher = hasText(text = "First in Work") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        useUnmergedTree = true,
+                    )
+                    .performClick()
+                waitText(text = "Edit task")
+                onNodeWithContentDescription(label = "Clear task group").performClick()
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(
+                            matcher = hasText(text = "First in Work") and
+                                hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                openNewTask(group = "Personal")
+                onNodeWithContentDescription(label = "Clear task group").performClick()
+                saveNewTask(name = "No group task")
+                assertNull(actual = runBlocking { db.taskDao().getById(id = 3) }?.groupId)
+
+                openNewTask(group = "No group")
+                chooseTaskGroup(group = "Work")
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "First in Work")
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "Tasks")
+                onNodeWithText(text = "Tasks").performClick()
+                waitText(text = "3 tasks")
+                onNodeWithContentDescription(label = "Choose group").performClick()
+                val personal = hasText(text = "Personal") and
+                    SemanticsMatcher.keyIsDefined(key = SemanticsProperties.Selected)
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(matcher = personal).fetchSemanticsNodes().isNotEmpty()
+                }
+                onNode(matcher = personal).performClick()
+                waitText(text = "1 of 3 tasks")
+                openNewTask(group = "Personal", label = "New task")
+                onNodeWithContentDescription(label = "Clear task group").performClick()
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "1 of 3 tasks")
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                waitText(text = "Task")
+                openNewTask(group = "Work")
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "First in Work")
+
+                runBlocking { db.groupDao().deleteById(id = groupIds.getValue(key = "Work")) }
+                openNewTask(group = "No group")
+                chooseTaskGroup(group = "Personal")
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "First in Work")
             }
         }
-        withAppKoin(file) { app ->
-            runSkikoComposeUiTest(size = Size(1440f, 1000f)) {
-                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
-                waitText("Calendar")
-                onNodeWithText("Calendar").performClick()
-                waitText("Task")
-                openNewTask("No group")
+        withAppKoin(file = file) { app ->
+            runSkikoComposeUiTest(size = Size(width = 1440f, height = 1000f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
+                }
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                waitText(text = "Task")
+                openNewTask(group = "No group")
             }
         }
     }
 
     @Test
     fun `calendar keeps day selection and month when editing and uses the sidebar instead of navigation`() {
-        withAppKoin(directory.root.toPath().resolve("calendar.db")) { app ->
-            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        withAppKoin(file = directory.root.toPath().resolve("calendar.db")) { app ->
+            val today = Clock.System.todayIn(timeZone = TimeZone.currentSystemDefault())
             val next = today.yearMonth.plusMonth()
-            val label = YearMonth.Format { monthName(MonthNames.ENGLISH_FULL); chars(" "); year() }.format(next)
+            val label = YearMonth.Format {
+                    monthName(names = MonthNames.ENGLISH_FULL)
+                    chars(value = " ")
+                    year()
+                }
+                .format(value = next)
             val db = app.koin.get<AppDatabase>()
             runBlocking {
                 app.koin.get<IAppSettings>().completeWelcome()
-                db.taskDao().insert(TaskEntity(name = "Calendar task", description = "Unscheduled details"))
-                db.taskDao().insert(TaskEntity(name = "Day task", description = "Selected day details", dueDate = next.firstDay.toEpochDays()))
-                db.taskDao().insert(TaskEntity(name = "Today's task", description = "Today's details", dueDate = today.toEpochDays()))
+                db.taskDao().insert(task = TaskEntity(name = "Calendar task", description = "Unscheduled details"))
+                db.taskDao()
+                    .insert(
+                        task = TaskEntity(
+                            name = "Day task",
+                            description = "Selected day details",
+                            dueDate = next.firstDay.toEpochDays(),
+                        )
+                    )
+                db.taskDao()
+                    .insert(
+                        task = TaskEntity(
+                            name = "Today's task",
+                            description = "Today's details",
+                            dueDate = today.toEpochDays(),
+                        )
+                    )
             }
-            runSkikoComposeUiTest(size = Size(1440f, 1000f)) {
-                setContent { KoinIsolatedContext(app) { TaskBTheme(false) { TaskBApp(app.koin.get()) } } }
-                waitText("Calendar")
-                onNodeWithText("Calendar").performClick()
-                waitText("Today's details")
-                onNode(hasText("Today's task") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()
-                onNodeWithTag("calendar-choose-date").assertIsEnabled()
-                onNodeWithText("Create task").assertDoesNotExist()
-                onNodeWithTag("calendar-sidebar-toggle").performClick()
-                waitText("Calendar task")
-                onNodeWithContentDescription("Next month").performClick()
-                onNodeWithText(label).assertIsDisplayed()
-                val source = onNodeWithTag("calendar-task-1", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
-                val target = onNodeWithTag("calendar-day-${next.firstDay}", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
-                onRoot().performMouseInput { moveTo(source); press(); moveTo(source + Offset(28f, 0f)); moveTo(target); release() }
-                waitText("Undo")
-                assertEquals(next.firstDay.toEpochDays(), runBlocking { db.taskDao().getById(1) }?.dueDate)
-                onNodeWithText("Undo").performClick()
-                waitText("Unscheduled details")
-                assertNull(runBlocking { db.taskDao().getById(1) }?.dueDate)
-                onNodeWithText("Calendar task", useUnmergedTree = true).performClick()
-                waitText("Edit task")
-                onNodeWithContentDescription("Task name").performTextReplacement("Updated from calendar")
-                onNodeWithContentDescription("Save task").performClick()
-                waitText("Updated from calendar")
-                onNodeWithTag("calendar-sidebar-title").assertTextEquals("No date")
-                onNodeWithText(label).assertIsDisplayed()
-                onNodeWithTag("calendar-day-number-${next.firstDay}", useUnmergedTree = true).performClick()
-                waitText("Selected day details")
-                onNode(hasText("Day task") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).performClick()
-                waitText("Edit task")
-                onNodeWithContentDescription("Task name").performTextReplacement("Updated day task")
-                onNodeWithContentDescription("Save task").performClick()
-                waitText("Selected day details")
-                onNode(hasText("Updated day task") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()
-                onNodeWithTag("calendar-day-${next.firstDay}", useUnmergedTree = true).assertIsSelected()
-                onNodeWithText(label).assertIsDisplayed()
-                onNodeWithText("Day view is coming soon.").assertDoesNotExist()
-                onNodeWithText("Task").performClick()
-                waitText("Create task")
-                onNodeWithContentDescription("Clear date").assertIsDisplayed()
-                onNodeWithContentDescription("Task name").performTextReplacement("Created from calendar")
-                onNodeWithContentDescription("Save task").performClick()
-                waitText("Selected day details")
-                waitText("Created from calendar")
-                onNode(hasText("Created from calendar") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertIsDisplayed()
-                assertEquals(next.firstDay.toEpochDays(), runBlocking { db.taskDao().getById(4) }?.dueDate)
-                onNodeWithTag("calendar-sidebar-toggle").performClick()
-                onNode(hasText("Created from calendar") and hasAnyAncestor(hasTestTag("calendar-sidebar-list")), useUnmergedTree = true).assertDoesNotExist()
-                onNodeWithText("Task").performClick()
-                waitText("Create task")
-                onNodeWithContentDescription("Clear date").assertDoesNotExist()
-                onNodeWithContentDescription("Task name").performTextReplacement("Created without date")
-                onNodeWithContentDescription("Save task").performClick()
-                waitText("Created without date")
-                assertNull(runBlocking { db.taskDao().getById(5) }?.dueDate)
-                onNodeWithContentDescription("Back").performClick()
-                waitText("Calendar")
-                onNodeWithText("Tasks").assertIsDisplayed()
+            runSkikoComposeUiTest(size = Size(width = 1440f, height = 1000f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
+                }
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                waitText(text = "Today's details")
+                onNode(
+                        matcher = hasText(text = "Today's task") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                onNodeWithTag(testTag = "calendar-choose-date").assertIsEnabled()
+                onNodeWithText(text = "Create task").assertDoesNotExist()
+                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+                waitText(text = "Calendar task")
+                onNodeWithContentDescription(label = "Next month").performClick()
+                onNodeWithText(text = label).assertIsDisplayed()
+                val source = onNodeWithTag(testTag = "calendar-task-1", useUnmergedTree = true)
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                    .center
+                val target = onNodeWithTag(testTag = "calendar-day-${next.firstDay}", useUnmergedTree = true)
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                    .center
+                onRoot().performMouseInput {
+                    moveTo(position = source)
+                    press()
+                    moveTo(position = source + Offset(x = 28f, y = 0f))
+                    moveTo(position = target)
+                    release()
+                }
+                waitText(text = "Undo")
+                assertEquals(
+                    expected = next.firstDay.toEpochDays(),
+                    actual = runBlocking { db.taskDao().getById(id = 1) }?.dueDate,
+                )
+                onNodeWithText(text = "Undo").performClick()
+                waitText(text = "Unscheduled details")
+                assertNull(actual = runBlocking { db.taskDao().getById(id = 1) }?.dueDate)
+                onNodeWithText(text = "Calendar task", useUnmergedTree = true).performClick()
+                waitText(text = "Edit task")
+                onNodeWithContentDescription(label = "Task name")
+                    .performTextReplacement(text = "Updated from calendar")
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitText(text = "Updated from calendar")
+                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
+                onNodeWithText(text = label).assertIsDisplayed()
+                onNodeWithTag(testTag = "calendar-day-number-${next.firstDay}", useUnmergedTree = true)
+                    .performClick()
+                waitText(text = "Selected day details")
+                onNode(
+                        matcher = hasText(text = "Day task") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        useUnmergedTree = true,
+                    )
+                    .performClick()
+                waitText(text = "Edit task")
+                onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Updated day task")
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitText(text = "Selected day details")
+                onNode(
+                        matcher = hasText(text = "Updated day task") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                onNodeWithTag(testTag = "calendar-day-${next.firstDay}", useUnmergedTree = true).assertIsSelected()
+                onNodeWithText(text = label).assertIsDisplayed()
+                onNodeWithText(text = "Day view is coming soon.").assertDoesNotExist()
+                onNodeWithText(text = "Task").performClick()
+                waitText(text = "Create task")
+                onNodeWithContentDescription(label = "Clear date").assertIsDisplayed()
+                onNodeWithContentDescription(label = "Task name")
+                    .performTextReplacement(text = "Created from calendar")
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitText(text = "Selected day details")
+                waitText(text = "Created from calendar")
+                onNode(
+                        matcher = hasText(text = "Created from calendar") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                assertEquals(
+                    expected = next.firstDay.toEpochDays(),
+                    actual = runBlocking { db.taskDao().getById(id = 4) }?.dueDate,
+                )
+                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+                onNode(
+                        matcher = hasText(text = "Created from calendar") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        useUnmergedTree = true,
+                    )
+                    .assertDoesNotExist()
+                onNodeWithText(text = "Task").performClick()
+                waitText(text = "Create task")
+                onNodeWithContentDescription(label = "Clear date").assertDoesNotExist()
+                onNodeWithContentDescription(label = "Task name")
+                    .performTextReplacement(text = "Created without date")
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitText(text = "Created without date")
+                assertNull(actual = runBlocking { db.taskDao().getById(id = 5) }?.dueDate)
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Tasks").assertIsDisplayed()
             }
-            assertEquals("Updated from calendar", runBlocking { db.taskDao().getById(1) }?.name)
+            assertEquals(
+                expected = "Updated from calendar",
+                actual = runBlocking { db.taskDao().getById(id = 1) }?.name,
+            )
         }
     }
 
     private suspend fun SkikoComposeUiTest.openNewTask(group: String, label: String = "Task") {
-        onNodeWithText(label).performClick()
-        val field = hasContentDescription("Choose task group") and hasText(group)
-        waitUntil(timeoutMillis = 10_000) { onAllNodes(field).fetchSemanticsNodes().isNotEmpty() }
-        onNode(field).assertIsDisplayed()
+        onNodeWithText(text = label).performClick()
+        val field = hasContentDescription(value = "Choose task group") and hasText(text = group)
+        waitUntil(timeoutMillis = 10_000) { onAllNodes(matcher = field).fetchSemanticsNodes().isNotEmpty() }
+        onNode(matcher = field).assertIsDisplayed()
     }
 
     private suspend fun SkikoComposeUiTest.chooseTaskGroup(group: String) {
-        onNodeWithContentDescription("Choose task group").performClick()
-        val row = hasText(group) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
-        waitUntil(timeoutMillis = 10_000) { onAllNodes(row).fetchSemanticsNodes().isNotEmpty() }
-        onNode(row).performClick()
-        val field = hasContentDescription("Choose task group") and hasText(group)
-        waitUntil(timeoutMillis = 10_000) { onAllNodes(field).fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithContentDescription(label = "Choose task group").performClick()
+        val row = hasText(text = group) and SemanticsMatcher.keyIsDefined(key = SemanticsProperties.Selected)
+        waitUntil(timeoutMillis = 10_000) { onAllNodes(matcher = row).fetchSemanticsNodes().isNotEmpty() }
+        onNode(matcher = row).performClick()
+        val field = hasContentDescription(value = "Choose task group") and hasText(text = group)
+        waitUntil(timeoutMillis = 10_000) { onAllNodes(matcher = field).fetchSemanticsNodes().isNotEmpty() }
     }
 
     private suspend fun SkikoComposeUiTest.saveNewTask(name: String) {
-        onNodeWithContentDescription("Task name").performTextReplacement(name)
-        onNodeWithContentDescription("Save task").performClick()
+        onNodeWithContentDescription(label = "Task name").performTextReplacement(text = name)
+        onNodeWithContentDescription(label = "Save task").performClick()
         waitUntil(timeoutMillis = 10_000) {
-            onAllNodes(hasText(name) and hasAnyAncestor(hasTestTag("calendar-sidebar-list")),
-                useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+            onAllNodes(
+                    matcher = hasText(text = name) and
+                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                    useUnmergedTree = true,
+                )
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
     }
 
     private suspend fun SkikoComposeUiTest.waitText(text: String) {
-        waitUntil(timeoutMillis = 10_000) { onAllNodes(hasText(text), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        waitUntil(timeoutMillis = 10_000) {
+            onAllNodes(matcher = hasText(text = text), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun SemanticsNodeInteraction.screenshot(name: String) {

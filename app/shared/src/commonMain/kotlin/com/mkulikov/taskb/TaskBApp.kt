@@ -1,6 +1,5 @@
 package com.mkulikov.taskb
 
-import com.mkulikov.taskb.ui.theme.TaskBTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -19,13 +18,14 @@ import com.mkulikov.taskb.core.navigation.AppRoot
 import com.mkulikov.taskb.feature.hello.api.HelloRoute
 import com.mkulikov.taskb.feature.home.api.HomeRoute
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
+import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.CancellationException
 
 @Composable
 internal fun TaskBApp(settings: IAppSettings) {
-    var startDestination by remember(settings) { mutableStateOf<NavKey?>(null) }
+    var startDestination by remember(key1 = settings) { mutableStateOf<NavKey?>(value = null) }
 
-    LaunchedEffect(settings) {
+    LaunchedEffect(key1 = settings) {
         var initialError: String? = null
         val hasCompletedWelcome = try {
             settings.hasCompletedWelcome()
@@ -35,14 +35,14 @@ internal fun TaskBApp(settings: IAppSettings) {
             initialError = "Couldn't read settings. Press Continue to get started."
             false
         }
-        startDestination = if (hasCompletedWelcome) HomeRoute else HelloRoute(initialError)
+        startDestination = if (hasCompletedWelcome) HomeRoute else HelloRoute(initialError = initialError)
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             val destination = startDestination
             if (destination == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {

@@ -14,24 +14,42 @@ import kotlinx.datetime.plusMonth
 
 @Stable
 internal class DatePickerState(initialMonth: YearMonth) {
-    enum class View { Days, Months, Years }
+    enum class View {
+        Days,
+        Months,
+        Years,
+    }
 
-    var month by mutableStateOf(initialMonth)
-        private set
-    var view by mutableStateOf(View.Days)
-        private set
-    val yearText = TextFieldState(initialMonth.year.toString())
-    var yearError by mutableStateOf(false)
-        private set
-    var yearRangeStart by mutableStateOf(initialMonth.year / 20 * 20)
+    var month by mutableStateOf(value = initialMonth)
         private set
 
-    val canGoBack get() = month > YearMonth(FirstYear, 1)
-    val canGoForward get() = month < YearMonth(LastYear, 12)
-    val canShowPreviousYears get() = yearRangeStart > 0
-    val canShowNextYears get() = yearRangeStart < LastYear / 20 * 20
-    val firstVisibleYear get() = maxOf(FirstYear, yearRangeStart)
-    val lastVisibleYear get() = minOf(LastYear, yearRangeStart + 19)
+    var view by mutableStateOf(value = View.Days)
+        private set
+
+    val yearText = TextFieldState(initialText = initialMonth.year.toString())
+    var yearError by mutableStateOf(value = false)
+        private set
+
+    var yearRangeStart by mutableStateOf(value = initialMonth.year / 20 * 20)
+        private set
+
+    val canGoBack
+        get() = month > YearMonth(year = FirstYear, month = 1)
+
+    val canGoForward
+        get() = month < YearMonth(year = LastYear, month = 12)
+
+    val canShowPreviousYears
+        get() = yearRangeStart > 0
+
+    val canShowNextYears
+        get() = yearRangeStart < LastYear / 20 * 20
+
+    val firstVisibleYear
+        get() = maxOf(a = FirstYear, b = yearRangeStart)
+
+    val lastVisibleYear
+        get() = minOf(a = LastYear, b = yearRangeStart + 19)
 
     fun toggleMonths() {
         view = if (view == View.Months) View.Days else View.Months
@@ -41,7 +59,7 @@ internal class DatePickerState(initialMonth: YearMonth) {
         if (view == View.Years) {
             view = View.Days
         } else {
-            yearText.setTextAndPlaceCursorAtEnd(month.year.toString())
+            yearText.setTextAndPlaceCursorAtEnd(text = month.year.toString())
             yearRangeStart = month.year / 20 * 20
             yearError = false
             view = View.Years
@@ -55,20 +73,20 @@ internal class DatePickerState(initialMonth: YearMonth) {
     }
 
     fun chooseMonth(number: Int) {
-        month = YearMonth(month.year, number)
+        month = YearMonth(year = month.year, month = number)
         view = View.Days
     }
 
     fun chooseYear(year: Int) {
         if (year !in FirstYear..LastYear) return
-        month = YearMonth(year, month.month)
-        yearText.setTextAndPlaceCursorAtEnd(year.toString())
+        month = YearMonth(year = year, month = month.month)
+        yearText.setTextAndPlaceCursorAtEnd(text = year.toString())
         yearError = false
         view = View.Days
     }
 
     fun editYear(text: String) {
-        yearText.setTextAndPlaceCursorAtEnd(text)
+        yearText.setTextAndPlaceCursorAtEnd(text = text)
         yearError = false
     }
 
@@ -78,11 +96,14 @@ internal class DatePickerState(initialMonth: YearMonth) {
 
     fun applyYear() {
         val year = yearText.text.toString().trim().toIntOrNull()
-        if (year == null || year !in FirstYear..LastYear) yearError = true else chooseYear(year)
+        if (year == null || year !in FirstYear..LastYear) yearError = true else chooseYear(year = year)
     }
 
     fun moveYearRange(forward: Boolean) {
-        yearRangeStart = (yearRangeStart + if (forward) 20 else -20).coerceIn(0, LastYear / 20 * 20)
+        yearRangeStart = (yearRangeStart + if (forward) 20 else -20).coerceIn(
+            minimumValue = 0,
+            maximumValue = LastYear / 20 * 20,
+        )
     }
 
     fun showToday(today: YearMonth) {
@@ -95,17 +116,27 @@ internal class DatePickerState(initialMonth: YearMonth) {
         const val LastYear = 9999
 
         val Saver = listSaver<DatePickerState, Any>(
-            save = { listOf(it.month.year, it.month.month.ordinal + 1, it.view.name, it.yearText.text.toString(), it.yearRangeStart,
-                it.yearError, it.yearText.selection.start, it.yearText.selection.end) },
-            restore = {
-                DatePickerState(YearMonth(it[0] as Int, it[1] as Int)).apply {
-                    view = View.valueOf(it[2] as String)
+            save = { pickerState ->
+                listOf(
+                    pickerState.month.year,
+                    pickerState.month.month.ordinal + 1,
+                    pickerState.view.name,
+                    pickerState.yearText.text.toString(),
+                    pickerState.yearRangeStart,
+                    pickerState.yearError,
+                    pickerState.yearText.selection.start,
+                    pickerState.yearText.selection.end,
+                )
+            },
+            restore = { items ->
+                DatePickerState(initialMonth = YearMonth(year = items[0] as Int, month = items[1] as Int)).apply {
+                    view = View.valueOf(value = items[2] as String)
                     yearText.edit {
-                        replace(0, length, it[3] as String)
-                        selection = TextRange(it[6] as Int, it[7] as Int)
+                        replace(start = 0, end = length, text = items[3] as String)
+                        selection = TextRange(start = items[6] as Int, end = items[7] as Int)
                     }
-                    yearRangeStart = it[4] as Int
-                    yearError = it[5] as Boolean
+                    yearRangeStart = items[4] as Int
+                    yearError = items[5] as Boolean
                 }
             },
         )

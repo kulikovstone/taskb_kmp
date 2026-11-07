@@ -30,22 +30,47 @@ internal fun GroupsWideScreen(
     onCreateGroup: () -> Unit,
     onEditGroup: (Int) -> Unit,
 ) {
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().height(96.dp).padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(TaskBIcons.Back, contentDescription = "Back", tint = TaskBTheme.colors.heading) }
-            Spacer(Modifier.width(8.dp))
-            Text("Groups", modifier = Modifier.offset(y = (-2).dp), style = TaskBTheme.typography.display, color = TaskBTheme.colors.heading)
-            Spacer(Modifier.weight(1f))
-            TaskBEditorButton("New group", TaskBIcons.Add, onCreateGroup)
-        }
-        Column(Modifier.weight(1f).padding(start = 32.dp, end = 32.dp, top = 16.dp)) {
-            Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                TaskBTextField(state.query, "Search groups", placeholder = "Search groups", search = true, modifier = Modifier.width(300.dp))
-                GroupsFilters(state, onIntent)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(height = 96.dp).padding(start = 16.dp, end = 32.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(imageVector = TaskBIcons.Back, contentDescription = "Back", tint = TaskBTheme.colors.heading)
             }
-            Spacer(Modifier.height(24.dp))
-            GroupsDirectory(state, onIntent, compact = false, onOpenGroup = onEditGroup,
-                modifier = Modifier.weight(1f).fillMaxWidth())
+            Spacer(modifier = Modifier.width(width = 8.dp))
+            Text(
+                text = "Groups",
+                modifier = Modifier.offset(y = (-2).dp),
+                style = TaskBTheme.typography.display,
+                color = TaskBTheme.colors.heading,
+            )
+            Spacer(modifier = Modifier.weight(weight = 1f))
+            TaskBEditorButton(label = "New group", icon = TaskBIcons.Add, onClick = onCreateGroup)
+        }
+        Column(modifier = Modifier.weight(weight = 1f).padding(start = 32.dp, end = 32.dp, top = 16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(height = 44.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
+            ) {
+                TaskBTextField(
+                    state = state.query,
+                    description = "Search groups",
+                    placeholder = "Search groups",
+                    search = true,
+                    modifier = Modifier.width(width = 300.dp),
+                )
+                GroupsFilters(state = state, onIntent = onIntent)
+            }
+            Spacer(modifier = Modifier.height(height = 24.dp))
+            GroupsDirectory(
+                state = state,
+                onIntent = onIntent,
+                compact = false,
+                onOpenGroup = onEditGroup,
+                modifier = Modifier.weight(weight = 1f).fillMaxWidth(),
+            )
         }
     }
 }

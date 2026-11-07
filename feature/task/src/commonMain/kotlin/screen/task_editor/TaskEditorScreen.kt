@@ -14,75 +14,148 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
-import com.mkulikov.taskb.ui.component.TaskBEditorTopAppBar
+import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
+import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.ui.component.TaskBEditorButton
+import com.mkulikov.taskb.ui.component.TaskBEditorTopAppBar
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
-import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
-import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
-import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
-import kotlinx.datetime.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDate
 import org.koin.compose.koinInject
 
 @Composable
 internal fun TaskEditorScreen(
-    taskId: Int? = null, initialDate: LocalDate? = null, initialGroupId: Int? = null,
-    onBack: () -> Unit, groupResults: Flow<GroupSelectionResult>, onChooseGroup: (Int?) -> Unit,
+    taskId: Int? = null,
+    initialDate: LocalDate? = null,
+    initialGroupId: Int? = null,
+    onBack: () -> Unit,
+    groupResults: Flow<GroupSelectionResult>,
+    onChooseGroup: (Int?) -> Unit,
     occurrenceId: TaskOccurrenceId? = null,
     onGroupSelected: (Int?) -> Unit = {},
 ) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
-    val store = rememberNavEntryResource("task-editor") {
-        TaskEditorStore(repository, groups, taskId, initialDate, initialGroupId,
-            occurrenceId = occurrenceId, onGroupSelected = onGroupSelected)
+    val store = rememberNavEntryResource(key = "task-editor") {
+        TaskEditorStore(
+            repository = repository,
+            groups = groups,
+            taskId = taskId,
+            initialDate = initialDate,
+            initialGroup = initialGroupId,
+            occurrenceId = occurrenceId,
+            onGroupSelected = onGroupSelected,
+        )
     }
     val state by store.state.collectAsState()
-    LaunchedEffect(store, state.isFinished) { if (state.isFinished) onBack() }
-    LaunchedEffect(store, groupResults) {
-        groupResults.collect { store.accept(TaskEditorIntent.GroupChanged(it.groupId)) }
+    LaunchedEffect(key1 = store, key2 = state.isFinished) { if (state.isFinished) onBack() }
+    LaunchedEffect(key1 = store, key2 = groupResults) {
+        groupResults.collect { result -> store.accept(intent = TaskEditorIntent.GroupChanged(id = result.groupId)) }
     }
 
-    Surface(Modifier.fillMaxSize()) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val wide = maxWidth >= 840.dp
-            TaskEditorContent(state, store::accept, wide, onBack, onChooseGroup = { onChooseGroup(state.groupId) })
-            TaskEditorDialogs(state, state.today, store::accept, maxHeight)
+            TaskEditorContent(
+                state = state,
+                onIntent = store::accept,
+                wide = wide,
+                onBack = onBack,
+                onChooseGroup = { onChooseGroup(state.groupId) },
+            )
+            TaskEditorDialogs(
+                state = state,
+                today = state.today,
+                onIntent = store::accept,
+                availableHeight = maxHeight,
+            )
         }
     }
 }
 
 @Composable
-internal fun TaskEditorContent(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, wide: Boolean, onBack: () -> Unit, onChooseGroup: () -> Unit) {
+internal fun TaskEditorContent(
+    state: TaskEditorState,
+    onIntent: (TaskEditorIntent) -> Unit,
+    wide: Boolean,
+    onBack: () -> Unit,
+    onChooseGroup: () -> Unit,
+) {
     val title = if (state.isNew) "New task" else "Edit task"
     val canDelete = !state.isBusy && state.dialog == null && !state.isFinished && state.original != null
-    Column(Modifier.fillMaxSize()) {
-        if (wide) TaskBEditorTopAppBar(title, onBack, !state.isSaving) {
-            if (!state.isNew) TaskBEditorButton("Delete", TaskBIcons.Delete, { onIntent(TaskEditorIntent.PrepareDelete) },
-                enabled = canDelete, destructive = true, modifier = Modifier.semantics { contentDescription = "Delete task" })
-            TaskBEditorButton(if (state.isNew) "Create task" else "Save changes", if (state.isNew) TaskBIcons.Add else TaskBIcons.Done,
-                { onIntent(TaskEditorIntent.Save) }, enabled = state.canSave, modifier = Modifier.semantics { contentDescription = "Save task" })
-        } else TaskBTopAppBar(title, onBack, backEnabled = !state.isSaving, titleSpacing = 4.dp) {
-            if (!state.isNew) IconButton({ onIntent(TaskEditorIntent.PrepareDelete) }, enabled = canDelete) {
-                Icon(TaskBIcons.Delete, "Delete task", tint = TaskBTheme.colors.danger)
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (wide) {
+            TaskBEditorTopAppBar(title = title, onBack = onBack, backEnabled = !state.isSaving) {
+                if (!state.isNew)
+                    TaskBEditorButton(
+                        label = "Delete",
+                        icon = TaskBIcons.Delete,
+                        onClick = { onIntent(TaskEditorIntent.PrepareDelete) },
+                        enabled = canDelete,
+                        destructive = true,
+                        modifier = Modifier.semantics { contentDescription = "Delete task" },
+                    )
+                TaskBEditorButton(
+                    label = if (state.isNew) "Create task" else "Save changes",
+                    icon = if (state.isNew) TaskBIcons.Add else TaskBIcons.Done,
+                    onClick = { onIntent(TaskEditorIntent.Save) },
+                    enabled = state.canSave,
+                    modifier = Modifier.semantics { contentDescription = "Save task" },
+                )
             }
-            IconButton({ onIntent(TaskEditorIntent.Save) }, enabled = state.canSave) {
-                Icon(TaskBIcons.Done, "Save task", tint = if (state.canSave) TaskBTheme.colors.accent else TaskBTheme.colors.border)
+        } else {
+            TaskBTopAppBar(title = title, onBack = onBack, backEnabled = !state.isSaving, titleSpacing = 4.dp) {
+                if (!state.isNew)
+                    IconButton(onClick = { onIntent(TaskEditorIntent.PrepareDelete) }, enabled = canDelete) {
+                        Icon(
+                            imageVector = TaskBIcons.Delete,
+                            contentDescription = "Delete task",
+                            tint = TaskBTheme.colors.danger,
+                        )
+                    }
+                IconButton(onClick = { onIntent(TaskEditorIntent.Save) }, enabled = state.canSave) {
+                    Icon(
+                        imageVector = TaskBIcons.Done,
+                        contentDescription = "Save task",
+                        tint = if (state.canSave) TaskBTheme.colors.accent else TaskBTheme.colors.border,
+                    )
+                }
             }
         }
-        Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = if (wide) 32.dp else 0.dp), contentAlignment = Alignment.TopCenter) {
-            val modifier = Modifier.widthIn(max = if (wide) 720.dp else androidx.compose.ui.unit.Dp.Infinity).fillMaxSize()
+        Box(
+            modifier = Modifier.weight(weight = 1f).fillMaxWidth().padding(horizontal = if (wide) 32.dp else 0.dp),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            val modifier = Modifier
+                .widthIn(max = if (wide) 720.dp else androidx.compose.ui.unit.Dp.Infinity)
+                .fillMaxSize()
             when {
-                state.isLoading || state.isLoadingGroups -> TaskBLoading(modifier)
-                state.loadError != null -> TaskBLoadError(state.loadError, { onIntent(TaskEditorIntent.RetryLoad) }, modifier)
-                state.groupsLoadError != null -> TaskBLoadError(state.groupsLoadError, { onIntent(TaskEditorIntent.RetryGroups) }, modifier)
-                else -> TaskEditorForm(state, state.groups, state.today, onIntent,
-                    onChooseGroup, wide, modifier)
+                state.isLoading || state.isLoadingGroups -> TaskBLoading(modifier = modifier)
+                state.loadError != null -> TaskBLoadError(
+                    message = state.loadError,
+                    onRetry = { onIntent(TaskEditorIntent.RetryLoad) },
+                    modifier = modifier,
+                )
+                state.groupsLoadError != null -> TaskBLoadError(
+                    message = state.groupsLoadError,
+                    onRetry = { onIntent(TaskEditorIntent.RetryGroups) },
+                    modifier = modifier,
+                )
+                else -> TaskEditorForm(
+                    state = state,
+                    groups = state.groups,
+                    today = state.today,
+                    onIntent = onIntent,
+                    onChooseGroup = onChooseGroup,
+                    wide = wide,
+                    modifier = modifier,
+                )
             }
         }
     }

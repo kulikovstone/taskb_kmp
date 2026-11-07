@@ -5,11 +5,13 @@ import com.mkulikov.taskb.core.database.AppDatabase
 import org.koin.dsl.koinApplication
 
 internal class AppDependencyGraph(databaseFactory: () -> AppDatabase) : RememberObserver, AutoCloseable {
-    val application = koinApplication { modules(appModule(databaseFactory)) }
+    val application = koinApplication { modules(modules = appModule(databaseFactory = databaseFactory)) }
     private var closed = false
 
     override fun onRemembered() = Unit
+
     override fun onForgotten() = close()
+
     override fun onAbandoned() = close()
 
     override fun close() {

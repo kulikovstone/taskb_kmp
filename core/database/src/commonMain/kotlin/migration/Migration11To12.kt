@@ -4,9 +4,10 @@ import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 
-internal class Migration11To12 : Migration(11, 12) {
+internal class Migration11To12 : Migration(startVersion = 11, endVersion = 12) {
     override suspend fun migrate(connection: SQLiteConnection) {
-        connection.execSQL("""
+        connection.execSQL(
+            sql = """
             CREATE TABLE IF NOT EXISTS holiday_months (
                 locationKey TEXT NOT NULL,
                 year INTEGER NOT NULL,
@@ -14,8 +15,11 @@ internal class Migration11To12 : Migration(11, 12) {
                 fetchedAt INTEGER NOT NULL,
                 PRIMARY KEY(locationKey, year, month)
             )
-        """.trimIndent())
-        connection.execSQL("""
+            """
+                .trimIndent()
+        )
+        connection.execSQL(
+            sql = """
             CREATE TABLE IF NOT EXISTS holidays (
                 locationKey TEXT NOT NULL,
                 year INTEGER NOT NULL,
@@ -28,6 +32,8 @@ internal class Migration11To12 : Migration(11, 12) {
                 FOREIGN KEY(locationKey, year, month) REFERENCES holiday_months(locationKey, year, month)
                     ON UPDATE NO ACTION ON DELETE CASCADE
             )
-        """.trimIndent())
+            """
+                .trimIndent()
+        )
     }
 }

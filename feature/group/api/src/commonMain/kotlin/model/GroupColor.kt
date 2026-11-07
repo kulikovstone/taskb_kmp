@@ -5,27 +5,27 @@ import androidx.compose.ui.graphics.toArgb
 import com.mkulikov.taskb.ui.theme.Palette
 
 enum class GroupColor(val label: String, val color: Color) {
-    Red("Red", Palette.Red.s400),
-    Pink("Pink", Palette.Pink.s400),
-    Purple("Purple", Palette.Purple.s400),
-    DeepPurple("Deep purple", Palette.DeepPurple.s400),
-    Indigo("Indigo", Palette.Indigo.s400),
-    Blue("Blue", Palette.Blue.s400),
-    LightBlue("Light blue", Palette.LightBlue.s400),
-    Cyan("Cyan", Palette.Cyan.s400),
-    Teal("Teal", Palette.Teal.s400),
-    Green("Green", Palette.Green.s400),
-    LightGreen("Light green", Palette.LightGreen.s400),
-    Lime("Lime", Palette.Lime.s400),
-    Yellow("Yellow", Palette.Yellow.s400),
-    Amber("Amber", Palette.Amber.s400),
-    Orange("Orange", Palette.Orange.s400),
-    DeepOrange("Deep orange", Palette.DeepOrange.s400),
-    Brown("Brown", Palette.Brown.s400),
-    Grey("Grey", Palette.Grey.s400),
-    BlueGrey("Blue grey", Palette.BlueGrey.s400);
+    Red(label = "Red", color = Palette.Red.s400),
+    Pink(label = "Pink", color = Palette.Pink.s400),
+    Purple(label = "Purple", color = Palette.Purple.s400),
+    DeepPurple(label = "Deep purple", color = Palette.DeepPurple.s400),
+    Indigo(label = "Indigo", color = Palette.Indigo.s400),
+    Blue(label = "Blue", color = Palette.Blue.s400),
+    LightBlue(label = "Light blue", color = Palette.LightBlue.s400),
+    Cyan(label = "Cyan", color = Palette.Cyan.s400),
+    Teal(label = "Teal", color = Palette.Teal.s400),
+    Green(label = "Green", color = Palette.Green.s400),
+    LightGreen(label = "Light green", color = Palette.LightGreen.s400),
+    Lime(label = "Lime", color = Palette.Lime.s400),
+    Yellow(label = "Yellow", color = Palette.Yellow.s400),
+    Amber(label = "Amber", color = Palette.Amber.s400),
+    Orange(label = "Orange", color = Palette.Orange.s400),
+    DeepOrange(label = "Deep orange", color = Palette.DeepOrange.s400),
+    Brown(label = "Brown", color = Palette.Brown.s400),
+    Grey(label = "Grey", color = Palette.Grey.s400),
+    BlueGrey(label = "Blue grey", color = Palette.BlueGrey.s400);
 
     companion object {
-        fun fromArgb(argb: Int): GroupColor = entries.firstOrNull { it.color.toArgb() == argb } ?: Grey
+        fun fromArgb(argb: Int): GroupColor = entries.firstOrNull { color -> color.color.toArgb() == argb } ?: Grey
     }
 }

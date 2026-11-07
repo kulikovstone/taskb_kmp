@@ -9,6 +9,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandler
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpStatusCode
+import kotlin.test.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -21,206 +22,354 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import kotlinx.serialization.json.*
-import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppLocationEnrichmentTest {
-    private val original = AppLocation("Chelyabinsk, Chelyabinsk Oblast, Russia", 55.1611, 61.42877, "Asia/Yekaterinburg")
+    private val original = AppLocation(
+        name = "Chelyabinsk, Chelyabinsk Oblast, Russia",
+        latitude = 55.1611,
+        longitude = 61.42877,
+        timeZone = "Asia/Yekaterinburg",
+    )
     private val verified = original.copy(countryCode = "RU", regionName = "Chelyabinsk Oblast")
-    private val legacyJson = """{"name":"Chelyabinsk, Chelyabinsk Oblast, Russia","latitude":55.1611,"longitude":61.42877,"timeZone":"Asia/Yekaterinburg"}"""
+    private val legacyJson = """
+    {
+        "name": "Chelyabinsk, Chelyabinsk Oblast, Russia",
+        "latitude": 55.1611,
+        "longitude": 61.42877,
+        "timeZone": "Asia/Yekaterinburg"
+    }
+    """
+        .trimIndent()
 
     @Test
-    fun `legacy weather coordinates are emitted before lookup then enriched and remembered after restart`() = runTest {
-        val settings = Settings().apply { values["weatherLocation"] = legacyJson }
-        val release = CompletableDeferred<Unit>()
-        var calls = 0
-        val client = mockClient { request ->
-            calls++
-            assertEquals("Chelyabinsk", request.url.parameters["name"])
-            release.await()
-            respond(response(verified.copy(name = "Chelyabinsk")))
+    fun `legacy weather coordinates are emitted before lookup then enriched and remembered after restart`():
+        TestResult {
+        return runTest {
+            val settings = Settings().apply { values["weatherLocation"] = legacyJson }
+            val release = CompletableDeferred<Unit>()
+            var calls = 0
+            val client = mockClient { request ->
+                calls++
+                assertEquals(expected = "Chelyabinsk", actual = request.url.parameters["name"])
+                release.await()
+                respond(content = response(verified.copy(name = "Chelyabinsk")))
+            }
+            try {
+                fun repository(): AppLocationRepository {
+                    return AppLocationRepository(
+                        api = OpenMeteoGeocodingApi(client = client),
+                        settings = lazyOf(value = settings),
+                        dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                    )
+                }
+                val values = Channel<AppLocation?>(capacity = Channel.UNLIMITED)
+                backgroundScope.launch(context = UnconfinedTestDispatcher(scheduler = testScheduler)) {
+                    repository().observeLocation().collect(collector = values::send)
+                }
+                runCurrent()
+                assertEquals(expected = original, actual = values.receive())
+                assertEquals(expected = 1, actual = calls)
+                release.complete(value = Unit)
+                runCurrent()
+                assertEquals(expected = verified, actual = values.receive())
+                assertEquals(
+                    expected = verified,
+                    actual = decodeLocation(value = settings.values.getValue(key = "appLocation")),
+                )
+                assertEquals(expected = verified, actual = repository().observeLocation().first())
+                assertEquals(expected = 1, actual = calls)
+            } finally {
+                client.close()
+            }
         }
-        try {
-            fun repository() = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-            val values = Channel<AppLocation?>(Channel.UNLIMITED)
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository().observeLocation().collect { values.send(it) } }
-            runCurrent()
-            assertEquals(original, values.receive())
-            assertEquals(1, calls)
-            release.complete(Unit)
-            runCurrent()
-            assertEquals(verified, values.receive())
-            assertEquals(verified, decodeLocation(settings.values.getValue("appLocation")))
-            assertEquals(verified, repository().observeLocation().first())
-            assertEquals(1, calls)
-        } finally { client.close() }
     }
 
     @Test
-    fun `already migrated shared location without country is enriched without changing name or coordinates`() = runTest {
-        val settings = Settings().apply {
-            values["weatherLocation"] = legacyJson
-            values["appLocation"] = legacyJson
+    fun `already migrated shared location without country is enriched without changing name or coordinates`():
+        TestResult {
+        return runTest {
+            val settings = Settings().apply {
+                values["weatherLocation"] = legacyJson
+                values["appLocation"] = legacyJson
+            }
+            val candidate = verified.copy(
+                name = "Different provider display name",
+                latitude = original.latitude + 0.000001,
+            )
+            val client = mockClient { respond(content = response(candidate)) }
+            try {
+                val repository = AppLocationRepository(
+                    api = OpenMeteoGeocodingApi(client = client),
+                    settings = lazyOf(value = settings),
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                assertEquals(
+                    expected = listOf<AppLocation?>(original, verified),
+                    actual = repository.observeLocation().take(count = 2).toList(),
+                )
+                assertEquals(
+                    expected = verified,
+                    actual = decodeLocation(value = settings.values.getValue(key = "appLocation")),
+                )
+            } finally {
+                client.close()
+            }
         }
-        val candidate = verified.copy(name = "Different provider display name", latitude = original.latitude + 0.000001)
-        val client = mockClient { respond(response(candidate)) }
-        try {
-            val repository = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-            assertEquals(listOf<AppLocation?>(original, verified), repository.observeLocation().take(2).toList())
-            assertEquals(verified, decodeLocation(settings.values.getValue("appLocation")))
-        } finally { client.close() }
     }
 
     @Test
-    fun `complete location and cleared location perform no metadata requests`() = runTest {
-        val settings = Settings().apply { values["appLocation"] = encodeLocation(verified) }
-        var calls = 0
-        val client = mockClient { calls++; error("No request expected") }
-        try {
-            val repository = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-            val values = mutableListOf<AppLocation?>()
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.observeLocation().collect { values += it } }
-            runCurrent()
-            repository.setLocation(null)
-            runCurrent()
-            assertEquals(listOf(verified, null), values)
-            assertEquals(0, calls)
-        } finally { client.close() }
+    fun `complete location and cleared location perform no metadata requests`(): TestResult {
+        return runTest {
+            val settings = Settings().apply { values["appLocation"] = encodeLocation(location = verified) }
+            var calls = 0
+            val client = mockClient {
+                calls++
+                error(message = "No request expected")
+            }
+            try {
+                val repository = AppLocationRepository(
+                    api = OpenMeteoGeocodingApi(client = client),
+                    settings = lazyOf(value = settings),
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                val values = mutableListOf<AppLocation?>()
+                backgroundScope.launch(context = UnconfinedTestDispatcher(scheduler = testScheduler)) {
+                    repository.observeLocation().collect { location -> values += location }
+                }
+                runCurrent()
+                repository.setLocation(location = null)
+                runCurrent()
+                assertEquals(expected = listOf(verified, null), actual = values)
+                assertEquals(expected = 0, actual = calls)
+            } finally {
+                client.close()
+            }
+        }
     }
 
     @Test
-    fun `ambiguous distant wrong timezone and failed lookups preserve the original and do not loop`() = runTest {
-        val results = listOf(
-            response(verified, verified.copy(name = "Duplicate city")),
-            response(verified.copy(latitude = original.latitude + 0.001)),
-            response(verified.copy(timeZone = "Europe/Moscow")),
-            response(original),
-            null,
-        )
-        for (result in results) {
+    fun `ambiguous distant wrong timezone and failed lookups preserve the original and do not loop`(): TestResult {
+        return runTest {
+            val results = listOf(
+                response(verified, verified.copy(name = "Duplicate city")),
+                response(verified.copy(latitude = original.latitude + 0.001)),
+                response(verified.copy(timeZone = "Europe/Moscow")),
+                response(original),
+                null,
+            )
+            for (result in results) {
+                val settings = Settings().apply { values["appLocation"] = legacyJson }
+                var calls = 0
+                val client = mockClient {
+                    calls++
+                    if (result == null) {
+                        respond(content = "Offline", status = HttpStatusCode.ServiceUnavailable)
+                    } else {
+                        respond(content = result)
+                    }
+                }
+                try {
+                    val repository = AppLocationRepository(
+                        api = OpenMeteoGeocodingApi(client = client),
+                        settings = lazyOf(value = settings),
+                        dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                    )
+                    val values = mutableListOf<AppLocation?>()
+                    val observer = backgroundScope.launch(
+                        context = UnconfinedTestDispatcher(scheduler = testScheduler),
+                    ) {
+                        repository.observeLocation().collect { location -> values += location }
+                    }
+                    runCurrent()
+                    assertEquals(expected = listOf<AppLocation?>(element = original), actual = values)
+                    assertEquals(
+                        expected = original,
+                        actual = decodeLocation(value = settings.values.getValue(key = "appLocation")),
+                    )
+                    assertEquals(expected = 1, actual = calls)
+                    observer.cancelAndJoin()
+                } finally {
+                    client.close()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `concurrent observers share one metadata request`(): TestResult {
+        return runTest {
+            val settings = Settings().apply { values["appLocation"] = legacyJson }
+            val release = CompletableDeferred<Unit>()
+            var calls = 0
+            val client = mockClient {
+                calls++
+                release.await()
+                respond(content = response(verified))
+            }
+            try {
+                val repository = AppLocationRepository(
+                    api = OpenMeteoGeocodingApi(client = client),
+                    settings = lazyOf(value = settings),
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                val first = async { repository.observeLocation().take(count = 2).toList() }
+                val second = async { repository.observeLocation().take(count = 2).toList() }
+                runCurrent()
+                assertEquals(expected = 1, actual = calls)
+                release.complete(value = Unit)
+                assertEquals(expected = listOf<AppLocation?>(original, verified), actual = first.await())
+                assertEquals(expected = listOf<AppLocation?>(original, verified), actual = second.await())
+                assertEquals(expected = 1, actual = calls)
+            } finally {
+                client.close()
+            }
+        }
+    }
+
+    @Test
+    fun `new user selection is not overwritten by a pending metadata request`(): TestResult {
+        return runTest {
+            val settings = Settings().apply { values["appLocation"] = legacyJson }
+            val release = CompletableDeferred<Unit>()
+            val client = mockClient {
+                release.await()
+                respond(content = response(verified))
+            }
+            try {
+                val repository = AppLocationRepository(
+                    api = OpenMeteoGeocodingApi(client = client),
+                    settings = lazyOf(value = settings),
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                val observing = async { repository.observeLocation().take(count = 2).toList() }
+                runCurrent()
+                val selected = AppLocation(
+                    name = "Paris, France",
+                    latitude = 48.85,
+                    longitude = 2.35,
+                    timeZone = "Europe/Paris",
+                    countryCode = "FR",
+                )
+                repository.setLocation(location = selected)
+                release.complete(value = Unit)
+                assertEquals(expected = listOf<AppLocation?>(original, selected), actual = observing.await())
+                assertEquals(
+                    expected = selected,
+                    actual = decodeLocation(value = settings.values.getValue(key = "appLocation")),
+                )
+            } finally {
+                client.close()
+            }
+        }
+    }
+
+    @Test
+    fun `active observer takes over metadata lookup when its original owner is cancelled`(): TestResult {
+        return runTest {
             val settings = Settings().apply { values["appLocation"] = legacyJson }
             var calls = 0
             val client = mockClient {
                 calls++
-                if (result == null) respond("Offline", HttpStatusCode.ServiceUnavailable) else respond(result)
+                if (calls == 1) awaitCancellation()
+                respond(content = response(verified))
             }
             try {
-                val repository = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-                val values = mutableListOf<AppLocation?>()
-                val observer = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.observeLocation().collect { values += it } }
+                val repository = AppLocationRepository(
+                    api = OpenMeteoGeocodingApi(client = client),
+                    settings = lazyOf(value = settings),
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                val owner = backgroundScope.launch(context = UnconfinedTestDispatcher(scheduler = testScheduler)) {
+                    repository.observeLocation().collect {}
+                }
                 runCurrent()
-                assertEquals(listOf<AppLocation?>(original), values)
-                assertEquals(original, decodeLocation(settings.values.getValue("appLocation")))
-                assertEquals(1, calls)
-                observer.cancelAndJoin()
-            } finally { client.close() }
-        }
-    }
-
-    @Test
-    fun `concurrent observers share one metadata request`() = runTest {
-        val settings = Settings().apply { values["appLocation"] = legacyJson }
-        val release = CompletableDeferred<Unit>()
-        var calls = 0
-        val client = mockClient { calls++; release.await(); respond(response(verified)) }
-        try {
-            val repository = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-            val first = async { repository.observeLocation().take(2).toList() }
-            val second = async { repository.observeLocation().take(2).toList() }
-            runCurrent()
-            assertEquals(1, calls)
-            release.complete(Unit)
-            assertEquals(listOf<AppLocation?>(original, verified), first.await())
-            assertEquals(listOf<AppLocation?>(original, verified), second.await())
-            assertEquals(1, calls)
-        } finally { client.close() }
-    }
-
-    @Test
-    fun `new user selection is not overwritten by a pending metadata request`() = runTest {
-        val settings = Settings().apply { values["appLocation"] = legacyJson }
-        val release = CompletableDeferred<Unit>()
-        val client = mockClient { release.await(); respond(response(verified)) }
-        try {
-            val repository = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-            val observing = async { repository.observeLocation().take(2).toList() }
-            runCurrent()
-            val selected = AppLocation("Paris, France", 48.85, 2.35, "Europe/Paris", "FR")
-            repository.setLocation(selected)
-            release.complete(Unit)
-            assertEquals(listOf<AppLocation?>(original, selected), observing.await())
-            assertEquals(selected, decodeLocation(settings.values.getValue("appLocation")))
-        } finally { client.close() }
-    }
-
-    @Test
-    fun `active observer takes over metadata lookup when its original owner is cancelled`() = runTest {
-        val settings = Settings().apply { values["appLocation"] = legacyJson }
-        var calls = 0
-        val client = mockClient {
-            calls++
-            if (calls == 1) awaitCancellation()
-            respond(response(verified))
-        }
-        try {
-            val repository = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-            val owner = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.observeLocation().collect {} }
-            runCurrent()
-            val survivor = async { repository.observeLocation().take(2).toList() }
-            runCurrent()
-            assertEquals(1, calls)
-            owner.cancelAndJoin()
-            assertEquals(listOf<AppLocation?>(original, verified), survivor.await())
-            assertEquals(2, calls)
-        } finally { client.close() }
-    }
-
-    @Test
-    fun `later successful retry updates an existing observer after its first metadata request failed`() = runTest {
-        val settings = Settings().apply { values["appLocation"] = legacyJson }
-        var calls = 0
-        val client = mockClient {
-            calls++
-            if (calls == 1) respond("Offline", HttpStatusCode.ServiceUnavailable) else respond(response(verified))
-        }
-        try {
-            val repository = AppLocationRepository(OpenMeteoGeocodingApi(client), lazyOf(settings), StandardTestDispatcher(testScheduler))
-            val values = Channel<AppLocation?>(Channel.UNLIMITED)
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.observeLocation().collect { values.send(it) } }
-            runCurrent()
-            assertEquals(original, values.receive())
-            assertEquals(1, calls)
-            assertEquals(verified, repository.observeLocation().first { it?.countryCode != null })
-            assertEquals(verified, values.receive())
-            assertEquals(2, calls)
-        } finally { client.close() }
-    }
-
-    private fun TestScope.mockClient(handler: MockRequestHandler) = HttpClient(MockEngine) {
-        engine {
-            dispatcher = StandardTestDispatcher(testScheduler)
-            addHandler(handler)
-        }
-    }
-
-    private fun response(vararg locations: AppLocation): String = buildJsonObject {
-        putJsonArray("results") {
-            locations.forEach { location ->
-                add(buildJsonObject {
-                    put("name", location.name)
-                    put("latitude", location.latitude)
-                    put("longitude", location.longitude)
-                    put("timezone", location.timeZone)
-                    location.countryCode?.let { put("country_code", it) }
-                    location.regionName?.let { put("admin1", it) }
-                })
+                val survivor = async { repository.observeLocation().take(count = 2).toList() }
+                runCurrent()
+                assertEquals(expected = 1, actual = calls)
+                owner.cancelAndJoin()
+                assertEquals(expected = listOf<AppLocation?>(original, verified), actual = survivor.await())
+                assertEquals(expected = 2, actual = calls)
+            } finally {
+                client.close()
             }
         }
-    }.toString()
+    }
+
+    @Test
+    fun `later successful retry updates an existing observer after its first metadata request failed`(): TestResult {
+        return runTest {
+            val settings = Settings().apply { values["appLocation"] = legacyJson }
+            var calls = 0
+            val client = mockClient {
+                calls++
+                if (calls == 1) {
+                    respond(content = "Offline", status = HttpStatusCode.ServiceUnavailable)
+                } else {
+                    respond(content = response(verified))
+                }
+            }
+            try {
+                val repository = AppLocationRepository(
+                    api = OpenMeteoGeocodingApi(client = client),
+                    settings = lazyOf(value = settings),
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                val values = Channel<AppLocation?>(capacity = Channel.UNLIMITED)
+                backgroundScope.launch(context = UnconfinedTestDispatcher(scheduler = testScheduler)) {
+                    repository.observeLocation().collect(collector = values::send)
+                }
+                runCurrent()
+                assertEquals(expected = original, actual = values.receive())
+                assertEquals(expected = 1, actual = calls)
+                assertEquals(
+                    expected = verified,
+                    actual = repository.observeLocation().first { location -> location?.countryCode != null },
+                )
+                assertEquals(expected = verified, actual = values.receive())
+                assertEquals(expected = 2, actual = calls)
+            } finally {
+                client.close()
+            }
+        }
+    }
+
+    private fun TestScope.mockClient(handler: MockRequestHandler): HttpClient {
+        return HttpClient(engineFactory = MockEngine) {
+            engine {
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler)
+                addHandler(handler = handler)
+            }
+        }
+    }
+
+    private fun response(vararg locations: AppLocation): String {
+        return buildJsonObject {
+            putJsonArray(key = "results") {
+                locations.forEach { location ->
+                    add(
+                        element = buildJsonObject {
+                            put(key = "name", value = location.name)
+                            put(key = "latitude", value = location.latitude)
+                            put(key = "longitude", value = location.longitude)
+                            put(key = "timezone", value = location.timeZone)
+                            location.countryCode?.let { countryCode -> put(key = "country_code", value = countryCode) }
+                            location.regionName?.let { regionName -> put(key = "admin1", value = regionName) }
+                        }
+                    )
+                }
+            }
+        }
+            .toString()
+    }
 
     private class Settings : IAppSettingsDao {
         val values = mutableMapOf<String, String>()
+
         override suspend fun getValue(key: String) = values[key]
-        override suspend fun upsert(setting: ApplicationSetting) { values[setting.key] = setting.value }
+
+        override suspend fun upsert(setting: ApplicationSetting) {
+            values[setting.key] = setting.value
+        }
     }
 }

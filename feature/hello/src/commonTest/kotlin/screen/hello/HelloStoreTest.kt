@@ -9,6 +9,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -16,89 +17,104 @@ import kotlinx.coroutines.test.runTest
 @OptIn(ExperimentalCoroutinesApi::class)
 class HelloStoreTest {
     @Test
-    fun `successful save publishes progress and completion`() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val settings = FakeSettings { gate.await() }
-        HelloStore(settings, "Initial error", StandardTestDispatcher(testScheduler)).use { store ->
-            assertEquals("Initial error", store.state.value.error)
-            store.accept(HelloIntent.Continue)
-            runCurrent()
-            assertTrue(store.state.value.isContinuing)
-            assertEquals(null, store.state.value.error)
-            assertFalse(store.state.value.isCompleted)
+    fun `successful save publishes progress and completion`(): TestResult {
+        return runTest {
+            val gate = CompletableDeferred<Unit>()
+            val settings = FakeSettings { gate.await() }
+            HelloStore(
+                    settings = settings,
+                    initialError = "Initial error",
+                    dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                )
+                .use { store ->
+                    assertEquals(expected = "Initial error", actual = store.state.value.error)
+                    store.accept(intent = HelloIntent.Continue)
+                    runCurrent()
+                    assertTrue(actual = store.state.value.isContinuing)
+                    assertEquals(expected = null, actual = store.state.value.error)
+                    assertFalse(actual = store.state.value.isCompleted)
 
-            gate.complete(Unit)
-            advanceUntilIdle()
-            assertTrue(store.state.value.isCompleted)
-            assertFalse(store.state.value.isContinuing)
-            assertEquals(1, settings.calls)
+                    gate.complete(value = Unit)
+                    advanceUntilIdle()
+                    assertTrue(actual = store.state.value.isCompleted)
+                    assertFalse(actual = store.state.value.isContinuing)
+                    assertEquals(expected = 1, actual = settings.calls)
+                }
         }
     }
 
     @Test
-    fun `failed save allows an explicit retry`() = runTest {
-        var fail = true
-        val settings = FakeSettings { if (fail) error("Storage failure") }
-        HelloStore(settings, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            store.accept(HelloIntent.Continue)
-            advanceUntilIdle()
-            assertFalse(store.state.value.isContinuing)
-            assertFalse(store.state.value.isCompleted)
-            assertEquals("Couldn't save settings. Please try again.", store.state.value.error)
+    fun `failed save allows an explicit retry`(): TestResult {
+        return runTest {
+            var fail = true
+            val settings = FakeSettings { if (fail) error(message = "Storage failure") }
+            HelloStore(settings = settings, dispatcher = StandardTestDispatcher(scheduler = testScheduler)).use { store
+                ->
+                store.accept(intent = HelloIntent.Continue)
+                advanceUntilIdle()
+                assertFalse(actual = store.state.value.isContinuing)
+                assertFalse(actual = store.state.value.isCompleted)
+                assertEquals(expected = "Couldn't save settings. Please try again.", actual = store.state.value.error)
 
-            fail = false
-            store.accept(HelloIntent.Continue)
-            advanceUntilIdle()
-            assertEquals(2, settings.calls)
-            assertTrue(store.state.value.isCompleted)
-            assertEquals(null, store.state.value.error)
-        }
-    }
-
-    @Test
-    fun `repeated intents do not duplicate an active or completed save`() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val settings = FakeSettings { gate.await() }
-        HelloStore(settings, dispatcher = StandardTestDispatcher(testScheduler)).use { store ->
-            repeat(10) { store.accept(HelloIntent.Continue) }
-            runCurrent()
-            repeat(10) { store.accept(HelloIntent.Continue) }
-            runCurrent()
-            assertEquals(1, settings.calls)
-
-            gate.complete(Unit)
-            advanceUntilIdle()
-            store.accept(HelloIntent.Continue)
-            advanceUntilIdle()
-            assertEquals(1, settings.calls)
-        }
-    }
-
-    @Test
-    fun `closing store cancels saving and stops processing intents`() = runTest {
-        var cancelled = false
-        val settings = FakeSettings {
-            try {
-                awaitCancellation()
-            } finally {
-                cancelled = true
+                fail = false
+                store.accept(intent = HelloIntent.Continue)
+                advanceUntilIdle()
+                assertEquals(expected = 2, actual = settings.calls)
+                assertTrue(actual = store.state.value.isCompleted)
+                assertEquals(expected = null, actual = store.state.value.error)
             }
         }
-        val store = HelloStore(settings, dispatcher = StandardTestDispatcher(testScheduler))
-        try {
-            store.accept(HelloIntent.Continue)
-            runCurrent()
-            assertEquals(1, settings.calls)
-            store.close()
-            runCurrent()
-            assertTrue(cancelled)
-            assertFalse(store.state.value.isCompleted)
+    }
 
-            store.accept(HelloIntent.Continue)
-            advanceUntilIdle()
-            assertEquals(1, settings.calls)
-        } finally {
-            store.close()
+    @Test
+    fun `repeated intents do not duplicate an active or completed save`(): TestResult {
+        return runTest {
+            val gate = CompletableDeferred<Unit>()
+            val settings = FakeSettings { gate.await() }
+            HelloStore(settings = settings, dispatcher = StandardTestDispatcher(scheduler = testScheduler)).use { store
+                ->
+                repeat(times = 10) { store.accept(intent = HelloIntent.Continue) }
+                runCurrent()
+                repeat(times = 10) { store.accept(intent = HelloIntent.Continue) }
+                runCurrent()
+                assertEquals(expected = 1, actual = settings.calls)
+
+                gate.complete(value = Unit)
+                advanceUntilIdle()
+                store.accept(intent = HelloIntent.Continue)
+                advanceUntilIdle()
+                assertEquals(expected = 1, actual = settings.calls)
+            }
+        }
+    }
+
+    @Test
+    fun `closing store cancels saving and stops processing intents`(): TestResult {
+        return runTest {
+            var cancelled = false
+            val settings = FakeSettings {
+                try {
+                    awaitCancellation()
+                } finally {
+                    cancelled = true
+                }
+            }
+            val store = HelloStore(settings = settings, dispatcher = StandardTestDispatcher(scheduler = testScheduler))
+            try {
+                store.accept(intent = HelloIntent.Continue)
+                runCurrent()
+                assertEquals(expected = 1, actual = settings.calls)
+                store.close()
+                runCurrent()
+                assertTrue(actual = cancelled)
+                assertFalse(actual = store.state.value.isCompleted)
+
+                store.accept(intent = HelloIntent.Continue)
+                advanceUntilIdle()
+                assertEquals(expected = 1, actual = settings.calls)
+            } finally {
+                store.close()
+            }
         }
     }
 
@@ -106,6 +122,7 @@ class HelloStoreTest {
         var calls = 0
 
         override suspend fun hasCompletedWelcome() = false
+
         override suspend fun completeWelcome() {
             calls++
             save()

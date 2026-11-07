@@ -15,8 +15,8 @@ import com.mkulikov.taskb.feature.weather.api.model.DailyWeather
 import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
-import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun CalendarWeatherSummary(weather: DailyWeather, modifier: Modifier = Modifier) {
@@ -45,14 +45,30 @@ internal fun CalendarWeatherSummary(weather: DailyWeather, modifier: Modifier = 
     }
     val low = weather.minimumCelsius.roundToInt()
     val high = weather.maximumCelsius.roundToInt()
-    BoxWithConstraints(modifier.testTag("calendar-weather-${weather.date}").semantics(mergeDescendants = true) {
-        contentDescription = "$description, low $low degrees Celsius, high $high degrees Celsius"
-    }) {
+    BoxWithConstraints(
+        modifier = modifier
+            .testTag(tag = "calendar-weather-${weather.date}")
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$description, low $low degrees Celsius, high $high degrees Celsius"
+            }
+    ) {
         val temperature = if (maxWidth < 74.dp) "$high°" else "$low°/$high°"
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            Image(painterResource(icon), contentDescription = null,
-                modifier = Modifier.size(20.dp).testTag("calendar-weather-icon-${weather.date}"))
-            Text(temperature, style = TaskBTheme.typography.small, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(space = 2.dp),
+        ) {
+            Image(
+                painter = painterResource(resource = icon),
+                contentDescription = null,
+                modifier = Modifier.size(size = 20.dp).testTag(tag = "calendar-weather-icon-${weather.date}"),
+            )
+            Text(
+                text = temperature,
+                style = TaskBTheme.typography.small,
+                color = colors.muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

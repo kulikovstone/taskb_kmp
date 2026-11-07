@@ -18,11 +18,19 @@ internal class GroupSelectionStore(
     noGroupSelected: Boolean = false,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : CoroutineStore<GroupSelectionIntent, GroupSelectionState, GroupSelectionMessage>(
-    GroupSelectionState(selectedGroupId, showNoGroup, noGroupSelected), ::reduceGroupSelection, dispatcher,
+    initialState = GroupSelectionState(
+        selectedGroupId = selectedGroupId,
+        showNoGroup = showNoGroup,
+        noGroupSelected = noGroupSelected,
+    ),
+    reducer = ::reduceGroupSelection,
+    context = dispatcher,
 ) {
     private var observation: Job? = null
 
-    init { accept(GroupSelectionIntent.RetryLoad) }
+    init {
+        accept(intent = GroupSelectionIntent.RetryLoad)
+    }
 
     override fun handleIntent(intent: GroupSelectionIntent) {
         val current = state.value
@@ -30,18 +38,30 @@ internal class GroupSelectionStore(
         when (intent) {
             is GroupSelectionIntent.Select -> {
                 if (current.isLoading || current.loadError != null) return
-                val valid = if (intent.groupId == null) current.isNoGroupVisible
-                    else current.matchingGroups.any { it.id == intent.groupId }
-                if (valid) reduce(GroupSelectionMessage.Selected(GroupSelectionResult(intent.groupId)))
+                val valid = if (intent.groupId == null) {
+                    current.isNoGroupVisible
+                } else {
+                    current.matchingGroups.any { group -> group.id == intent.groupId }
+                }
+                if (valid)
+                    reduce(
+                        message = GroupSelectionMessage.Selected(
+                            result = GroupSelectionResult(groupId = intent.groupId),
+                        )
+                    )
             }
             GroupSelectionIntent.RetryLoad -> if (observation?.isActive != true) {
-                reduce(GroupSelectionMessage.Loading)
-                observation = collectEffect(repository.groups.map<List<Group>, GroupSelectionMessage> {
-                    GroupSelectionMessage.Loaded(it)
-                }.catch {
-                    if (it is CancellationException) throw it
-                    emit(GroupSelectionMessage.LoadFailed)
-                })
+                reduce(message = GroupSelectionMessage.Loading)
+                observation = collectEffect(
+                    messages = repository.groups
+                        .map<List<Group>, GroupSelectionMessage> { groups ->
+                            GroupSelectionMessage.Loaded(groups = groups)
+                        }
+                        .catch { exception ->
+                            if (exception is CancellationException) throw exception
+                            emit(value = GroupSelectionMessage.LoadFailed)
+                        }
+                )
             }
         }
     }

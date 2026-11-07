@@ -19,11 +19,26 @@ fun TaskBEditorTopAppBar(
     backEnabled: Boolean,
     actions: @Composable RowScope.() -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth().height(96.dp).padding(start = 16.dp, end = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onBack, enabled = backEnabled) { Icon(TaskBIcons.Back, "Back", tint = TaskBTheme.colors.heading) }
-        Spacer(Modifier.width(8.dp))
-        Text(title, modifier = Modifier.weight(1f).offset(y = (-2).dp), style = TaskBTheme.typography.display,
-            color = TaskBTheme.colors.heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically, content = actions)
+    Row(
+        modifier = Modifier.fillMaxWidth().height(height = 96.dp).padding(start = 16.dp, end = 32.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack, enabled = backEnabled) {
+            Icon(imageVector = TaskBIcons.Back, contentDescription = "Back", tint = TaskBTheme.colors.heading)
+        }
+        Spacer(modifier = Modifier.width(width = 8.dp))
+        Text(
+            text = title,
+            modifier = Modifier.weight(weight = 1f).offset(y = (-2).dp),
+            style = TaskBTheme.typography.display,
+            color = TaskBTheme.colors.heading,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = actions,
+        )
     }
 }

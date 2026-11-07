@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.event.api
 
 import androidx.navigation3.runtime.NavKey
-import kotlinx.datetime.LocalDate
 import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
+import kotlinx.datetime.LocalDate
 
 /** Opens an event editor independently of the events list. Defaults apply only to a new event. */
 sealed interface EventEditorRoute : NavKey {

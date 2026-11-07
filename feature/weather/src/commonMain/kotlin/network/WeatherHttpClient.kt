@@ -9,7 +9,7 @@ internal expect fun createWeatherHttpClient(): HttpClient?
 
 internal fun HttpClientConfig<*>.configureWeatherClient() {
     expectSuccess = true
-    install(HttpTimeout) {
+    install(plugin = HttpTimeout) {
         requestTimeoutMillis = 15_000
         connectTimeoutMillis = 10_000
         socketTimeoutMillis = 15_000

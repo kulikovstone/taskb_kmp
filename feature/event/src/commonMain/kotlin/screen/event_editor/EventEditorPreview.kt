@@ -18,8 +18,15 @@ private fun EventEditorCompactPreview() = EventEditorPreview(wide = false)
 @Composable
 private fun EventEditorPreview(wide: Boolean) {
     val state = remember {
-        EventEditorState(name = TextFieldState("Team meeting"), description = TextFieldState("Discuss the release"),
-            dueDate = LocalDate(2026, 11, 5), today = LocalDate(2026, 11, 5), isLoadingGroups = false)
+        EventEditorState(
+            name = TextFieldState(initialText = "Team meeting"),
+            description = TextFieldState(initialText = "Discuss the release"),
+            dueDate = LocalDate(year = 2026, month = 11, day = 5),
+            today = LocalDate(year = 2026, month = 11, day = 5),
+            isLoadingGroups = false,
+        )
     }
-    TaskBTheme(darkTheme = false) { EventEditorContent(state, {}, wide, {}, {}) }
+    TaskBTheme(darkTheme = false) {
+        EventEditorContent(state = state, onIntent = {}, wide = wide, onBack = {}, onChooseGroup = {})
+    }
 }

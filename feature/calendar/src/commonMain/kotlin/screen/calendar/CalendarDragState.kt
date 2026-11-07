@@ -21,26 +21,44 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 @Stable
 internal class CalendarDragState {
-    var item: CalendarItem? by mutableStateOf(null)
+    var item: CalendarItem? by mutableStateOf(value = null)
         private set
-    var position by mutableStateOf(Offset.Zero)
-        private set
-    var size by mutableStateOf(IntSize.Zero)
-        private set
-    var dense by mutableStateOf(false)
-        private set
-    var sourceDate: LocalDate? by mutableStateOf(null)
-        private set
-    val targets = mutableStateMapOf<LocalDate, Rect>()
-    val hoveredDay: LocalDate? get() = if (item == null) null else targets.entries.firstOrNull { it.value.contains(position) }?.key
 
-    fun begin(task: CalendarItem, position: Offset, size: IntSize, dense: Boolean, sourceDate: LocalDate? = task.dueDate) {
+    var position by mutableStateOf(value = Offset.Zero)
+        private set
+
+    var size by mutableStateOf(value = IntSize.Zero)
+        private set
+
+    var dense by mutableStateOf(value = false)
+        private set
+
+    var sourceDate: LocalDate? by mutableStateOf(value = null)
+        private set
+
+    val targets = mutableStateMapOf<LocalDate, Rect>()
+    val hoveredDay: LocalDate?
+        get() = if (item == null) {
+            null
+        } else {
+            targets.entries.firstOrNull { entry ->
+                entry.value.contains(offset = position)
+            }?.key
+        }
+
+    fun begin(
+        task: CalendarItem,
+        position: Offset,
+        size: IntSize,
+        dense: Boolean,
+        sourceDate: LocalDate? = task.dueDate,
+    ) {
         if (task.isHoliday) return
         this.item = task
         this.position = position
@@ -48,8 +66,15 @@ internal class CalendarDragState {
         this.dense = dense
         this.sourceDate = sourceDate
     }
-    fun update(position: Offset) { this.position = position }
-    fun cancel() { item = null }
+
+    fun update(position: Offset) {
+        this.position = position
+    }
+
+    fun cancel() {
+        item = null
+    }
+
     fun finish(onMove: (Int, LocalDate) -> Unit) {
         val source = item
         val date = hoveredDay
@@ -58,9 +83,14 @@ internal class CalendarDragState {
         if (source != null && date != null) {
             // A continuing event is dragged by the day under the pointer, not by its start date.
             val startDate = source.dueDate
-            val newStart = if (startDate != null && displayedDate != null)
-                startDate.plus(date.toEpochDays() - displayedDate.toEpochDays(), DateTimeUnit.DAY)
-            else date
+            val newStart = if (startDate != null && displayedDate != null) {
+                startDate.plus(
+                    value = date.toEpochDays() - displayedDate.toEpochDays(),
+                    unit = DateTimeUnit.DAY,
+                )
+            } else {
+                date
+            }
             if (newStart != source.dueDate) onMove(source.id, newStart)
         }
     }
@@ -77,31 +107,44 @@ internal fun Modifier.calendarTaskDrag(
     onMove: (Int, LocalDate) -> Unit,
 ): Modifier {
     if (task.isHoliday) return this
-    var coordinates: LayoutCoordinates? by remember { mutableStateOf(null) }
-    val latestTask by rememberUpdatedState(task)
-    val latestMove by rememberUpdatedState(onMove)
-    val latestSourceDate by rememberUpdatedState(sourceDate)
-    return onGloballyPositioned { coordinates = it }.pointerInput(task.key, enabled, dragState, dense, sourceDate) {
-        if (!enabled) return@pointerInput
-        try {
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
-                val start = if (down.type == PointerType.Mouse) {
-                    awaitTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
-                } else {
-                    awaitLongPressOrCancellation(down.id)
-                } ?: return@awaitEachGesture
-                start.consume()
-                val origin = coordinates?.takeIf { it.isAttached } ?: return@awaitEachGesture
-                dragState.begin(latestTask, origin.localToRoot(start.position), origin.size, dense, latestSourceDate)
-                val ended = drag(start.id) { change ->
-                    change.consume()
-                    coordinates?.takeIf { it.isAttached }?.let { dragState.update(it.localToRoot(change.position)) }
+    var coordinates: LayoutCoordinates? by remember { mutableStateOf(value = null) }
+    val latestTask by rememberUpdatedState(newValue = task)
+    val latestMove by rememberUpdatedState(newValue = onMove)
+    val latestSourceDate by rememberUpdatedState(newValue = sourceDate)
+    return onGloballyPositioned { currentCoordinates -> coordinates = currentCoordinates }
+        .pointerInput(task.key, enabled, dragState, dense, sourceDate) {
+            if (!enabled) return@pointerInput
+            try {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val start = if (down.type == PointerType.Mouse) {
+                        awaitTouchSlopOrCancellation(pointerId = down.id) { change, _ -> change.consume() }
+                    } else {
+                        awaitLongPressOrCancellation(pointerId = down.id)
+                    } ?: return@awaitEachGesture
+                    start.consume()
+                    val origin = coordinates?.takeIf { coordinates ->
+                        coordinates.isAttached
+                    } ?: return@awaitEachGesture
+                    dragState.begin(
+                        task = latestTask,
+                        position = origin.localToRoot(relativeToLocal = start.position),
+                        size = origin.size,
+                        dense = dense,
+                        sourceDate = latestSourceDate,
+                    )
+                    val ended = drag(pointerId = start.id) { change ->
+                        change.consume()
+                        coordinates
+                            ?.takeIf(predicate = LayoutCoordinates::isAttached)
+                            ?.let { coordinates ->
+                                dragState.update(position = coordinates.localToRoot(relativeToLocal = change.position))
+                            }
+                    }
+                    if (ended) dragState.finish(onMove = latestMove) else dragState.cancel()
                 }
-                if (ended) dragState.finish(latestMove) else dragState.cancel()
+            } finally {
+                if (dragState.item?.key == task.key) dragState.cancel()
             }
-        } finally {
-            if (dragState.item?.key == task.key) dragState.cancel()
         }
-    }
 }
