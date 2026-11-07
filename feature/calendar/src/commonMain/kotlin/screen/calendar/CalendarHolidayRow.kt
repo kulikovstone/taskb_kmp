@@ -15,7 +15,7 @@ import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalDate
 
-internal val calendarHolidayMarkerWidth = calendarEventMarkerWidth * 1.5f
+internal val calendarHolidayMarkerWidth = 5.dp
 
 /** Public holidays are informational: no editor, completion control, or drag gesture. */
 @Composable
@@ -28,7 +28,7 @@ internal fun CalendarHolidayRow(holiday: PublicHoliday, modifier: Modifier = Mod
         horizontalArrangement = Arrangement.spacedBy(if (dense) 4.dp else 10.dp)) {
         Box(Modifier.width(calendarHolidayMarkerWidth).fillMaxHeight()
             .then(if (dense) Modifier else Modifier.padding(vertical = 3.dp))
-            .background(Palette.Green.s900).testTag("calendar-holiday-marker-${holiday.id}"))
+            .background(Palette.Green.s800).testTag("calendar-holiday-marker-${holiday.id}"))
         Text(holiday.name, modifier = Modifier.weight(1f).testTag("calendar-holiday-title-${holiday.id}"),
             color = if (dense && holiday.date < today) colors.completedText else colors.text, style = calendarTaskTitleStyle(dense),
             maxLines = if (dense) 1 else 2, overflow = TextOverflow.Ellipsis)

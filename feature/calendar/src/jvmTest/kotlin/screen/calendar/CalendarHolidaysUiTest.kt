@@ -50,7 +50,7 @@ class CalendarHolidaysUiTest {
         val marker = onNode(hasTestTag("calendar-holiday-marker-${holiday.id}") and cell, useUnmergedTree = true)
         assertEquals(5f, marker.fetchSemanticsNode().boundsInRoot.width, 0.5f)
         val markerPixels = marker.captureToImage().toPixelMap()
-        assertEquals(Palette.Green.s900, markerPixels[markerPixels.width / 2, markerPixels.height / 2])
+        assertEquals(Palette.Green.s800, markerPixels[markerPixels.width / 2, markerPixels.height / 2])
         val layouts = mutableListOf<TextLayoutResult>()
         onNode(hasTestTag("calendar-holiday-title-${holiday.id}") and cell, useUnmergedTree = true)
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
