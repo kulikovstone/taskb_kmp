@@ -10,9 +10,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
+@Preview(name = "Platform placeholder", widthDp = 400, heightDp = 700)
 @Composable
 internal fun PlatformPlaceholder() {
     TaskBTheme {

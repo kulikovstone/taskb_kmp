@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -170,5 +171,41 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
 private fun SettingsPreview() {
     TaskBTheme(darkTheme = false) {
         SettingsScreen(state = SettingsState(isLoading = false), onIntent = {}, onBack = {})
+    }
+}
+
+@Preview(name = "Settings – city search results", widthDp = 400, heightDp = 820)
+@Composable
+private fun SettingsSearchResultsPreview() {
+    val state = SettingsState(
+        location = AppLocation(
+            name = "London, United Kingdom",
+            latitude = 51.51,
+            longitude = -0.13,
+            timeZone = "Europe/London",
+            countryCode = "GB",
+        ),
+        query = "York",
+        results = listOf(
+            AppLocation(
+                name = "York, United Kingdom",
+                latitude = 53.96,
+                longitude = -1.08,
+                timeZone = "Europe/London",
+                countryCode = "GB",
+            ),
+            AppLocation(
+                name = "New York, United States",
+                latitude = 40.71,
+                longitude = -74.01,
+                timeZone = "America/New_York",
+                countryCode = "US",
+            ),
+        ),
+        isLoading = false,
+        hasSearched = true,
+    )
+    TaskBTheme(darkTheme = false) {
+        SettingsScreen(state = state, onIntent = {}, onBack = {})
     }
 }

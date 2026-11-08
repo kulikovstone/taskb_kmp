@@ -13,6 +13,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -239,13 +240,33 @@ private fun PeriodSelector(
 
 @Preview(name = "Date picker", widthDp = 360, heightDp = 476)
 @Composable
-private fun DatePickerPreview() {
+private fun DatePickerPreview() = DatePickerPreview(view = DatePickerState.View.Days)
+
+@Preview(name = "Date picker – month selection", widthDp = 360, heightDp = 476)
+@Composable
+private fun DatePickerMonthsPreview() = DatePickerPreview(view = DatePickerState.View.Months)
+
+@Preview(name = "Date picker – year selection", widthDp = 360, heightDp = 640)
+@Composable
+private fun DatePickerYearsPreview() = DatePickerPreview(view = DatePickerState.View.Years)
+
+@Composable
+private fun DatePickerPreview(view: DatePickerState.View) {
     val today = LocalDate(year = 2026, month = 11, day = 1)
+    val state = remember(key1 = view) {
+        DatePickerState(initialMonth = today.yearMonth).apply {
+            when (view) {
+                DatePickerState.View.Days -> Unit
+                DatePickerState.View.Months -> toggleMonths()
+                DatePickerState.View.Years -> toggleYears()
+            }
+        }
+    }
     TaskBTheme(darkTheme = false) {
         DatePickerContent(
             date = null,
             today = today,
-            state = DatePickerState(initialMonth = today.yearMonth),
+            state = state,
             onChoose = {},
             onDismiss = {},
             modifier = Modifier.width(width = 360.dp),

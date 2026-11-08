@@ -1,12 +1,21 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
+import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
+import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
+import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.weather.api.model.DailyWeather
+import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
+import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
+import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -238,4 +247,67 @@ internal fun timedCalendarPreviewState(): CalendarState {
         isLoading = false,
         now = Instant.parse(input = "2026-11-02T12:00:00Z"),
     )
+}
+
+@Preview(name = "Calendar – completed day, weather and holiday", widthDp = 1440, heightDp = 900)
+@Composable
+private fun CalendarCompletedDayPreview() {
+    val today = LocalDate(year = 2026, month = 1, day = 1)
+    val now = Instant.parse(input = "2026-01-01T12:00:00Z")
+    val location = AppLocation(
+        name = "London, United Kingdom",
+        latitude = 51.51,
+        longitude = -0.13,
+        timeZone = "Europe/London",
+        countryCode = "GB",
+    )
+    val state = CalendarState(
+        today = today,
+        now = now,
+        isLoading = false,
+        tasks = listOf(
+            Task(
+                id = 1,
+                name = "Plan the first week of January",
+                dueDate = today,
+                createdAt = now,
+                completedAt = now,
+            ),
+        ),
+        weather = WeatherForecast(
+            location = location,
+            days = listOf(
+                DailyWeather(
+                    date = today,
+                    condition = WeatherCondition.Snow,
+                    minimumCelsius = -2.0,
+                    maximumCelsius = 3.0,
+                ),
+                DailyWeather(
+                    date = LocalDate(year = 2026, month = 1, day = 2),
+                    condition = WeatherCondition.PartlyCloudy,
+                    minimumCelsius = 0.0,
+                    maximumCelsius = 5.0,
+                ),
+            ),
+        ),
+        holidayCalendar = HolidayCalendar(
+            location = location,
+            holidays = listOf(
+                PublicHoliday(id = "new-year", date = today, name = "New Year's Day", countryCode = "GB"),
+            ),
+        ),
+    )
+    TaskBTheme(darkTheme = false) {
+        CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+    }
+}
+
+@Preview(name = "Calendar – compact window", widthDp = 400, heightDp = 640)
+@Composable
+private fun CalendarCompactPreview() {
+    val state = CalendarState(today = LocalDate(year = 2026, month = 11, day = 8), isLoading = false)
+    TaskBTheme(darkTheme = false) {
+        CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+    }
 }

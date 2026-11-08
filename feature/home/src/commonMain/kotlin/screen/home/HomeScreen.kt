@@ -46,6 +46,7 @@ internal fun HomeScreen(
 }
 
 @Preview(name = "Home", widthDp = 800, heightDp = 600)
+@Preview(name = "Home – compact", widthDp = 400, heightDp = 720)
 @Composable
 private fun HomeScreenPreview() {
     TaskBTheme(darkTheme = false) {
