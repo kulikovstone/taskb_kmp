@@ -80,7 +80,10 @@ internal data class CalendarState(
 
     val monthTasksByDate: Map<LocalDate?, List<Task>>
         get() = tasksByDate
-            .mapValues { (_, tasks) -> tasks.filterNot(predicate = Task::isDailyRoutine) }
+            .mapValues { (date, tasks) ->
+                val isPastDay = date != null && date < today
+                tasks.filter { task -> !task.isDailyRoutine || (isPastDay && !task.isCompleted) }
+            }
             .filterValues { tasks -> tasks.isNotEmpty() }
 
     val sidebarTasks: List<Task>

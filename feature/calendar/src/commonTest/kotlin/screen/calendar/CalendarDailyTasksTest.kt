@@ -33,14 +33,16 @@ class CalendarDailyTasksTest {
 
     @Test
     fun `daily routines appear first only for their actual occurrence day and keep completed history`() {
-        val previous = daily(id = 1, date = LocalDate(year = 2026, month = 11, day = 5), completed = true)
+        val completed = daily(id = 1, date = LocalDate(year = 2026, month = 11, day = 4), completed = true)
+        val yesterday = LocalDate(year = 2026, month = 11, day = 5)
+        val overdue = daily(id = 1, date = yesterday)
         val today = daily(id = 1)
         val tomorrow = daily(id = 1, date = LocalDate(year = 2026, month = 11, day = 7))
         val event = Event(id = 2, name = "Meeting", dueDate = date, startTime = LocalTime(hour = 12, minute = 0))
         val bills = Task(id = 3, name = "Bills", dueDate = date)
         val state = CalendarState(
             today = date,
-            tasks = listOf(previous, today, tomorrow, bills),
+            tasks = listOf(completed, overdue, today, tomorrow, bills),
             events = listOf(element = event),
         )
         assertEquals(expected = listOf(today, bills), actual = state.sidebarTasks)
@@ -49,15 +51,21 @@ class CalendarDailyTasksTest {
             expected = listOf(element = CalendarItem.EventItem(event = event)),
             actual = state.sidebarEventItems,
         )
-        assertTrue(actual = state.copy(selectedDate = previous.dueDate).sidebarDailyTasks.isEmpty())
+        assertTrue(actual = state.copy(selectedDate = completed.dueDate).sidebarDailyTasks.isEmpty())
         assertEquals(
-            expected = listOf(element = previous),
-            actual = state.copy(selectedDate = previous.dueDate).sidebarCompletedTasks,
+            expected = listOf(element = completed),
+            actual = state.copy(selectedDate = completed.dueDate).sidebarCompletedTasks,
         )
         assertTrue(
             actual = state.copy(selectedDate = LocalDate(year = 2026, month = 11, day = 8)).sidebarDailyTasks.isEmpty()
         )
-        assertTrue(actual = state.monthTasksByDate.values.flatten().none(predicate = Task::isDailyRoutine))
+        assertEquals(
+            expected = mapOf<LocalDate?, List<Task>>(
+                yesterday to listOf(element = overdue),
+                date to listOf(element = bills),
+            ),
+            actual = state.monthTasksByDate,
+        )
     }
 
     @Test
@@ -106,7 +114,7 @@ class CalendarDailyTasksTest {
     }
 
     @Test
-    fun `routines never contribute to month cells or their overflow counts while no-date view is unchanged`() {
+    fun `routines due today stay out of month cells and their overflow counts`() {
         val routines = (1..20).map { taskId -> daily(id = taskId) }
         val undated = Task(id = 30, name = "No date", createdAt = created)
         val state = CalendarState(today = date, tasks = routines + undated)

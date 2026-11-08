@@ -80,20 +80,28 @@ class TaskRecurrenceNavigationUiTest {
                 val first = events[0]
                 val second = events[1]
                 val third = events[2]
+                val sidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list"))
+                fun sidebarTask(task: Task) = hasTestTag(testTag = "calendar-task-${task.key}") and sidebar
+
                 onNodeWithTag(testTag = "calendar-day-number-$start", useUnmergedTree = true).performClick()
                 waitText(text = "Daily · 1")
-                onNodeWithText(text = "Recurring routine", useUnmergedTree = true).assertIsDisplayed()
-                for (event in events) {
-                    onNode(
-                            matcher = hasTestTag(testTag = "calendar-task-${event.key}") and
-                                hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-${event.dueDate}")),
-                            useUnmergedTree = true,
-                        )
-                        .assertDoesNotExist()
+                onNode(matcher = sidebarTask(task = first), useUnmergedTree = true).assertIsDisplayed()
+                for (task in events) {
+                    val date = requireNotNull(value = task.dueDate)
+                    val cellTask = onNode(
+                        matcher = hasTestTag(testTag = "calendar-task-${task.key}") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-$date")),
+                        useUnmergedTree = true,
+                    )
+                    if (date < today) {
+                        cellTask.assertIsDisplayed()
+                    } else {
+                        cellTask.assertDoesNotExist()
+                    }
                 }
                 onNode(
                         matcher = hasContentDescription(value = "Complete Recurring routine") and
-                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-task-${first.key}")),
+                            hasAnyAncestor(matcher = sidebarTask(task = first)),
                         useUnmergedTree = true,
                     )
                     .performClick()
@@ -107,13 +115,13 @@ class TaskRecurrenceNavigationUiTest {
                     .performClick()
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(
-                            matcher = hasTestTag(testTag = "calendar-task-${second.key}"),
+                            matcher = sidebarTask(task = second),
                             useUnmergedTree = true,
                         )
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                val source = onNodeWithTag(testTag = "calendar-task-${second.key}", useUnmergedTree = true)
+                val source = onNode(matcher = sidebarTask(task = second), useUnmergedTree = true)
                     .fetchSemanticsNode()
                     .boundsInRoot
                     .center
@@ -140,13 +148,13 @@ class TaskRecurrenceNavigationUiTest {
                 onNodeWithTag(testTag = "calendar-day-number-$targetDate", useUnmergedTree = true).performClick()
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(
-                            matcher = hasTestTag(testTag = "calendar-task-${second.key}"),
+                            matcher = sidebarTask(task = second),
                             useUnmergedTree = true,
                         )
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                onNodeWithTag(testTag = "calendar-task-${second.key}", useUnmergedTree = true).performClick()
+                onNode(matcher = sidebarTask(task = second), useUnmergedTree = true).performClick()
                 waitText(text = "Edit task")
                 onNodeWithContentDescription(label = "Delete task").performClick()
                 waitText(text = "Delete repeating task")
@@ -167,17 +175,17 @@ class TaskRecurrenceNavigationUiTest {
                 onNodeWithTag(testTag = "calendar-day-number-${third.dueDate}", useUnmergedTree = true)
                     .performClick()
                 waitUntil(timeoutMillis = 10_000) {
-                    onAllNodes(matcher = hasTestTag(testTag = "calendar-task-${third.key}"), useUnmergedTree = true)
+                    onAllNodes(matcher = sidebarTask(task = third), useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                onNodeWithTag(testTag = "calendar-task-${third.key}", useUnmergedTree = true).performClick()
+                onNode(matcher = sidebarTask(task = third), useUnmergedTree = true).performClick()
                 waitText(text = "Edit task")
                 onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Renamed series")
                 onNodeWithContentDescription(label = "Save task").performClick()
                 waitText(text = "No date")
                 waitUntil(timeoutMillis = 10_000) {
-                    onAllNodes(matcher = hasText(text = "Renamed series"), useUnmergedTree = true)
+                    onAllNodes(matcher = hasText(text = "Renamed series") and sidebar, useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .size == 1
                 }
