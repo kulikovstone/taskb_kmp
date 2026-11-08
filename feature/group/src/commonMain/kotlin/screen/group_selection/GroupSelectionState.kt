@@ -17,7 +17,6 @@ internal data class GroupSelectionState(
     val matchingGroups: List<Group>
         get() = groups
             .filter { group -> group.name.contains(other = query.text.toString().trim(), ignoreCase = true) }
-            .sortedWith(comparator = compareBy<Group> { group -> group.name.lowercase() }.thenBy(selector = Group::id))
 
     val isNoGroupVisible: Boolean
         get() = showNoGroup && "No group".contains(other = query.text.toString().trim(), ignoreCase = true)

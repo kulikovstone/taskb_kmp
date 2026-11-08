@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.time.Clock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelAndJoin
@@ -24,6 +25,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 
@@ -106,6 +110,64 @@ class GroupRepositoryTest {
                 } finally {
                     observer.cancelAndJoin()
                 }
+            } finally {
+                database.close()
+            }
+        }
+    }
+
+    @Test
+    fun `usage ranks recent tasks and shows unfinished tasks of any age`() {
+        runBlocking {
+            val database = AppDatabase.open(file = directory.resolve("group-usage.db"))
+            try {
+                val timeZone = TimeZone.currentSystemDefault()
+                var now = LocalDateTime.parse(input = "2026-03-31T12:00:00").toInstant(timeZone = timeZone)
+                val clock = object : Clock {
+                    override fun now() = now
+                }
+                val repository = GroupRepository(dao = lazy { database.groupDao() }, clock = clock)
+                val cutoff = LocalDateTime.parse(input = "2026-02-28T12:00:00")
+                    .toInstant(timeZone = timeZone)
+                    .toEpochMilliseconds()
+                val completion = now.toEpochMilliseconds()
+                for (name in listOf("Gamma", "old", "Zulu", "beta", "Empty")) {
+                    repository.add(name = name, color = GroupColor.Blue)
+                }
+                val groups = repository.groups.first().associateBy(keySelector = Group::name)
+                val tasks = database.taskDao()
+
+                suspend fun addTask(groupName: String, createdAt: Long, completedAt: Long? = null) {
+                    tasks.insert(
+                        task = TaskEntity(
+                            name = "Task",
+                            groupId = groups.getValue(key = groupName).id,
+                            createdAt = createdAt,
+                            completedAt = completedAt,
+                        ),
+                    )
+                }
+
+                addTask(groupName = "Zulu", createdAt = cutoff, completedAt = completion)
+                addTask(groupName = "Zulu", createdAt = cutoff + 1, completedAt = completion)
+                addTask(groupName = "beta", createdAt = cutoff + 1)
+                addTask(groupName = "Gamma", createdAt = cutoff + 1, completedAt = completion)
+                addTask(groupName = "old", createdAt = cutoff - 1, completedAt = completion)
+                repeat(times = 2) { addTask(groupName = "old", createdAt = cutoff - 1) }
+
+                val usage = repository.observeGroupsByUsage()
+                val ranked = usage.first()
+                assertEquals(
+                    expected = listOf("Zulu", "beta", "Gamma", "Empty", "old"),
+                    actual = ranked.map(transform = Group::name),
+                )
+                assertEquals(expected = listOf(0, 1, 0, 0, 2), actual = ranked.map { group -> group.tasks.planned })
+
+                now = LocalDateTime.parse(input = "2026-04-01T12:00:00").toInstant(timeZone = timeZone)
+                assertEquals(
+                    expected = listOf("beta", "Empty", "Gamma", "old", "Zulu"),
+                    actual = usage.first().map(transform = Group::name),
+                )
             } finally {
                 database.close()
             }

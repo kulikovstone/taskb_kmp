@@ -13,6 +13,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
+import com.mkulikov.taskb.feature.group.api.model.GroupTaskSummary
 import com.mkulikov.taskb.feature.group.testing.FakeGroupRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlin.test.Test
@@ -28,11 +29,17 @@ class GroupSelectionInputUiTest {
         val wide = mutableStateOf(value = false)
         val repository = FakeGroupRepository().apply {
             values.value = listOf(
-                Group(id = 1, name = "Дни рождения", color = GroupColor.Green),
+                Group(
+                    id = 1,
+                    name = "Дни рождения",
+                    color = GroupColor.Green,
+                    tasks = GroupTaskSummary(planned = 2, completed = 5),
+                ),
                 Group(id = 2, name = "Work", color = GroupColor.Blue),
             )
         }
-        GroupSelectionStore(repository = repository, dispatcher = StandardTestDispatcher(scheduler = scheduler))
+        val dispatcher = StandardTestDispatcher(scheduler = scheduler)
+        GroupSelectionStore(groupsByUsage = repository.groups, selectedGroupId = 1, dispatcher = dispatcher)
             .use { store ->
                 scheduler.runCurrent()
                 runSkikoComposeUiTest(size = Size(width = 1280f, height = 900f)) {
@@ -60,11 +67,13 @@ class GroupSelectionInputUiTest {
                             )
                         )
                     }
-                    onNodeWithText(text = "Дни рождения").assertIsDisplayed()
+                    val selectedGroup = onNodeWithText(text = "Дни рождения")
+                    selectedGroup.assertIsDisplayed().assertIsSelected().assert(matcher = hasText(text = "2"))
                     onNodeWithText(text = "Work").assertDoesNotExist()
                     search.performTextInputSelection(selection = TextRange(index = 1))
                     runOnIdle { wide.value = true }
                     waitForIdle()
+                    selectedGroup.assertIsDisplayed().assertIsSelected().assert(matcher = hasText(text = "2"))
                     search.assertTextEquals("Дни")
                     search.assert(
                         matcher = SemanticsMatcher.expectValue(
@@ -73,8 +82,12 @@ class GroupSelectionInputUiTest {
                         )
                     )
                     search.performTextInputSelection(selection = TextRange(start = 1, end = 3))
-                    repository.values.value = repository.values.value +
-                        Group(id = 3, name = "Other", color = GroupColor.Teal)
+                    repository.values.value = repository.values.value + Group(
+                        id = 3,
+                        name = "Other",
+                        color = GroupColor.Teal,
+                        tasks = GroupTaskSummary(completed = 1),
+                    )
                     scheduler.runCurrent()
                     waitForIdle()
                     search.assertTextEquals("Дни")
@@ -87,7 +100,8 @@ class GroupSelectionInputUiTest {
                     search.performClick()
                     onNodeWithContentDescription(label = "Clear search groups").performClick()
                     search.assertIsFocused()
-                    onNodeWithText(text = "Work").assertIsDisplayed()
+                    onNodeWithText(text = "Work").assertIsDisplayed().assertTextEquals("Work")
+                    onNodeWithText(text = "Other").assertIsDisplayed().assertTextEquals("Other")
                 }
             }
     }

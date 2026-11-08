@@ -3,16 +3,16 @@ package com.mkulikov.taskb.feature.group.screen.group_selection
 import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 internal class GroupSelectionStore(
-    private val repository: IGroupRepository,
+    private val groupsByUsage: Flow<List<Group>>,
     selectedGroupId: Int? = null,
     showNoGroup: Boolean = false,
     noGroupSelected: Boolean = false,
@@ -53,7 +53,7 @@ internal class GroupSelectionStore(
             GroupSelectionIntent.RetryLoad -> if (observation?.isActive != true) {
                 reduce(message = GroupSelectionMessage.Loading)
                 observation = collectEffect(
-                    messages = repository.groups
+                    messages = groupsByUsage
                         .map<List<Group>, GroupSelectionMessage> { groups ->
                             GroupSelectionMessage.Loaded(groups = groups)
                         }

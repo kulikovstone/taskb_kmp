@@ -25,18 +25,18 @@ class GroupSelectionStoreTest {
     )
 
     @Test
-    fun `groups-only mode searches sorted groups and rejects no group`(): TestResult {
+    fun `groups-only mode preserves usage order and rejects no group`(): TestResult {
         return runTest {
             val repository = FakeGroupRepository().apply { values.value = sample }
             GroupSelectionStore(
-                    repository = repository,
+                    groupsByUsage = repository.groups,
                     selectedGroupId = 7,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
                 )
                 .use { store ->
                     advanceUntilIdle()
                     assertEquals(
-                        expected = listOf(3, 7),
+                        expected = listOf(7, 3),
                         actual = store.state.value.matchingGroups.map(transform = Group::id),
                     )
                     assertEquals(expected = 7, actual = store.state.value.selectedGroupId)
@@ -64,7 +64,7 @@ class GroupSelectionStoreTest {
     fun `filter mode can explicitly select no group even with no groups`(): TestResult {
         return runTest {
             GroupSelectionStore(
-                    repository = FakeGroupRepository(),
+                    groupsByUsage = FakeGroupRepository().groups,
                     showNoGroup = true,
                     noGroupSelected = true,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
@@ -91,7 +91,7 @@ class GroupSelectionStoreTest {
         return runTest {
             val repository = FakeGroupRepository().apply { failRead = true }
             GroupSelectionStore(
-                    repository = repository,
+                    groupsByUsage = repository.groups,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
                 )
                 .use { store ->

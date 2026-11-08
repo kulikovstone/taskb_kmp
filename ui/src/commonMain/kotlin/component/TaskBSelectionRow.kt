@@ -21,6 +21,8 @@ fun TaskBSelectionRow(
     onClick: () -> Unit,
     groupColor: androidx.compose.ui.graphics.Color? = null,
     reserveGroupIconSpace: Boolean = false,
+    trailingText: String? = null,
+    checkAfterLabel: Boolean = false,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -42,22 +44,45 @@ fun TaskBSelectionRow(
                             modifier = Modifier.size(size = 24.dp),
                         )
                 }
-            Text(
-                text = label,
-                style = TaskBTheme.typography.section,
-                color = TaskBTheme.colors.text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Row(
                 modifier = Modifier.weight(weight = 1f),
-            )
-            if (selected)
-                Icon(
-                    imageVector = TaskBIcons.Done,
-                    contentDescription = null,
-                    tint = TaskBTheme.colors.accent,
-                    modifier = Modifier.size(size = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+            ) {
+                Text(
+                    text = label,
+                    style = TaskBTheme.typography.section,
+                    color = TaskBTheme.colors.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(weight = 1f, fill = false),
                 )
+                if (selected && checkAfterLabel) {
+                    SelectionCheck()
+                }
+            }
+            if (trailingText != null) {
+                Text(
+                    text = trailingText,
+                    color = TaskBTheme.colors.muted,
+                    style = TaskBTheme.typography.body,
+                    maxLines = 1,
+                )
+            }
+            if (selected && !checkAfterLabel) {
+                SelectionCheck()
+            }
         }
         Divider(color = TaskBTheme.colors.border)
     }
+}
+
+@Composable
+private fun SelectionCheck() {
+    Icon(
+        imageVector = TaskBIcons.Done,
+        contentDescription = null,
+        tint = TaskBTheme.colors.accent,
+        modifier = Modifier.size(size = 24.dp),
+    )
 }

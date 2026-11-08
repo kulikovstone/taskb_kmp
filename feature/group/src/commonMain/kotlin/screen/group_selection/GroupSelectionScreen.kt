@@ -20,7 +20,7 @@ import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.GroupSelectionRoute
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.feature.group.repository.GroupRepository
 import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBEditorTopAppBar
 import com.mkulikov.taskb.ui.component.TaskBLoadError
@@ -40,10 +40,10 @@ internal fun GroupSelectionScreen(
     onCreateGroup: () -> Unit,
     onSelected: (GroupSelectionResult) -> Unit,
 ) {
-    val repository = koinInject<IGroupRepository>()
+    val repository = koinInject<GroupRepository>()
     val store = rememberNavEntryResource(key = "group-selection") {
         GroupSelectionStore(
-            repository = repository,
+            groupsByUsage = repository.observeGroupsByUsage(),
             selectedGroupId = route.selectedGroupId,
             showNoGroup = route.showNoGroup,
             noGroupSelected = route.noGroupSelected,
@@ -120,6 +120,7 @@ private fun GroupSelectionList(
 ) {
     val scroll = rememberLazyListState()
     val scrollbar = scroll.canScrollForward || scroll.canScrollBackward
+    val groups = state.matchingGroups
     Box(modifier = modifier.selectableGroup()) {
         LazyColumn(
             state = scroll,
@@ -134,15 +135,18 @@ private fun GroupSelectionList(
                         reserveGroupIconSpace = true,
                     )
                 }
-            items(items = state.matchingGroups, key = Group::id) { group ->
+            items(items = groups, key = Group::id) { group ->
+                val taskCount = group.tasks.planned
                 TaskBSelectionRow(
                     label = group.name,
                     selected = state.selectedGroupId == group.id,
                     onClick = { onIntent(GroupSelectionIntent.Select(groupId = group.id)) },
                     groupColor = group.color.color,
+                    trailingText = if (taskCount > 0) taskCount.toString() else null,
+                    checkAfterLabel = true,
                 )
             }
-            if (state.matchingGroups.isEmpty() && !state.isNoGroupVisible)
+            if (groups.isEmpty() && !state.isNoGroupVisible)
                 item {
                     Text(
                         text = if (state.query.text.isBlank()) "No groups yet." else "No groups match your search.",

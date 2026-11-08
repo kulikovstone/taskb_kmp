@@ -224,13 +224,15 @@ class TaskListNavigationUiTest {
                 screenshot(name = "task-wide-short-dark")
                 onNodeWithContentDescription(label = "Choose task group").performScrollTo().performClick()
                 waitText(text = "Choose group")
+                waitText(text = "Work")
+                onNodeWithText(text = "Work").assertIsDisplayed().assert(matcher = hasText(text = "1"))
                 onNode(
                         matcher = SemanticsMatcher.keyIsDefined(
                             key = androidx.compose.ui.semantics.SemanticsActions.ScrollToIndex
                         )
                     )
                     .performScrollToIndex(index = 7)
-                onNodeWithText(text = "Work").assertIsDisplayed()
+                onNodeWithText(text = "Someday").assertIsDisplayed()
                 onNodeWithContentDescription(label = "Back").performClick()
                 runOnIdle { width.value = 300.dp }
                 waitForIdle()

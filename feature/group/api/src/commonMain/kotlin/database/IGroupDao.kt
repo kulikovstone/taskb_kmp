@@ -22,6 +22,16 @@ interface IGroupDao {
     fun observeGroupsWithTaskCounts(): Flow<List<GroupWithTaskCounts>>
 
     @Query(
+        value = """
+            SELECT g.*, COUNT(CASE WHEN t.completedAt IS NULL THEN t.id END) AS planned,
+                COUNT(t.completedAt) AS completed,
+                COUNT(CASE WHEN t.createdAt >= :createdSince THEN t.id END) AS recentTaskCount
+            FROM `groups` g LEFT JOIN tasks t ON t.groupId = g.id GROUP BY g.id
+        """,
+    )
+    fun observeGroupsWithUsage(createdSince: Long): Flow<List<GroupWithUsage>>
+
+    @Query(
         value =
             """
         SELECT g.*, COUNT(CASE WHEN t.completedAt IS NULL THEN t.id END) AS planned,
