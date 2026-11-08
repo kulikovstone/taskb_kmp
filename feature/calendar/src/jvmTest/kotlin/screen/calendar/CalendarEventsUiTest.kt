@@ -144,7 +144,9 @@ class CalendarEventsUiTest {
                 dueDate = date,
                 createdAt = Instant.parse(input = "2026-11-04T12:00:00Z"),
             )
-            val state = preview.copy(events = listOf(preview.events.single { event -> event.id == 300 }, short, allDay))
+            val timed = preview.events.single { event -> event.id == 300 }
+                .copy(description = "Review priorities for the next sprint.")
+            val state = preview.copy(events = listOf(timed, short, allDay))
             setContent {
                 TaskBTheme(darkTheme = false) {
                     CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
@@ -172,6 +174,15 @@ class CalendarEventsUiTest {
             assertTrue(actual = allDayTitle.top < shortTitle.top && shortTitle.top < timeTitle.top)
             assertEquals(expected = timeTitle.left, actual = allDayTitle.left, absoluteTolerance = 0.5f)
             assertEquals(expected = 24f, actual = shortTitle.left, absoluteTolerance = 0.5f)
+            val timedTitle = onNode(matcher = hasText(text = timed.name) and sidebar, useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .boundsInRoot
+            val description = onNodeWithText(text = timed.description, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+            assertTrue(actual = timedTitle.bottom <= description.top)
+            assertEquals(expected = timedTitle.left, actual = description.left, absoluteTolerance = 0.5f)
             onNode(matcher = hasTestTag(testTag = "calendar-event-marker-312") and sidebar, useUnmergedTree = true)
                 .assertIsDisplayed()
             onNodeWithTag(testTag = "calendar-event-time-312", useUnmergedTree = true).assertDoesNotExist()

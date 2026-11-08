@@ -142,7 +142,7 @@ internal fun CalendarEventRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (!hasTime && event.description.isNotBlank())
+                if (event.description.isNotBlank())
                     Text(
                         text = event.description,
                         color = colors.muted,
