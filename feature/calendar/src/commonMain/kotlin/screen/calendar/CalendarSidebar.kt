@@ -126,6 +126,7 @@ internal fun CalendarSidebar(
             LazyColumn(
                 state = scroll,
                 modifier = Modifier.weight(weight = 1f).fillMaxHeight().testTag(tag = "calendar-sidebar-list"),
+                contentPadding = PaddingValues(bottom = 12.dp),
             ) {
                 if (isDayCompleted)
                     item(key = "day-completed") {
