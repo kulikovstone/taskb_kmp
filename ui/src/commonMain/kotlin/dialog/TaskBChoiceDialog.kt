@@ -1,32 +1,27 @@
 package com.mkulikov.taskb.ui.dialog
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.mkulikov.taskb.ui.theme.TaskBTheme
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun TaskBChoiceDialog(title: String, message: String, choices: List<TaskBDialogChoice>, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title, style = TaskBTheme.typography.section) },
-        text = {
-            Column {
-                Text(text = message, style = TaskBTheme.typography.body)
-                choices.forEach { choice ->
-                    TextButton(onClick = choice.onClick, modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = choice.label,
-                            color = if (choice.destructive) TaskBTheme.colors.danger else TaskBTheme.colors.accent,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(text = "Cancel") } },
-    )
+    TaskBDialogPanel(
+        title = title,
+        message = message,
+        onDismiss = onDismiss,
+        cornerRadius = 4.dp,
+        actionSpacing = 0.dp,
+        actions = { TaskBDialogAction(label = "Cancel", onClick = onDismiss) },
+    ) {
+        choices.forEach { choice ->
+            TaskBDialogAction(
+                label = choice.label,
+                onClick = choice.onClick,
+                modifier = Modifier.fillMaxWidth(),
+                destructive = choice.destructive,
+            )
+        }
+    }
 }

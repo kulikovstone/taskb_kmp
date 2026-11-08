@@ -27,12 +27,13 @@ fun TaskBConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title, style = MaterialTheme.typography.subtitle1) },
-        text = { Text(text = message) },
-        shape = RoundedCornerShape(size = 28.dp),
-        confirmButton = { TextButton(onClick = onConfirm) { Text(text = confirmText) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(text = "Cancel") } },
+    TaskBDialogPanel(
+        title = title,
+        message = message,
+        onDismiss = onDismiss,
+        actions = {
+            TaskBDialogAction(label = "Cancel", onClick = onDismiss)
+            TaskBDialogAction(label = confirmText, onClick = onConfirm)
+        },
     )
 }
