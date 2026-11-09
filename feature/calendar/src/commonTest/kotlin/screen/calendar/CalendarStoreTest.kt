@@ -36,12 +36,10 @@ class CalendarStoreTest {
     private val created = Instant.parse(input = "2026-10-01T10:00:00Z")
 
     @Test
-    fun `date picker cancellation preserves browsing and choosing a date selects its month and tasks`(): TestResult {
+    fun `year navigation preserves the displayed month and selected day`(): TestResult {
         return runTest {
-            val selected = LocalDate(year = 2036, month = 6, day = 12)
-            val task = Task(id = 1, name = "Anniversary", dueDate = selected)
             CalendarStore(
-                    repository = Tasks(tasks = listOf(element = task)),
+                    repository = Tasks(tasks = emptyList()),
                     groups = Groups(),
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
                     today = { today },
@@ -49,25 +47,15 @@ class CalendarStoreTest {
                 .use { store ->
                     runCurrent()
                     store.accept(intent = CalendarIntent.NextMonth)
-                    store.accept(intent = CalendarIntent.ShowUnscheduled)
+                    store.accept(intent = CalendarIntent.NextYear)
                     runCurrent()
-                    val month = store.state.value.month
-                    store.accept(intent = CalendarIntent.ChooseDate)
-                    runCurrent()
-                    assertTrue(actual = store.state.value.isDatePickerOpen)
-                    store.accept(intent = CalendarIntent.DismissDatePicker)
-                    runCurrent()
-                    assertFalse(actual = store.state.value.isDatePickerOpen)
-                    assertEquals(expected = month, actual = store.state.value.month)
-                    assertNull(actual = store.state.value.selectedDate)
+                    assertEquals(expected = YearMonth(year = 2027, month = 11), actual = store.state.value.month)
+                    assertEquals(expected = today, actual = store.state.value.selectedDate)
 
-                    store.accept(intent = CalendarIntent.ChooseDate)
-                    store.accept(intent = CalendarIntent.DateChosen(date = selected))
+                    store.accept(intent = CalendarIntent.PreviousYear)
                     runCurrent()
-                    assertFalse(actual = store.state.value.isDatePickerOpen)
-                    assertEquals(expected = selected, actual = store.state.value.selectedDate)
-                    assertEquals(expected = YearMonth(year = 2036, month = 6), actual = store.state.value.month)
-                    assertEquals(expected = listOf(element = task), actual = store.state.value.sidebarTasks)
+                    assertEquals(expected = YearMonth(year = 2026, month = 11), actual = store.state.value.month)
+                    assertEquals(expected = today, actual = store.state.value.selectedDate)
                 }
         }
     }
@@ -797,14 +785,12 @@ class CalendarStoreTest {
                         actual = requests.takeLast(n = 2).toSet(),
                     )
                     assertEquals(expected = 2, actual = subscriptions)
-                    store.accept(intent = CalendarIntent.ChooseDate)
-                    store.accept(
-                        intent = CalendarIntent.DateChosen(date = LocalDate(year = 2036, month = 6, day = 12))
-                    )
+                    store.accept(intent = CalendarIntent.ShowUnscheduled)
+                    store.accept(intent = CalendarIntent.NextYear)
                     runCurrent()
                     assertEquals(
-                        expected = LocalDate(year = 2036, month = 6, day = 1) to
-                            LocalDate(year = 2036, month = 6, day = 30),
+                        expected = LocalDate(year = 2027, month = 11, day = 1) to
+                            LocalDate(year = 2027, month = 11, day = 30),
                         actual = requests.last(),
                     )
                     assertEquals(expected = 1, actual = subscriptions)

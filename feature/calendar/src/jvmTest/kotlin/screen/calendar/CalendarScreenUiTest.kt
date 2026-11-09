@@ -64,7 +64,6 @@ class CalendarScreenUiTest {
                     useUnmergedTree = true,
                 )
                 .assertIsDisplayed()
-            onNodeWithTag(testTag = "calendar-choose-date").assertIsEnabled()
             onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
             onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
             onNodeWithText(text = "Scope, milestones and owners for the next release.", useUnmergedTree = true)

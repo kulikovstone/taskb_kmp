@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.dp
@@ -32,9 +33,12 @@ internal fun Modifier.calendarMonthGestures(onIntent: (CalendarIntent) -> Unit):
                             if (lastScroll?.elapsedNow()?.inWholeMilliseconds?.let { elapsedMillis ->
                                 elapsedMillis >= 250
                             } != false) {
-                                latestIntent(
+                                val intent = if (event.keyboardModifiers.isCtrlPressed) {
+                                    if (delta > 0) CalendarIntent.NextYear else CalendarIntent.PreviousYear
+                                } else {
                                     if (delta > 0) CalendarIntent.NextMonth else CalendarIntent.PreviousMonth
-                                )
+                                }
+                                latestIntent(intent)
                                 lastScroll = TimeSource.Monotonic.markNow()
                             }
                             event.changes.forEach(action = PointerInputChange::consume)

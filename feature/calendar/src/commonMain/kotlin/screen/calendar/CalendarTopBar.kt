@@ -46,6 +46,11 @@ internal fun CalendarTopBar(
         ) {
             listOf(
                     Triple(
+                        first = TaskBIcons.DoubleChevronLeft,
+                        second = "Previous year",
+                        third = CalendarIntent.PreviousYear,
+                    ),
+                    Triple(
                         first = TaskBIcons.ChevronLeft,
                         second = "Previous month",
                         third = CalendarIntent.PreviousMonth,
@@ -54,6 +59,11 @@ internal fun CalendarTopBar(
                         first = TaskBIcons.ChevronRight,
                         second = "Next month",
                         third = CalendarIntent.NextMonth,
+                    ),
+                    Triple(
+                        first = TaskBIcons.DoubleChevronRight,
+                        second = "Next year",
+                        third = CalendarIntent.NextYear,
                     ),
                 )
                 .forEach { (icon, description, intent) ->
@@ -82,19 +92,6 @@ internal fun CalendarTopBar(
                 colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface),
             ) {
                 Text(text = "Today", style = TaskBTheme.typography.button, color = colors.accent)
-            }
-            OutlinedButton(
-                onClick = { onIntent(CalendarIntent.ChooseDate) },
-                modifier = Modifier
-                    .width(width = 116.dp)
-                    .height(height = 40.dp)
-                    .testTag(tag = "calendar-choose-date"),
-                shape = RoundedCornerShape(size = 8.dp),
-                border = BorderStroke(width = 1.dp, color = colors.border),
-                contentPadding = PaddingValues(all = 0.dp),
-                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface),
-            ) {
-                Text(text = "Choose date", style = TaskBTheme.typography.button)
             }
         }
         Spacer(modifier = Modifier.width(width = 16.dp))

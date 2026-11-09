@@ -31,8 +31,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minusMonth
+import kotlinx.datetime.minusYear
 import kotlinx.datetime.plus
 import kotlinx.datetime.plusMonth
+import kotlinx.datetime.plusYear
 import kotlinx.datetime.yearMonth
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -113,6 +115,10 @@ internal class CalendarStore(
                 message = CalendarMessage.Month(value = state.value.month.minusMonth()),
             )
             CalendarIntent.NextMonth -> reduce(message = CalendarMessage.Month(value = state.value.month.plusMonth()))
+            CalendarIntent.PreviousYear -> reduce(
+                message = CalendarMessage.Month(value = state.value.month.minusYear()),
+            )
+            CalendarIntent.NextYear -> reduce(message = CalendarMessage.Month(value = state.value.month.plusYear()))
             CalendarIntent.Today -> {
                 val date = today()
                 reduce(message = CalendarMessage.Today(value = date, now = clock.now()))
@@ -120,10 +126,6 @@ internal class CalendarStore(
                 reduce(message = CalendarMessage.SelectedDate(value = date))
             }
             is CalendarIntent.SelectDay -> reduce(message = CalendarMessage.SelectedDate(value = intent.date))
-            CalendarIntent.ChooseDate -> reduce(message = CalendarMessage.DatePicker(open = true))
-            CalendarIntent.DismissDatePicker -> reduce(message = CalendarMessage.DatePicker(open = false))
-            is CalendarIntent.DateChosen ->
-                if (state.value.isDatePickerOpen) reduce(message = CalendarMessage.DateChosen(value = intent.date))
             CalendarIntent.ShowUnscheduled -> reduce(message = CalendarMessage.SelectedDate(value = null))
             CalendarIntent.DismissError -> reduce(message = CalendarMessage.DismissError)
             CalendarIntent.DismissMoveChoice -> reduce(message = CalendarMessage.MoveChoice(value = null))

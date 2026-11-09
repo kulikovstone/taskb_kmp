@@ -24,7 +24,6 @@ import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
-import com.mkulikov.taskb.ui.component.date_picker.TaskBDatePicker
 import com.mkulikov.taskb.ui.dialog.TaskBChoiceDialog
 import com.mkulikov.taskb.ui.dialog.TaskBDialogChoice
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -214,15 +213,6 @@ internal fun CalendarScreen(
                         )
                     }
                 }
-            }
-            if (state.isDatePickerOpen) {
-                TaskBDatePicker(
-                    date = state.selectedDate,
-                    today = state.today,
-                    onChoose = { date -> onIntent(CalendarIntent.DateChosen(date = date)) },
-                    onDismiss = { onIntent(CalendarIntent.DismissDatePicker) },
-                    availableHeight = maxHeight,
-                )
             }
         }
     }

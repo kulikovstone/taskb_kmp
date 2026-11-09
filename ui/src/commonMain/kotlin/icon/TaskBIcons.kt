@@ -14,6 +14,8 @@ import com.composables.icons.materialsymbols.outlined.Delete
 import com.composables.icons.materialsymbols.outlined.Filter_alt
 import com.composables.icons.materialsymbols.outlined.Folder
 import com.composables.icons.materialsymbols.outlined.Keyboard
+import com.composables.icons.materialsymbols.outlined.Keyboard_double_arrow_left
+import com.composables.icons.materialsymbols.outlined.Keyboard_double_arrow_right
 import com.composables.icons.materialsymbols.outlined.Repeat
 import com.composables.icons.materialsymbols.outlined.Schedule
 import com.composables.icons.materialsymbols.outlined.Search
@@ -118,6 +120,12 @@ object TaskBIcons {
 
     val ChevronLeft
         get() = MaterialSymbols.Outlined.Chevron_left
+
+    val DoubleChevronLeft
+        get() = MaterialSymbols.Outlined.Keyboard_double_arrow_left
+
+    val DoubleChevronRight
+        get() = MaterialSymbols.Outlined.Keyboard_double_arrow_right
 
     val Dropdown
         get() = MaterialSymbols.Outlined.Arrow_drop_down

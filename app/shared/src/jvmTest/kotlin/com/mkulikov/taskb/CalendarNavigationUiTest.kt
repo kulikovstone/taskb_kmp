@@ -1,9 +1,12 @@
 package com.mkulikov.taskb
 
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.toAwtImage
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
@@ -13,9 +16,6 @@ import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
-import java.nio.file.Files
-import java.nio.file.Path
-import javax.imageio.ImageIO
 import kotlin.test.*
 import kotlin.time.Clock
 import kotlinx.coroutines.runBlocking
@@ -28,11 +28,19 @@ import org.koin.compose.KoinIsolatedContext
 @OptIn(ExperimentalTestApi::class)
 class CalendarNavigationUiTest {
     @get:Rule val directory = TemporaryFolder()
+    private val monthLabel = YearMonth.Format {
+        monthName(names = MonthNames.ENGLISH_FULL)
+        chars(value = " ")
+        year()
+    }
 
+    @OptIn(InternalComposeUiApi::class)
     @Test
-    fun `shared date picker cancels without navigating and choosing a distant date loads its tasks`() {
-        withAppKoin(file = directory.root.toPath().resolve("calendar-date-picker.db")) { app ->
-            val target = LocalDate(year = 2036, month = 6, day = 12)
+    fun `calendar year arrows and control wheel keep the month and load its tasks`() {
+        withAppKoin(file = directory.root.toPath().resolve("calendar-year-navigation.db")) { app ->
+            val month = Clock.System.todayIn(timeZone = TimeZone.currentSystemDefault()).yearMonth
+            val nextYear = month.plusYear()
+            val target = nextYear.firstDay
             val db = app.koin.get<AppDatabase>()
             runBlocking {
                 app.koin.get<IAppSettings>().completeWelcome()
@@ -40,7 +48,7 @@ class CalendarNavigationUiTest {
                     .insert(
                         task = TaskEntity(
                             name = "Anniversary",
-                            description = "Chosen date details",
+                            description = "Anniversary details",
                             dueDate = target.toEpochDays(),
                         )
                     )
@@ -54,39 +62,27 @@ class CalendarNavigationUiTest {
                 waitText(text = "Calendar")
                 onNodeWithText(text = "Calendar").performClick()
                 waitText(text = "Task")
-                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
-                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
-                onNodeWithTag(testTag = "calendar-choose-date").assertIsEnabled().performClick()
-                onNodeWithTag(testTag = "date-picker-panel").assertIsDisplayed()
-                onNode(matcher = isDialog()).screenshot(name = "calendar-date-picker")
-                onNodeWithText(text = "Cancel").performClick()
-                onNodeWithTag(testTag = "date-picker-panel").assertDoesNotExist()
-                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
+                onNodeWithText(text = "Choose date").assertDoesNotExist()
+                onNodeWithContentDescription(label = "Next year").performClick()
+                waitText(text = monthLabel.format(value = nextYear))
+                onNodeWithText(text = monthLabel.format(value = nextYear)).assertIsDisplayed()
+                waitText(text = "Anniversary")
+                onNodeWithTag(testTag = "calendar-day-$target", useUnmergedTree = true).performClick()
+                waitText(text = "Anniversary details")
 
-                onNodeWithTag(testTag = "calendar-choose-date").performClick()
-                onNodeWithContentDescription(label = "Choose year").performClick()
-                onNodeWithContentDescription(label = "Year").performTextReplacement(text = "2036")
-                onNodeWithContentDescription(label = "Year").performImeAction()
-                onNodeWithContentDescription(label = "Choose month").performClick()
-                onNodeWithContentDescription(label = "Choose June 2036").performClick()
-                onNodeWithContentDescription(label = "Choose June 12, 2036").performClick()
-                waitText(text = "Chosen date details")
-                onNodeWithTag(testTag = "date-picker-panel").assertDoesNotExist()
-                onNodeWithText(text = "June 2036").assertIsDisplayed()
-                onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("Jun 12, 2036")
-                onNodeWithTag(testTag = "calendar-day-$target", useUnmergedTree = true).assertIsSelected()
-                onNode(
-                        matcher = hasText(text = "Anniversary") and
-                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
-                        useUnmergedTree = true,
+                onNodeWithContentDescription(label = "Previous year").performClick()
+                waitText(text = monthLabel.format(value = month))
+                val grid = onNodeWithTag(testTag = "calendar-grid").fetchSemanticsNode()
+                runOnIdle {
+                    (grid.root as PlatformRootForTest).sendPointerEvent(
+                        eventType = PointerEventType.Scroll,
+                        position = grid.boundsInRoot.center,
+                        scrollDelta = Offset(x = 0f, y = -1f),
+                        keyboardModifiers = PointerKeyboardModifiers(isCtrlPressed = true),
                     )
-                    .assertIsDisplayed()
-                onRoot().screenshot(name = "calendar-chosen-date")
-
-                onNodeWithTag(testTag = "calendar-choose-date").performClick()
-                onNodeWithContentDescription(label = "Choose June 12, 2036").assertIsSelected()
-                onNodeWithText(text = "Cancel").performClick()
-                onNodeWithText(text = "June 2036").assertIsDisplayed()
+                }
+                waitText(text = monthLabel.format(value = month.minusYear()))
+                onNodeWithText(text = "Anniversary details").assertIsDisplayed()
             }
         }
     }
@@ -214,12 +210,7 @@ class CalendarNavigationUiTest {
         withAppKoin(file = directory.root.toPath().resolve("calendar.db")) { app ->
             val today = Clock.System.todayIn(timeZone = TimeZone.currentSystemDefault())
             val next = today.yearMonth.plusMonth()
-            val label = YearMonth.Format {
-                    monthName(names = MonthNames.ENGLISH_FULL)
-                    chars(value = " ")
-                    year()
-                }
-                .format(value = next)
+            val label = monthLabel.format(value = next)
             val db = app.koin.get<AppDatabase>()
             runBlocking {
                 app.koin.get<IAppSettings>().completeWelcome()
@@ -256,7 +247,6 @@ class CalendarNavigationUiTest {
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
-                onNodeWithTag(testTag = "calendar-choose-date").assertIsEnabled()
                 onNodeWithText(text = "Create task").assertDoesNotExist()
                 onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
                 waitText(text = "Calendar task")
@@ -393,11 +383,5 @@ class CalendarNavigationUiTest {
         waitUntil(timeoutMillis = 10_000) {
             onAllNodes(matcher = hasText(text = text), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
-    }
-
-    private fun SemanticsNodeInteraction.screenshot(name: String) {
-        val path = Path.of("build/reports/screenshots/$name.png")
-        Files.createDirectories(path.parent)
-        ImageIO.write(captureToImage().toAwtImage(), "png", path.toFile())
     }
 }
