@@ -11,7 +11,6 @@ fun TaskBChoiceDialog(title: String, message: String, choices: List<TaskBDialogC
         title = title,
         message = message,
         onDismiss = onDismiss,
-        cornerRadius = 4.dp,
         actionSpacing = 0.dp,
         actions = { TaskBDialogAction(label = "Cancel", onClick = onDismiss) },
     ) {

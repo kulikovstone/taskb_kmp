@@ -29,7 +29,6 @@ internal fun TaskBDialogPanel(
     title: String,
     message: String,
     onDismiss: () -> Unit,
-    cornerRadius: Dp = 28.dp,
     actionSpacing: Dp = 8.dp,
     actions: @Composable () -> Unit,
     content: @Composable () -> Unit = {},
@@ -42,7 +41,7 @@ internal fun TaskBDialogPanel(
                 .padding(all = 16.dp)
                 .widthIn(max = 400.dp)
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(size = cornerRadius),
+            shape = RoundedCornerShape(size = 28.dp),
             color = colors.surface,
         ) {
             Column(
