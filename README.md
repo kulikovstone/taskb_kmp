@@ -382,33 +382,34 @@ configuration cache и наследование версии модулями:
 Настройки находятся в [app/desktopApp/build.gradle.kts](./app/desktopApp/build.gradle.kts).
 Из прежнего Desktop-проекта перенесены имя пакета `TaskB`, иконки для Linux, Windows и macOS,
 настройка JDK 21 и [compose-desktop.pro](./app/desktopApp/compose-desktop.pro) с правилами
-для Room и SQLite. Минификация ProGuard в релизной сборке отключена, как в прежнем проекте.
+для Room и SQLite. В релизной сборке ProGuard обфусцирует код.
 Версия пакетов автоматически рассчитывается из `version-major.txt` и истории Git.
 
-Готовое приложение со встроенной Java, без установщика:
+Сборка обфусцированного приложения со встроенной Java без установщика:
 
 ```bash
-./gradlew :app:desktopApp:createDistributable
+./gradlew :app:desktopApp:createReleaseDistributable
 ```
 
 На Linux результат находится в `app/desktopApp/build/compose/binaries/main/app/TaskB`.
 Запуск: `app/desktopApp/build/compose/binaries/main/app/TaskB/bin/TaskB`.
-Релизный вариант собирается задачей `:app:desktopApp:createReleaseDistributable` в
-`app/desktopApp/build/compose/binaries/main-release/app/TaskB`.
+На других платформах релизное приложение находится в `app/desktopApp/build/compose/binaries/main-release/app`.
+Для локальной разработки подходят `run` и `hotRun`. На Linux задача `createDistributable`
+собирает приложение без обфускации в `app/desktopApp/build/compose/binaries/main-dev/app/TaskB`.
 
-Установщики собираются на соответствующей ОС:
+Обфусцированные установщики собираются на соответствующей ОС:
 
 | Система | Команда | Каталог результата |
 | --- | --- | --- |
-| Linux, RPM | `./gradlew :app:desktopApp:packageRpm` | `app/desktopApp/build/compose/binaries/main/rpm` |
-| Linux, DEB | `./gradlew :app:desktopApp:packageDeb` | `app/desktopApp/build/compose/binaries/main/deb` |
-| Windows, MSI | `./gradlew :app:desktopApp:packageMsi` | `app/desktopApp/build/compose/binaries/main/msi` |
-| macOS, DMG | `./gradlew :app:desktopApp:packageDmg` | `app/desktopApp/build/compose/binaries/main/dmg` |
+| Linux, RPM | `./gradlew :app:desktopApp:packageReleaseRpm` | `app/desktopApp/build/compose/binaries/main-release/rpm` |
+| Linux, DEB | `./gradlew :app:desktopApp:packageReleaseDeb` | `app/desktopApp/build/compose/binaries/main-release/deb` |
+| Windows, MSI | `./gradlew :app:desktopApp:packageReleaseMsi` | `app/desktopApp/build/compose/binaries/main-release/msi` |
+| macOS, DMG | `./gradlew :app:desktopApp:packageReleaseDmg` | `app/desktopApp/build/compose/binaries/main-release/dmg` |
 
 Для RPM нужен `rpmbuild`, для DEB — `dpkg-deb`. Подробнее об инструментах упаковки — в
 [документации Compose Multiplatform](https://kotlinlang.org/docs/multiplatform/compose-native-distribution.html).
 
-Чтобы собрать приложение и добавить ярлык в меню приложений Linux:
+Чтобы собрать обфусцированное приложение и добавить ярлык в меню приложений Linux:
 
 ```bash
 ./gradlew :app:desktopApp:installLinuxDesktopEntry
@@ -416,7 +417,8 @@ configuration cache и наследование версии модулями:
 
 Задача записывает `applications/com.mkulikov.taskb.desktop` в `$XDG_DATA_HOME`, а если
 переменная не задана — в `~/.local/share`. Ярлык указывает на приложение в каталоге `build`;
-после очистки сборки выполните задачу повторно.
+после очистки сборки выполните задачу повторно. Путь к приложению и идентификатор ярлыка
+те же, поэтому уже закреплённый ярлык запускает новую сборку.
 
 ### Запуск тестов
 
