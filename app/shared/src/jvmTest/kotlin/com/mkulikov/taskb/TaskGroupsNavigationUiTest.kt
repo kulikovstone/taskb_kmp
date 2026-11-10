@@ -316,6 +316,16 @@ class TaskGroupsNavigationUiTest {
                 }
 
                 onNodeWithText(text = "Alpha").assertTextEquals("Alpha", "2", "1")
+                onNodeWithText(text = "Alpha").performClick()
+                waitText(text = "Planned")
+                val eventLabel = onNodeWithText(text = "Events").fetchSemanticsNode().boundsInRoot
+                val eventValue = onNodeWithText(text = "1").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                val plannedLabel = onNodeWithText(text = "Planned").fetchSemanticsNode().boundsInRoot
+                val completedLabel = onNodeWithText(text = "Completed").fetchSemanticsNode().boundsInRoot
+                assertEquals(expected = eventLabel.left, actual = eventValue.left, absoluteTolerance = 0.5f)
+                assertTrue(actual = eventLabel.left < plannedLabel.left && plannedLabel.left < completedLabel.left)
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "3 groups")
 
                 events.performClick()
                 waitUntil(timeoutMillis = 10_000) {

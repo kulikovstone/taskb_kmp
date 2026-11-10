@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -26,8 +27,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
-import com.mkulikov.taskb.feature.group.api.model.GroupTaskSummary
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -79,13 +80,23 @@ internal fun GroupColorPicker(selected: GroupColor, onSelect: (GroupColor) -> Un
 }
 
 @Composable
-internal fun GroupStatistics(tasks: GroupTaskSummary) {
+internal fun GroupStatistics(group: Group) {
     val colors = TaskBTheme.colors
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-        listOf("Planned" to tasks.planned, "Completed" to tasks.completed).forEach { (label, value) ->
+    val statistics = listOf(
+        "Events" to group.eventCount,
+        "Planned" to group.tasks.planned,
+        "Completed" to group.tasks.completed,
+    )
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+    ) {
+        statistics.forEach { (label, value) ->
             Column(
                 modifier = Modifier
                     .weight(weight = 1f)
+                    .widthIn(min = 88.dp)
                     .height(height = 78.dp)
                     .background(color = colors.subtle, shape = RoundedCornerShape(size = 10.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp),

@@ -42,7 +42,7 @@ internal fun GroupEditorForm(
             val enabled = !state.isBusy && !state.isFinished && state.dialog == null
             val colors = TaskBTheme.colors
             if (!state.isNew) {
-                GroupStatistics(tasks = requireNotNull(value = state.original).tasks)
+                GroupStatistics(group = requireNotNull(value = state.original))
                 Spacer(modifier = Modifier.height(height = 24.dp))
             }
             Text(
