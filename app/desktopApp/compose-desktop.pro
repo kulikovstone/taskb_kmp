@@ -3,3 +3,9 @@
 
 # SQLite's JNI library registers native methods, including unused ones.
 -keep class androidx.sqlite.driver.bundled.** { *; }
+
+# The JVM looks up enum values by reflection when reading saved recurrence frequencies.
+-keepclassmembers,allowoptimization enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
