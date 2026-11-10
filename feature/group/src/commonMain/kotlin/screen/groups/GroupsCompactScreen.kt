@@ -25,7 +25,12 @@ internal fun GroupsCompactScreen(
     onEditGroup: (Int) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        TaskBTopAppBar(title = "Groups", onBack = onBack, titleSpacing = 4.dp) {
+        TaskBTopAppBar(
+            title = "Groups",
+            onBack = onBack,
+            titleSpacing = 4.dp,
+            subtitle = { GroupsSummary(state = state, wide = false) },
+        ) {
             IconButton(onClick = onCreateGroup) {
                 Icon(
                     imageVector = TaskBIcons.Add,
@@ -34,21 +39,22 @@ internal fun GroupsCompactScreen(
                 )
             }
         }
-        Column(modifier = Modifier.weight(weight = 1f).padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
-            TaskBTextField(
-                state = state.query,
-                description = "Search groups",
-                placeholder = "Search groups",
-                search = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(height = 16.dp))
-            GroupsFilters(state = state, onIntent = onIntent)
-            Spacer(modifier = Modifier.height(height = 16.dp))
+        Column(modifier = Modifier.weight(weight = 1f).padding(top = 12.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                TaskBTextField(
+                    state = state.query,
+                    description = "Search groups",
+                    placeholder = "Search groups",
+                    search = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(height = 8.dp))
+                GroupsFilters(state = state, onIntent = onIntent)
+            }
+            Spacer(modifier = Modifier.height(height = 8.dp))
             GroupsDirectory(
                 state = state,
                 onIntent = onIntent,
-                compact = true,
                 onOpenGroup = onEditGroup,
                 modifier = Modifier.weight(weight = 1f).fillMaxWidth(),
             )

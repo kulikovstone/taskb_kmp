@@ -77,6 +77,7 @@ internal class GroupRepository(
             name = group.name,
             color = GroupColor.fromArgb(argb = group.color),
             tasks = GroupTaskSummary(planned = planned, completed = completed),
+            eventCount = eventCount,
         )
     }
 }

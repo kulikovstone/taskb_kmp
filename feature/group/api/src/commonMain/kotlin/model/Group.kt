@@ -5,4 +5,5 @@ data class Group(
     val name: String,
     val color: GroupColor,
     val tasks: GroupTaskSummary = GroupTaskSummary(),
+    val eventCount: Int = 0,
 )

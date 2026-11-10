@@ -32,6 +32,7 @@ internal data class GroupsState(
             val comparator = when (sort) {
                 GroupSort.Name -> byName
                 GroupSort.Tasks -> compareByDescending<Group> { group -> group.tasks.planned }.then(comparator = byName)
+                GroupSort.Events -> compareByDescending(selector = Group::eventCount).then(comparator = byName)
             }
             return matching.sortedWith(comparator = if (reverseSort) comparator.reversed() else comparator)
         }
@@ -53,4 +54,5 @@ internal enum class GroupFilter {
 internal enum class GroupSort {
     Name,
     Tasks,
+    Events,
 }

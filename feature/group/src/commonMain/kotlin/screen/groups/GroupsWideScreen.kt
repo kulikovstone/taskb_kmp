@@ -45,12 +45,17 @@ internal fun GroupsWideScreen(
                 style = TaskBTheme.typography.display,
                 color = TaskBTheme.colors.heading,
             )
+            Spacer(modifier = Modifier.width(width = 16.dp))
+            GroupsSummary(state = state, wide = true)
             Spacer(modifier = Modifier.weight(weight = 1f))
             TaskBEditorButton(label = "New group", icon = TaskBIcons.Add, onClick = onCreateGroup)
         }
-        Column(modifier = Modifier.weight(weight = 1f).padding(start = 32.dp, end = 32.dp, top = 16.dp)) {
+        Column(modifier = Modifier.weight(weight = 1f).padding(top = 8.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth().height(height = 44.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(height = 44.dp)
+                    .padding(horizontal = 32.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
             ) {
@@ -63,11 +68,10 @@ internal fun GroupsWideScreen(
                 )
                 GroupsFilters(state = state, onIntent = onIntent)
             }
-            Spacer(modifier = Modifier.height(height = 24.dp))
+            Spacer(modifier = Modifier.height(height = 12.dp))
             GroupsDirectory(
                 state = state,
                 onIntent = onIntent,
-                compact = false,
                 onOpenGroup = onEditGroup,
                 modifier = Modifier.weight(weight = 1f).fillMaxWidth(),
             )

@@ -12,12 +12,12 @@ interface IGroupDao {
     @Query(value = "SELECT * FROM `groups` ORDER BY id") fun observeGroups(): Flow<List<GroupEntity>>
 
     @Query(
-        value =
-            """
-        SELECT g.*, COUNT(CASE WHEN t.completedAt IS NULL THEN t.id END) AS planned,
-            COUNT(t.completedAt) AS completed
-        FROM `groups` g LEFT JOIN tasks t ON t.groupId = g.id GROUP BY g.id ORDER BY g.id
-    """
+        value = """
+            SELECT g.*, COUNT(CASE WHEN t.completedAt IS NULL THEN t.id END) AS planned,
+                COUNT(t.completedAt) AS completed,
+                (SELECT COUNT(*) FROM events e WHERE e.groupId = g.id) AS eventCount
+            FROM `groups` g LEFT JOIN tasks t ON t.groupId = g.id GROUP BY g.id ORDER BY g.id
+        """,
     )
     fun observeGroupsWithTaskCounts(): Flow<List<GroupWithTaskCounts>>
 
@@ -25,6 +25,7 @@ interface IGroupDao {
         value = """
             SELECT g.*, COUNT(CASE WHEN t.completedAt IS NULL THEN t.id END) AS planned,
                 COUNT(t.completedAt) AS completed,
+                (SELECT COUNT(*) FROM events e WHERE e.groupId = g.id) AS eventCount,
                 COUNT(CASE WHEN t.createdAt >= :createdSince THEN t.id END) AS recentTaskCount
             FROM `groups` g LEFT JOIN tasks t ON t.groupId = g.id GROUP BY g.id
         """,
@@ -32,12 +33,12 @@ interface IGroupDao {
     fun observeGroupsWithUsage(createdSince: Long): Flow<List<GroupWithUsage>>
 
     @Query(
-        value =
-            """
-        SELECT g.*, COUNT(CASE WHEN t.completedAt IS NULL THEN t.id END) AS planned,
-            COUNT(t.completedAt) AS completed
-        FROM `groups` g LEFT JOIN tasks t ON t.groupId = g.id WHERE g.id = :id GROUP BY g.id
-    """
+        value = """
+            SELECT g.*, COUNT(CASE WHEN t.completedAt IS NULL THEN t.id END) AS planned,
+                COUNT(t.completedAt) AS completed,
+                (SELECT COUNT(*) FROM events e WHERE e.groupId = g.id) AS eventCount
+            FROM `groups` g LEFT JOIN tasks t ON t.groupId = g.id WHERE g.id = :id GROUP BY g.id
+        """,
     )
     suspend fun getWithTaskCounts(id: Int): GroupWithTaskCounts?
 

@@ -6,4 +6,5 @@ data class GroupWithTaskCounts(
     @Embedded val group: GroupEntity,
     val planned: Int,
     val completed: Int,
+    val eventCount: Int,
 )

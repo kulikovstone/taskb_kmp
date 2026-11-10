@@ -28,6 +28,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -39,8 +40,10 @@ import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.database.AppDatabase
+import com.mkulikov.taskb.feature.event.api.database.EventEntity
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
+import com.mkulikov.taskb.feature.task.api.database.TaskEntity
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import java.nio.file.Files
@@ -279,6 +282,62 @@ class TaskGroupsNavigationUiTest {
     }
 
     @Test
+    fun `groups sort by live event counts without changing task totals`() {
+        withAppKoin(file = directory.resolve("group-events.db")) { application ->
+            val database = application.koin.get<AppDatabase>()
+            val (alphaId, movedEvent) = runBlocking {
+                application.koin.get<IAppSettings>().completeWelcome()
+                val groups = database.groupDao()
+                val alpha = groups.insert(group = GroupEntity(name = "Alpha", color = Palette.Blue.s400.toArgb()))
+                    .toInt()
+                val beta = groups.insert(group = GroupEntity(name = "Beta", color = Palette.Green.s400.toArgb()))
+                    .toInt()
+                groups.insert(group = GroupEntity(name = "Gamma", color = Palette.Orange.s400.toArgb()))
+                repeat(times = 2) {
+                    database.taskDao().insert(task = TaskEntity(name = "Task", groupId = alpha))
+                }
+                val events = database.eventDao()
+                events.insert(event = EventEntity(name = "Event in Alpha", groupId = alpha))
+                events.insert(event = EventEntity(name = "Event in Beta", groupId = beta))
+                val event = EventEntity(name = "Moved event", groupId = beta)
+                val eventId = events.insert(event = event).toInt()
+                alpha to event.copy(id = eventId)
+            }
+
+            runSkikoComposeUiTest(size = Size(width = 400f, height = 720f)) {
+                setApp(application = application, dark = false)
+                openGroups()
+                waitText(text = "3 groups")
+                onNodeWithTag(testTag = "group-list-scrollbar").assertDoesNotExist()
+                val events = onNodeWithContentDescription(label = "Sort by Events")
+
+                fun groupOrder(): List<String> = listOf("Alpha", "Beta", "Gamma").sortedBy { name ->
+                    onNodeWithText(text = name).fetchSemanticsNode().boundsInRoot.top
+                }
+
+                onNodeWithText(text = "Alpha").assertTextEquals("Alpha", "2", "1")
+
+                events.performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    groupOrder() == listOf("Beta", "Alpha", "Gamma")
+                }
+
+                runBlocking { database.eventDao().update(event = movedEvent.copy(groupId = alphaId)) }
+                waitUntil(timeoutMillis = 10_000) {
+                    groupOrder() == listOf("Alpha", "Beta", "Gamma")
+                }
+                onNodeWithText(text = "Alpha").assertTextEquals("Alpha", "2", "2")
+                onNodeWithText(text = "Gamma").assertTextEquals("Gamma", "0", "0")
+
+                events.performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    groupOrder() == listOf("Gamma", "Beta", "Alpha")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `list and editor scroll areas reach the bottom of compact and wide windows`() {
         withAppKoin(file = directory.resolve("bottom-edge.db")) { application ->
             seedGroups(application = application)
@@ -292,12 +351,15 @@ class TaskGroupsNavigationUiTest {
                     waitForIdle()
                     val bottom = onRoot().fetchSemanticsNode().boundsInRoot.bottom
                     val list = onNode(matcher = SemanticsMatcher.keyIsDefined(key = SemanticsActions.ScrollToIndex))
+                    val scrollbar = onNodeWithTag(testTag = "group-list-scrollbar")
+                    scrollbar.assertIsDisplayed()
                     assertEquals(
                         expected = bottom,
                         actual = list.fetchSemanticsNode().boundsInRoot.bottom,
                         absoluteTolerance = 0.5f,
                     )
                     list.performScrollToIndex(index = 7)
+                    scrollbar.assertIsDisplayed()
                     onNodeWithText(text = "Work").assertIsDisplayed().performClick()
                     waitText(text = "Planned")
                     val form = onNode(
