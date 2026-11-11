@@ -31,72 +31,85 @@ internal fun CalendarTopBar(
             Icon(imageVector = TaskBIcons.Back, contentDescription = "Back", tint = colors.heading)
         }
         Spacer(modifier = Modifier.width(width = 8.dp))
-        Text(
-            text = calendarMonthLabel.format(value = state.month),
-            modifier = Modifier.weight(weight = 1f).offset(y = (-2).dp),
-            style = TaskBTheme.typography.display,
-            color = colors.heading,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(modifier = Modifier.width(width = 24.dp))
         Row(
-            horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+            modifier = Modifier.weight(weight = 1f),
+            horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            listOf(
-                    Triple(
-                        first = TaskBIcons.DoubleChevronLeft,
-                        second = "Previous year",
-                        third = CalendarIntent.PreviousYear,
-                    ),
-                    Triple(
-                        first = TaskBIcons.ChevronLeft,
-                        second = "Previous month",
-                        third = CalendarIntent.PreviousMonth,
-                    ),
-                    Triple(
-                        first = TaskBIcons.ChevronRight,
-                        second = "Next month",
-                        third = CalendarIntent.NextMonth,
-                    ),
-                    Triple(
-                        first = TaskBIcons.DoubleChevronRight,
-                        second = "Next year",
-                        third = CalendarIntent.NextYear,
-                    ),
-                )
-                .forEach { (icon, description, intent) ->
-                    OutlinedButton(
-                        onClick = { onIntent(intent) },
-                        modifier = Modifier.size(size = 40.dp),
-                        shape = RoundedCornerShape(size = 8.dp),
-                        border = BorderStroke(width = 1.dp, color = colors.border),
-                        contentPadding = PaddingValues(all = 0.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface),
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = description,
-                            tint = colors.secondary,
-                            modifier = Modifier.size(size = 18.dp),
-                        )
-                    }
-                }
-            OutlinedButton(
-                onClick = { onIntent(CalendarIntent.Today) },
-                modifier = Modifier.width(width = 72.dp).height(height = 40.dp).testTag(tag = "calendar-today"),
-                shape = RoundedCornerShape(size = 8.dp),
-                border = BorderStroke(width = 1.dp, color = colors.border),
-                contentPadding = PaddingValues(all = 0.dp),
-                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface),
-            ) {
-                Text(text = "Today", style = TaskBTheme.typography.button, color = colors.accent)
-            }
+            Text(
+                text = calendarMonthLabel.format(value = state.month),
+                modifier = Modifier.weight(weight = 1f, fill = false).offset(y = (-2).dp),
+                style = TaskBTheme.typography.display,
+                color = colors.heading,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            CalendarDateNavigation(onIntent = onIntent)
         }
         Spacer(modifier = Modifier.width(width = 16.dp))
         TaskBEditorButton(label = "Task", icon = TaskBIcons.Add, onClick = onCreateTask)
         Spacer(modifier = Modifier.width(width = 8.dp))
         TaskBEditorButton(label = "Event", icon = TaskBIcons.Add, onClick = onCreateEvent)
+    }
+}
+
+@Composable
+private fun CalendarDateNavigation(onIntent: (CalendarIntent) -> Unit) {
+    val colors = TaskBTheme.colors
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        listOf(
+            Triple(
+                first = TaskBIcons.DoubleChevronLeft,
+                second = "Previous year",
+                third = CalendarIntent.PreviousYear,
+            ),
+            Triple(
+                first = TaskBIcons.ChevronLeft,
+                second = "Previous month",
+                third = CalendarIntent.PreviousMonth,
+            ),
+            Triple(
+                first = TaskBIcons.ChevronRight,
+                second = "Next month",
+                third = CalendarIntent.NextMonth,
+            ),
+            Triple(
+                first = TaskBIcons.DoubleChevronRight,
+                second = "Next year",
+                third = CalendarIntent.NextYear,
+            ),
+        ).forEach { (icon, description, intent) ->
+            OutlinedButton(
+                onClick = { onIntent(intent) },
+                modifier = Modifier.size(size = 40.dp),
+                shape = RoundedCornerShape(size = 8.dp),
+                border = BorderStroke(width = 1.dp, color = colors.border),
+                contentPadding = PaddingValues(all = 0.dp),
+                colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = description,
+                    tint = colors.secondary,
+                    modifier = Modifier.size(size = 18.dp),
+                )
+            }
+        }
+        OutlinedButton(
+            onClick = { onIntent(CalendarIntent.Today) },
+            modifier = Modifier
+                .width(width = 72.dp)
+                .height(height = 40.dp)
+                .testTag(tag = "calendar-today"),
+            shape = RoundedCornerShape(size = 8.dp),
+            border = BorderStroke(width = 1.dp, color = colors.border),
+            contentPadding = PaddingValues(all = 0.dp),
+            colors = ButtonDefaults.outlinedButtonColors(backgroundColor = colors.surface),
+        ) {
+            Text(text = "Today", style = TaskBTheme.typography.button, color = colors.accent)
+        }
     }
 }
