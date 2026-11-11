@@ -1,20 +1,27 @@
 package com.mkulikov.taskb
 
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isOff
 import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import java.nio.file.Files
 import java.nio.file.Path
+import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -33,19 +40,28 @@ class AppNavigationUiTest {
     fun `welcome repeats on launch until disabled in settings`() {
         val file = temporaryDirectory.resolve("taskb.db")
         repeat(times = 2) { launch ->
+            val width = if (launch == 0) 1440f else 400f
+            val imageHeight = if (launch == 0) 900f else 636f
             withAppKoin(file = file) { application ->
                 val settings = application.koin.get<IAppSettings>()
-                runComposeUiTest {
+                runSkikoComposeUiTest(size = Size(width = width, height = 900f)) {
                     setContent {
                         KoinIsolatedContext(context = application) {
                             TaskBTheme(darkTheme = false) { TaskBApp(settings = settings) }
                         }
                     }
                     waitUntil(timeoutMillis = 10_000) {
-                        onAllNodes(matcher = hasText(text = "Continue")).fetchSemanticsNodes().isNotEmpty()
+                        onAllNodes(matcher = hasText(text = "Get started")).fetchSemanticsNodes().isNotEmpty()
                     }
                     onNodeWithText(text = "Welcome to TaskB").assertIsDisplayed()
-                    onNodeWithText(text = "Continue").performClick()
+                    val screenshot = Path.of("build/reports/screenshots/welcome-${width.toInt()}.png")
+                    Files.createDirectories(screenshot.parent)
+                    ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", screenshot.toFile())
+                    assertEquals(
+                        expected = Rect(left = 0f, top = 0f, right = width, bottom = imageHeight),
+                        actual = onNodeWithTag(testTag = "welcome-illustration").fetchSemanticsNode().boundsInRoot,
+                    )
+                    onNodeWithText(text = "Get started").performClick()
                     val settingsButton = hasText(text = "Settings") and hasClickAction()
                     waitUntil(timeoutMillis = 10_000) {
                         onAllNodes(matcher = settingsButton).fetchSemanticsNodes().isNotEmpty()
@@ -140,11 +156,11 @@ class AppNavigationUiTest {
                     }
                 }
                 waitUntil(timeoutMillis = 10_000) {
-                    onAllNodes(matcher = hasText(text = "Couldn't read settings. Press Continue to get started."))
+                    onAllNodes(matcher = hasText(text = "Couldn't read settings."))
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                onNodeWithText(text = "Continue").performClick()
+                onNodeWithText(text = "Get started").performClick()
                 val tasks = hasText(text = "Tasks") and hasClickAction()
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(matcher = tasks).fetchSemanticsNodes().isNotEmpty()

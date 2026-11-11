@@ -32,7 +32,7 @@ internal fun TaskBApp(settings: IAppSettings) {
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Exception) {
-            initialError = "Couldn't read settings. Press Continue to get started."
+            initialError = "Couldn't read settings."
             true
         }
         startDestination = if (showWelcomeScreen) HelloRoute(initialError = initialError) else HomeRoute

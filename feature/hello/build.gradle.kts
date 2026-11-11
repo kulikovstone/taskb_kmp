@@ -7,6 +7,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.koin.core)
             implementation(libs.compose.material)
+            implementation(libs.compose.resources)
 
             implementation(project(":core:navigation"))
             implementation(project(":feature:hello:api"))
@@ -14,4 +15,8 @@ kotlin {
             implementation(project(":ui"))
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.mkulikov.taskb.feature.hello.resources"
 }
