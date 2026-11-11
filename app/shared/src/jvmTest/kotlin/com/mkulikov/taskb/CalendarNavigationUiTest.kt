@@ -310,19 +310,35 @@ class CalendarNavigationUiTest {
                 onNodeWithContentDescription(label = "Clear date").assertIsDisplayed()
                 onNodeWithContentDescription(label = "Task name")
                     .performTextReplacement(text = "Created from calendar")
+                val visibilityLabel = "Show in calendar"
+                waitText(text = visibilityLabel)
+                onNodeWithText(text = visibilityLabel).assertIsOn().performClick()
+                onNodeWithText(text = visibilityLabel).assertIsOff()
                 onNodeWithContentDescription(label = "Save task").performClick()
                 waitText(text = "Selected day details")
                 waitText(text = "Created from calendar")
-                onNode(
-                        matcher = hasText(text = "Created from calendar") and
-                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
-                        useUnmergedTree = true,
-                    )
-                    .assertIsDisplayed()
+                val newTask = hasText(text = "Created from calendar")
+                val sidebarTask = onNode(
+                    matcher = newTask and hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                    useUnmergedTree = true,
+                )
+                val gridTask = newTask and hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-grid"))
+                sidebarTask.assertIsDisplayed()
+                onNode(matcher = gridTask, useUnmergedTree = true).assertDoesNotExist()
                 assertEquals(
                     expected = next.firstDay.toEpochDays(),
                     actual = runBlocking { db.taskDao().getById(id = 4) }?.dueDate,
                 )
+
+                sidebarTask.performClick()
+                waitText(text = visibilityLabel)
+                onNodeWithText(text = visibilityLabel).assertIsOff().performClick()
+                onNodeWithContentDescription(label = "Save task").assertIsEnabled().performClick()
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodes(matcher = gridTask, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+                }
+                onNode(matcher = gridTask, useUnmergedTree = true).assertIsDisplayed()
+                sidebarTask.assertIsDisplayed()
                 onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
                 onNode(
                         matcher = hasText(text = "Created from calendar") and

@@ -14,6 +14,7 @@ data class Task(
     val recurrence: TaskRecurrence? = null,
     val occurrenceId: TaskOccurrenceId? = null,
     val description: String = "",
+    val showInCalendar: Boolean = true,
 ) {
     val isCompleted: Boolean
         get() = completedAt != null

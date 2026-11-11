@@ -90,6 +90,7 @@ internal class TaskRepository(
                             completedAt = task.completedAt?.toEpochMilliseconds(),
                             recurring = task.recurrence != null,
                             description = task.description,
+                            showInCalendar = task.showInCalendar,
                         )
                     )
                     .toInt()
@@ -127,6 +128,7 @@ internal class TaskRepository(
                     dueDate = record.task.dueDate,
                     groupId = task.groupId,
                     description = task.description,
+                    showInCalendar = task.showInCalendar,
                 ) > 0
             if (occurrence != null && original.recurrence == task.recurrence) {
                 val date = task.dueDate ?: return@withWriteTransaction false
@@ -153,6 +155,7 @@ internal class TaskRepository(
                         dueDate = current.dueDate,
                         groupId = task.groupId,
                         description = task.description,
+                        showInCalendar = task.showInCalendar,
                     )
                 }
                 return@withWriteTransaction moved
@@ -164,6 +167,7 @@ internal class TaskRepository(
                     dueDate = task.dueDate?.toEpochDays(),
                     groupId = task.groupId,
                     description = task.description,
+                    showInCalendar = task.showInCalendar,
                 ) > 0
             val oldDate = record.task.dueDate
             val lastCompleted = (record.occurrences
@@ -220,6 +224,7 @@ internal class TaskRepository(
                 dueDate = date?.toEpochDays(),
                 groupId = task.groupId,
                 description = task.description,
+                showInCalendar = task.showInCalendar,
             )
             dao.setRecurring(id = task.id, recurring = task.recurrence != null)
             dao.setCompletedAt(id = task.id, completedAt = null)
@@ -370,6 +375,7 @@ internal class TaskRepository(
             dueDate = newDate.toEpochDays(),
             groupId = record.task.groupId,
             description = record.task.description,
+            showInCalendar = record.task.showInCalendar,
         )
         dao.setRecurring(id = id, recurring = true)
         dao.setCompletedAt(id = id, completedAt = null)

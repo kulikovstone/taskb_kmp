@@ -32,21 +32,28 @@ class CalendarDailyTasksTest {
     }
 
     @Test
-    fun `daily routines appear first only for their actual occurrence day and keep completed history`() {
+    fun `daily routines stay grouped in the sidebar and their calendar visibility follows the task setting`() {
         val completed = daily(id = 1, date = LocalDate(year = 2026, month = 11, day = 4), completed = true)
+            .copy(showInCalendar = false)
         val yesterday = LocalDate(year = 2026, month = 11, day = 5)
-        val overdue = daily(id = 1, date = yesterday)
-        val today = daily(id = 1)
-        val tomorrow = daily(id = 1, date = LocalDate(year = 2026, month = 11, day = 7))
-        val event = Event(id = 2, name = "Meeting", dueDate = date, startTime = LocalTime(hour = 12, minute = 0))
-        val bills = Task(id = 3, name = "Bills", dueDate = date)
+        val overdue = daily(id = 1, date = yesterday).copy(showInCalendar = false)
+        val visibleCompleted = daily(id = 2, date = yesterday, completed = true)
+        val today = daily(id = 2)
+        val tomorrowDate = LocalDate(year = 2026, month = 11, day = 7)
+        val tomorrow = daily(id = 2, date = tomorrowDate)
+        val event = Event(id = 4, name = "Meeting", dueDate = date, startTime = LocalTime(hour = 12, minute = 0))
+        val bills = Task(id = 3, name = "Bills", dueDate = date, showInCalendar = false)
         val state = CalendarState(
             today = date,
-            tasks = listOf(completed, overdue, today, tomorrow, bills),
+            tasks = listOf(completed, overdue, visibleCompleted, today, tomorrow, bills),
             events = listOf(element = event),
         )
         assertEquals(expected = listOf(today, bills), actual = state.sidebarTasks)
         assertEquals(expected = listOf(element = today), actual = state.sidebarDailyTasks)
+        assertEquals(
+            expected = listOf(element = overdue),
+            actual = state.copy(selectedDate = yesterday).sidebarDailyTasks,
+        )
         assertEquals(
             expected = listOf(element = CalendarItem.EventItem(event = event)),
             actual = state.sidebarEventItems,
@@ -61,8 +68,9 @@ class CalendarDailyTasksTest {
         )
         assertEquals(
             expected = mapOf<LocalDate?, List<Task>>(
-                yesterday to listOf(element = overdue),
-                date to listOf(element = bills),
+                yesterday to listOf(element = visibleCompleted),
+                date to listOf(element = today),
+                tomorrowDate to listOf(element = tomorrow),
             ),
             actual = state.monthTasksByDate,
         )
@@ -70,7 +78,7 @@ class CalendarDailyTasksTest {
 
     @Test
     fun `daily tasks stay in Daily while events including daily events stay in Event and the grid`() {
-        val routine = daily(id = 1)
+        val routine = daily(id = 1).copy(showInCalendar = false)
         val alternate = Task(
             id = 2,
             name = "Every other day",
@@ -114,9 +122,9 @@ class CalendarDailyTasksTest {
     }
 
     @Test
-    fun `routines due today stay out of month cells and their overflow counts`() {
-        val routines = (1..20).map { taskId -> daily(id = taskId) }
-        val undated = Task(id = 30, name = "No date", createdAt = created)
+    fun `hidden routines stay out of month cells and their overflow counts`() {
+        val routines = (1..20).map { taskId -> daily(id = taskId).copy(showInCalendar = false) }
+        val undated = Task(id = 30, name = "No date", createdAt = created, showInCalendar = false)
         val state = CalendarState(today = date, tasks = routines + undated)
         assertTrue(actual = state.monthTasksByDate.isEmpty())
         assertEquals(expected = 20, actual = state.sidebarTasks.size)

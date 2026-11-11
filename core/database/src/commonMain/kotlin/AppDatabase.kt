@@ -7,6 +7,7 @@ import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteDriver
 import com.mkulikov.taskb.core.database.migration.Migration10To11
 import com.mkulikov.taskb.core.database.migration.Migration11To12
+import com.mkulikov.taskb.core.database.migration.Migration12To13
 import com.mkulikov.taskb.core.database.migration.Migration3To4
 import com.mkulikov.taskb.core.database.migration.Migration4To5
 import com.mkulikov.taskb.core.database.migration.Migration5To6
@@ -42,7 +43,7 @@ import kotlinx.coroutines.Dispatchers
             HolidayEntity::class,
             HolidayMonthEntity::class,
         ],
-    version = 12,
+    version = 13,
     autoMigrations = [AutoMigration(from = 2, to = 3)],
 )
 @ConstructedBy(value = AppDatabaseConstructor::class)
@@ -72,6 +73,7 @@ abstract class AppDatabase : RoomDatabase() {
                     Migration9To10(),
                     Migration10To11(),
                     Migration11To12(),
+                    Migration12To13(),
                 )
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
                 .build()

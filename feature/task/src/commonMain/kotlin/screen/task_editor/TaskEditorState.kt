@@ -15,6 +15,7 @@ internal data class TaskEditorState(
     val name: TextFieldState = TextFieldState(),
     val description: TextFieldState = TextFieldState(),
     val dueDate: LocalDate? = null,
+    val showInCalendar: Boolean = true,
     val recurrence: TaskRecurrence? = null,
     val repeatInterval: TextFieldState = TextFieldState(initialText = "1"),
     val repeatDay: TextFieldState = TextFieldState(initialText = "1"),
@@ -89,6 +90,7 @@ internal data class TaskEditorState(
                     task.name != normalizedName ||
                         task.description != description.text.toString() ||
                         task.dueDate != dueDate ||
+                        task.showInCalendar != showInCalendar ||
                         task.groupId != groupId ||
                         task.recurrence != editedRecurrence
                 } == true)

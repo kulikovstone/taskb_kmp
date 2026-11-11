@@ -7,6 +7,8 @@ import kotlinx.datetime.LocalDate
 internal sealed interface TaskEditorIntent {
     data class DateChanged(val date: LocalDate?) : TaskEditorIntent
 
+    data class CalendarVisibilityChanged(val showInCalendar: Boolean) : TaskEditorIntent
+
     data class GroupChanged(val id: Int?) : TaskEditorIntent
 
     data class RecurrenceChanged(val recurrence: TaskRecurrence?) : TaskEditorIntent

@@ -88,16 +88,11 @@ class TaskRecurrenceNavigationUiTest {
                 onNode(matcher = sidebarTask(task = first), useUnmergedTree = true).assertIsDisplayed()
                 for (task in events) {
                     val date = requireNotNull(value = task.dueDate)
-                    val cellTask = onNode(
+                    onNode(
                         matcher = hasTestTag(testTag = "calendar-task-${task.key}") and
                             hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-$date")),
                         useUnmergedTree = true,
-                    )
-                    if (date < today) {
-                        cellTask.assertIsDisplayed()
-                    } else {
-                        cellTask.assertDoesNotExist()
-                    }
+                    ).assertIsDisplayed()
                 }
                 onNode(
                         matcher = hasContentDescription(value = "Complete Recurring routine") and
@@ -182,6 +177,7 @@ class TaskRecurrenceNavigationUiTest {
                 onNode(matcher = sidebarTask(task = third), useUnmergedTree = true).performClick()
                 waitText(text = "Edit task")
                 onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Renamed series")
+                onNodeWithText(text = "Show in calendar").assertIsOn().performClick()
                 onNodeWithContentDescription(label = "Save task").performClick()
                 waitText(text = "No date")
                 waitUntil(timeoutMillis = 10_000) {
@@ -189,6 +185,11 @@ class TaskRecurrenceNavigationUiTest {
                         .fetchSemanticsNodes()
                         .size == 1
                 }
+                onNode(
+                    matcher = hasText(text = "Renamed series") and
+                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-grid")),
+                    useUnmergedTree = true,
+                ).assertDoesNotExist()
                 val output = Path.of("build/reports/screenshots/recurrence-calendar.png")
                 Files.createDirectories(output.parent)
                 ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
@@ -198,6 +199,7 @@ class TaskRecurrenceNavigationUiTest {
                         .first()
                 }
                 assertTrue(actual = events.all { task -> task.name == "Renamed series" })
+                assertTrue(actual = events.none(predicate = Task::showInCalendar))
                 assertEquals(expected = 1, actual = events.count(predicate = Task::isCompleted))
                 onNodeWithContentDescription(label = "Back").performClick()
                 waitText(text = "Tasks")

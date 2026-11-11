@@ -24,7 +24,7 @@ class Migration11To12Test {
     @get:Rule val directory = TemporaryFolder()
 
     @Test
-    fun `existing tasks settings and events survive adding the holiday cache`() {
+    fun `existing data survives adding the holiday cache and task calendar visibility`() {
         runBlocking {
             val file = directory.root.toPath().resolve("existing-calendar.db")
             val schema = checkNotNull(value = javaClass.getResource("/database/schema-11.sql")).readText()
@@ -41,6 +41,31 @@ class Migration11To12Test {
                         ("INSERT INTO tasks (id, name, dueDate, groupId, createdAt, completedAt, " +
                             "recurring, description) VALUES (1, 'Keep this task', 20760, 1, 1000, NULL, 0, " +
                             "'Existing details')")
+                )
+                connection.execSQL(
+                    sql = """
+                        INSERT INTO tasks (id, name, dueDate, createdAt, recurring) VALUES
+                            (2, 'Every day', 20760, 1000, 1),
+                            (3, 'Every other day', 20760, 1000, 1),
+                            (4, 'Changed to weekly', 20760, 1000, 1),
+                            (5, 'Changed to one-off', 20760, 1000, 0),
+                            (6, 'Ended daily series', 20760, 1000, 1)
+                    """
+                        .trimIndent(),
+                )
+                connection.execSQL(
+                    sql = """
+                        INSERT INTO task_schedules (
+                            taskId, startDate, frequency, interval, weekdays, dayOfMonth, month, closedBefore
+                        ) VALUES
+                            (2, 20760, 'Daily', 1, 0, 1, 1, NULL),
+                            (3, 20760, 'Daily', 2, 0, 1, 1, NULL),
+                            (4, 20760, 'Daily', 1, 0, 1, 1, 20762),
+                            (4, 20762, 'Weekly', 1, 1, 1, 1, NULL),
+                            (5, 20760, 'Daily', 1, 0, 1, 1, 20762),
+                            (6, 20760, 'Daily', 1, 0, 1, 1, 20762)
+                    """
+                        .trimIndent(),
                 )
                 connection.execSQL(
                     sql =
@@ -60,6 +85,11 @@ class Migration11To12Test {
                     assertEquals(expected = "Keep this task", actual = task.name)
                     assertEquals(expected = "Existing details", actual = task.description)
                     assertEquals(expected = 1000L, actual = task.createdAt)
+                    assertEquals(
+                        expected = mapOf(1 to true, 2 to false, 3 to true, 4 to true, 5 to true, 6 to false),
+                        actual = database.taskDao().observeTasks().first()
+                            .associate { task -> task.id to task.showInCalendar },
+                    )
                     val event = assertNotNull(actual = database.eventDao().getById(id = 1))
                     assertEquals(expected = "Keep this event", actual = event.name)
                     assertEquals(expected = 540, actual = event.startTimeMinutes)
@@ -75,7 +105,7 @@ class Migration11To12Test {
                     database.useReaderConnection { connection ->
                         connection.usePrepared(sql = "PRAGMA user_version") { statement ->
                             assertTrue(actual = statement.step())
-                            assertEquals(expected = 12L, actual = statement.getLong(index = 0))
+                            assertEquals(expected = 13L, actual = statement.getLong(index = 0))
                         }
                         connection.usePrepared(sql = "PRAGMA foreign_key_check") { statement ->
                             assertFalse(actual = statement.step())

@@ -4,11 +4,21 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
+import androidx.compose.material.LocalContentColor
+import androidx.compose.material.LocalRippleConfiguration
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.RippleConfiguration
+import androidx.compose.material.RippleDefaults
+import androidx.compose.material.Switch
+import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
+import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,10 +98,22 @@ internal fun TaskEditorForm(
                 Column(modifier = Modifier.weight(weight = 1f)) {
                     TaskDateSection(state = state, today = today, onIntent = onIntent)
                 }
-                Spacer(modifier = Modifier.weight(weight = 1f))
+                TaskCalendarVisibility(
+                    state = state,
+                    enabled = enabled,
+                    onIntent = onIntent,
+                    modifier = Modifier.weight(weight = 1f),
+                )
             }
         } else {
             TaskDateSection(state = state, today = today, onIntent = onIntent)
+            Spacer(modifier = Modifier.height(height = 16.dp))
+            TaskCalendarVisibility(
+                state = state,
+                enabled = enabled,
+                onIntent = onIntent,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         if (state.dueDate != null) {
             Spacer(modifier = Modifier.height(height = 24.dp))
@@ -100,10 +122,64 @@ internal fun TaskEditorForm(
         if (state.original?.recurrence != null) {
             Spacer(modifier = Modifier.height(height = 16.dp))
             Text(
-                text =
-                    "Name, description and group apply to every event. Schedule changes preserve completed history.",
+                text = "Name, description, group and calendar visibility apply to all occurrences. " +
+                    "Schedule changes preserve completed history.",
                 style = TaskBTheme.typography.small,
                 color = TaskBTheme.colors.muted,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TaskCalendarVisibility(
+    state: TaskEditorState,
+    enabled: Boolean,
+    onIntent: (TaskEditorIntent) -> Unit,
+    modifier: Modifier,
+) {
+    val defaultAlpha = RippleDefaults.rippleAlpha(
+        contentColor = LocalContentColor.current,
+        lightTheme = MaterialTheme.colors.isLight,
+    )
+    val ripple = RippleConfiguration(
+        rippleAlpha = RippleAlpha(
+            draggedAlpha = defaultAlpha.draggedAlpha,
+            focusedAlpha = defaultAlpha.focusedAlpha,
+            hoveredAlpha = 0f,
+            pressedAlpha = defaultAlpha.pressedAlpha,
+        ),
+    )
+    CompositionLocalProvider(value = LocalRippleConfiguration provides ripple) {
+        Row(
+            modifier = modifier
+                .heightIn(min = 48.dp)
+                .toggleable(
+                    value = state.showInCalendar,
+                    enabled = enabled,
+                    role = Role.Switch,
+                    onValueChange = { checked ->
+                        onIntent(TaskEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
+                    },
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Show in calendar",
+                style = TaskBTheme.typography.label,
+                color = TaskBTheme.colors.text,
+            )
+            Switch(
+                checked = state.showInCalendar,
+                onCheckedChange = null,
+                enabled = enabled,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = TaskBTheme.colors.accent,
+                    checkedTrackColor = TaskBTheme.colors.accent,
+                    uncheckedThumbColor = TaskBTheme.colors.muted,
+                    uncheckedTrackColor = TaskBTheme.colors.muted,
+                ),
             )
         }
     }

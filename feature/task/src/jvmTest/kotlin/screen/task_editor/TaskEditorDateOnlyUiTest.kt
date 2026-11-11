@@ -4,6 +4,7 @@ import androidx.compose.material.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toAwtImage
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.feature.task.api.model.Task
@@ -68,6 +69,16 @@ class TaskEditorDateOnlyUiTest {
                         onNodeWithText(text = "Start time").assertDoesNotExist()
                         onNodeWithText(text = "Duration").assertDoesNotExist()
                         if (!editing) {
+                            val visibility = onNodeWithText(text = "Show in calendar").performScrollTo().assertIsOn()
+                            val idle = visibility.captureToImage().toPixelMap()
+                            visibility.performMouseInput { moveTo(position = center) }
+                            mainClock.advanceTimeBy(milliseconds = 250)
+                            val hovered = visibility.captureToImage().toPixelMap()
+                            assertEquals(
+                                expected = idle[idle.width / 2, idle.height / 2],
+                                actual = hovered[hovered.width / 2, hovered.height / 2],
+                            )
+                            visibility.performMouseInput { exit() }
                             val output = Path.of(
                                 ("build/reports/screenshots/task-date-only-$width-" +
                                     "${if (dark) "dark" else "light"}.png")

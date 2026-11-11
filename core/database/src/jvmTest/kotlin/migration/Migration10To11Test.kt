@@ -73,7 +73,7 @@ class Migration10To11Test {
                     database.useReaderConnection { connection ->
                         connection.usePrepared(sql = "PRAGMA user_version") { statement ->
                             assertTrue(actual = statement.step())
-                            assertEquals(expected = 12L, actual = statement.getLong(index = 0))
+                            assertEquals(expected = 13L, actual = statement.getLong(index = 0))
                         }
                         connection.usePrepared(sql = "PRAGMA foreign_key_check") { statement ->
                             assertFalse(actual = statement.step())

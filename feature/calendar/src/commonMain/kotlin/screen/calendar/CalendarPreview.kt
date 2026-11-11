@@ -176,6 +176,7 @@ internal fun timedCalendarPreviewState(): CalendarState {
                 scheduleId = 3100,
                 scheduledDate = LocalDate(year = 2026, month = 11, day = 6),
             ),
+            showInCalendar = false,
         ),
         Task(
             id = 311,
@@ -187,6 +188,7 @@ internal fun timedCalendarPreviewState(): CalendarState {
                 scheduleId = 3110,
                 scheduledDate = LocalDate(year = 2026, month = 11, day = 6),
             ),
+            showInCalendar = false,
         ),
     )
     val events = listOf(

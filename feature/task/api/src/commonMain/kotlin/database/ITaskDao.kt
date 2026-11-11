@@ -38,11 +38,21 @@ interface ITaskDao {
     @Update suspend fun update(task: TaskEntity): Int
 
     @Query(
-        value =
-            ("UPDATE tasks SET name = :name, dueDate = :dueDate, groupId = :groupId, description = " +
-                ":description WHERE id = :id")
+        value = """
+        UPDATE tasks
+        SET name = :name, dueDate = :dueDate, groupId = :groupId, description = :description,
+            showInCalendar = :showInCalendar
+        WHERE id = :id
+        """
     )
-    suspend fun updateDetails(id: Int, name: String, dueDate: Long?, groupId: Int?, description: String): Int
+    suspend fun updateDetails(
+        id: Int,
+        name: String,
+        dueDate: Long?,
+        groupId: Int?,
+        description: String,
+        showInCalendar: Boolean,
+    ): Int
 
     @Query(value = "UPDATE tasks SET dueDate = :dueDate WHERE id = :id AND dueDate IS :expectedDate")
     suspend fun reschedule(id: Int, expectedDate: Long?, dueDate: Long?): Int

@@ -161,7 +161,7 @@ class Migration8To9Test {
                         expected = "true",
                         actual = database.settingsDao().getValue(key = "welcomeCompleted"),
                     )
-                    assertEquals(expected = 12L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                    assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
                     database.assertForeignKeysValid()
                 }
             }
@@ -437,7 +437,7 @@ class Migration8To9Test {
             AppDatabase.open(file = file).useDatabase { database ->
                 assertEquals(expected = 3, actual = database.eventDao().observeRecords().first().size)
                 assertTrue(actual = database.taskDao().observeTasks().first().isEmpty())
-                assertEquals(expected = 12L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
                 database.assertForeignKeysValid()
             }
         }

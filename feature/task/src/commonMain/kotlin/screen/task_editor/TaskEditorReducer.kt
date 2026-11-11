@@ -12,6 +12,8 @@ internal sealed interface TaskEditorMessage {
 
     data class Date(val value: LocalDate?) : TaskEditorMessage
 
+    data class CalendarVisibility(val value: Boolean) : TaskEditorMessage
+
     data class Recurrence(val value: TaskRecurrence?) : TaskEditorMessage
 
     data class GroupSelected(val value: Int?) : TaskEditorMessage
@@ -50,6 +52,7 @@ internal fun reduceTaskEditor(state: TaskEditorState, message: TaskEditorMessage
                     name = TextFieldState(initialText = task.name),
                     description = TextFieldState(initialText = task.description),
                     dueDate = task.dueDate,
+                    showInCalendar = task.showInCalendar,
                     recurrence = task.recurrence,
                     repeatInterval = TextFieldState(initialText = (task.recurrence?.interval ?: 1).toString()),
                     repeatDay = TextFieldState(
@@ -69,6 +72,7 @@ internal fun reduceTaskEditor(state: TaskEditorState, message: TaskEditorMessage
             recurrence = state.recurrence.takeIf { message.value != null },
             dialog = null,
         )
+        is TaskEditorMessage.CalendarVisibility -> state.copy(showInCalendar = message.value)
         is TaskEditorMessage.Recurrence -> state.copy(
             recurrence = message.value,
             repeatInterval = state.repeatInterval.withTextIfChanged(text = (message.value?.interval ?: 1).toString()),

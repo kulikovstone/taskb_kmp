@@ -32,4 +32,5 @@ data class TaskEntity(
     val completedAt: Long? = null,
     @ColumnInfo(defaultValue = "0") val recurring: Boolean = false,
     @ColumnInfo(defaultValue = "''") val description: String = "",
+    @ColumnInfo(defaultValue = "1") val showInCalendar: Boolean = true,
 )

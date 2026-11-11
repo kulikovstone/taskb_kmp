@@ -20,7 +20,7 @@ import kotlinx.datetime.LocalTime
 @OptIn(ExperimentalTestApi::class)
 class CalendarDailyTasksUiTest {
     @Test
-    fun `daily routines are first without appearing in the month or duplicating the time sections`() {
+    fun `hidden daily routines appear first in the sidebar and stay out of the month`() {
         runSkikoComposeUiTest(size = Size(width = 1440f, height = 900f)) {
             val date = LocalDate(year = 2026, month = 11, day = 6)
             val timedDaily = Event(

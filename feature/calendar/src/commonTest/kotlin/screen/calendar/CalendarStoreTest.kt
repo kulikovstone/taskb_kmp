@@ -61,7 +61,7 @@ class CalendarStoreTest {
     }
 
     @Test
-    fun `completing a daily routine moves it to completed and preserves other occurrences and history`(): TestResult {
+    fun `completing a hidden daily routine preserves other occurrences and sidebar history`(): TestResult {
         return runTest {
             val first = Task(
                 id = 1,
@@ -70,6 +70,7 @@ class CalendarStoreTest {
                 createdAt = created,
                 recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
                 occurrenceId = TaskOccurrenceId(scheduleId = 4, scheduledDate = today),
+                showInCalendar = false,
             )
             val second = first.copy(
                 dueDate = LocalDate(year = 2026, month = 10, day = 31),

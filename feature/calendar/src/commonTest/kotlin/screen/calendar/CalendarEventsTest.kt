@@ -79,6 +79,7 @@ class CalendarEventsTest {
             name = "Daily task",
             dueDate = date,
             recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+            showInCalendar = false,
         )
         val completed = Task(id = 3, name = "Completed task", dueDate = date, completedAt = now)
         val oldAllDay = Event(

@@ -144,6 +144,8 @@ internal class TaskEditorStore(
                 )
                     return
                 when (intent) {
+                    is TaskEditorIntent.CalendarVisibilityChanged ->
+                        reduce(message = TaskEditorMessage.CalendarVisibility(value = intent.showInCalendar))
                     is TaskEditorIntent.GroupChanged ->
                         if (intent.id == null || current.groups.any { group -> group.id == intent.id }) {
                             reduce(message = TaskEditorMessage.GroupSelected(value = intent.id))
@@ -188,6 +190,7 @@ internal class TaskEditorStore(
             name = current.normalizedName,
             description = current.description.text.toString(),
             dueDate = current.dueDate,
+            showInCalendar = current.showInCalendar,
             groupId = current.groupId,
             recurrence = current.editedRecurrence,
         )

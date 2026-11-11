@@ -53,6 +53,7 @@ internal fun TaskRecord.task(): Task {
         completedAt = task.completedAt?.let(block = Instant::fromEpochMilliseconds),
         recurrence = displaySchedule?.rule(),
         description = task.description,
+        showInCalendar = task.showInCalendar,
     )
 }
 
