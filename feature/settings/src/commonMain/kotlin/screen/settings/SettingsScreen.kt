@@ -3,6 +3,7 @@ package com.mkulikov.taskb.feature.settings.screen.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
@@ -45,6 +46,8 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
                         .padding(all = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(space = 16.dp),
                 ) {
+                    WelcomeScreenSetting(state = state, onIntent = onIntent)
+                    Divider(color = colors.border)
                     Text(text = "Location", style = TaskBTheme.typography.title, color = colors.heading)
                     Text(
                         text = "Weather and public holidays in the calendar use this application location.",
@@ -166,11 +169,61 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
     }
 }
 
+@Composable
+private fun WelcomeScreenSetting(state: SettingsState, onIntent: (SettingsIntent) -> Unit) {
+    val colors = TaskBTheme.colors
+    val checked = state.showWelcomeScreen
+    val enabled = checked != null && !state.isUpdatingWelcomeScreen
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(
+                value = checked == true,
+                enabled = enabled,
+                role = Role.Switch,
+                onValueChange = { showWelcome -> onIntent(SettingsIntent.SetShowWelcomeScreen(enabled = showWelcome)) },
+            ),
+        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Show welcome screen at startup",
+            style = TaskBTheme.typography.body,
+            color = colors.text,
+            modifier = Modifier.weight(weight = 1f),
+        )
+        if (checked != null) {
+            Switch(
+                checked = checked,
+                onCheckedChange = null,
+                enabled = enabled,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = colors.accent,
+                    checkedTrackColor = colors.accent,
+                    uncheckedThumbColor = colors.muted,
+                    uncheckedTrackColor = colors.border,
+                ),
+            )
+        } else if (state.isUpdatingWelcomeScreen) {
+            CircularProgressIndicator(modifier = Modifier.size(size = 20.dp), color = colors.accent, strokeWidth = 2.dp)
+        }
+    }
+    state.welcomeScreenError?.let { error ->
+        Text(text = error, color = colors.danger, style = TaskBTheme.typography.body)
+        if (checked == null) {
+            TextButton(onClick = { onIntent(SettingsIntent.LoadWelcomeScreen) }) {
+                Text(text = "Try again", color = colors.accent)
+            }
+        }
+    }
+}
+
 @Preview(name = "Settings", widthDp = 800, heightDp = 700)
 @Composable
 private fun SettingsPreview() {
     TaskBTheme(darkTheme = false) {
-        SettingsScreen(state = SettingsState(isLoading = false), onIntent = {}, onBack = {})
+        SettingsScreen(state = SettingsState(showWelcomeScreen = true, isLoading = false), onIntent = {}, onBack = {})
     }
 }
 
@@ -178,6 +231,7 @@ private fun SettingsPreview() {
 @Composable
 private fun SettingsSearchResultsPreview() {
     val state = SettingsState(
+        showWelcomeScreen = true,
         location = AppLocation(
             name = "London, United Kingdom",
             latitude = 51.51,

@@ -69,7 +69,7 @@ class TaskGroupsNavigationUiTest {
     fun `home opens new compact screens with persisted CRUD and confirmation dialogs`() {
         val file = directory.resolve("task-groups.db")
         withAppKoin(file = file) { application ->
-            runBlocking { application.koin.get<IAppSettings>().completeWelcome() }
+            runBlocking { application.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false) }
             runSkikoComposeUiTest(size = Size(width = 400f, height = 980f)) {
                 setApp(application = application, dark = false)
                 openGroups()
@@ -286,7 +286,7 @@ class TaskGroupsNavigationUiTest {
         withAppKoin(file = directory.resolve("group-events.db")) { application ->
             val database = application.koin.get<AppDatabase>()
             val (alphaId, movedEvent) = runBlocking {
-                application.koin.get<IAppSettings>().completeWelcome()
+                application.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
                 val groups = database.groupDao()
                 val alpha = groups.insert(group = GroupEntity(name = "Alpha", color = Palette.Blue.s400.toArgb()))
                     .toInt()
@@ -415,7 +415,7 @@ class TaskGroupsNavigationUiTest {
 
     private fun seedGroups(application: KoinApplication) {
         runBlocking {
-            application.koin.get<IAppSettings>().completeWelcome()
+            application.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
             val dao = application.koin.get<AppDatabase>().groupDao()
             listOf(
                     "Health" to Palette.Teal.s400,

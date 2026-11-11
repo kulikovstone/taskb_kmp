@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
+import com.mkulikov.taskb.feature.settings.TestAppSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import kotlin.test.*
@@ -21,8 +22,11 @@ class SettingsStoreTest {
     fun `search is debounced and selecting or clearing a city saves the shared location`(): TestResult {
         return runTest {
             val repository = Locations(city = city)
-            SettingsStore(locations = repository, dispatcher = StandardTestDispatcher(scheduler = testScheduler)).use {
-                store ->
+            SettingsStore(
+                locations = repository,
+                settings = TestAppSettings(),
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+            ).use { store ->
                 runCurrent()
                 assertFalse(actual = store.state.value.isLoading)
                 store.accept(intent = SettingsIntent.Search(query = "Pa"))
@@ -56,8 +60,11 @@ class SettingsStoreTest {
                 failSearch = true
                 failSave = true
             }
-            SettingsStore(locations = repository, dispatcher = StandardTestDispatcher(scheduler = testScheduler)).use {
-                store ->
+            SettingsStore(
+                locations = repository,
+                settings = TestAppSettings(),
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+            ).use { store ->
                 runCurrent()
                 store.accept(intent = SettingsIntent.Search(query = "Paris"))
                 advanceTimeBy(delayTimeMillis = 350)
@@ -96,6 +103,7 @@ class SettingsStoreTest {
             val repository = Locations(city = city).apply { pending = true }
             val store = SettingsStore(
                 locations = repository,
+                settings = TestAppSettings(),
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             )
             store.accept(intent = SettingsIntent.Search(query = "Paris"))

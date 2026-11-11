@@ -43,7 +43,7 @@ class CalendarNavigationUiTest {
             val target = nextYear.firstDay
             val db = app.koin.get<AppDatabase>()
             runBlocking {
-                app.koin.get<IAppSettings>().completeWelcome()
+                app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
                 db.taskDao()
                     .insert(
                         task = TaskEntity(
@@ -93,7 +93,7 @@ class CalendarNavigationUiTest {
         withAppKoin(file = file) { app ->
             val db = app.koin.get<AppDatabase>()
             val groupIds = runBlocking {
-                app.koin.get<IAppSettings>().completeWelcome()
+                app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
                 listOf("Work", "Personal").associateWith { name ->
                     db.groupDao()
                         .insert(group = GroupEntity(name = name, color = Palette.Blue.s400.toArgb()))
@@ -213,7 +213,7 @@ class CalendarNavigationUiTest {
             val label = monthLabel.format(value = next)
             val db = app.koin.get<AppDatabase>()
             runBlocking {
-                app.koin.get<IAppSettings>().completeWelcome()
+                app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
                 db.taskDao().insert(task = TaskEntity(name = "Calendar task", description = "Unscheduled details"))
                 db.taskDao()
                     .insert(

@@ -35,7 +35,7 @@ class TaskRecurrenceNavigationUiTest {
             val start = today.yearMonth.onDay(day = 3)
             val repo = app.koin.get<ITaskRepository>()
             val db = app.koin.get<AppDatabase>()
-            runBlocking { app.koin.get<IAppSettings>().completeWelcome() }
+            runBlocking { app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false) }
             runSkikoComposeUiTest(size = Size(width = 1440f, height = 1100f)) {
                 setContent {
                     KoinIsolatedContext(context = app) {

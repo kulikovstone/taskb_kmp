@@ -245,7 +245,7 @@ class TaskListNavigationUiTest {
 
     private fun seed(app: KoinApplication, tasks: Boolean = true) {
         runBlocking {
-            app.koin.get<IAppSettings>().completeWelcome()
+            app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
             val db = app.koin.get<AppDatabase>()
             val groupIds = listOf(
                     "Health" to Palette.Teal.s400,

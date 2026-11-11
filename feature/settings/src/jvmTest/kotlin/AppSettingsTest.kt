@@ -39,21 +39,25 @@ class AppSettingsTest {
         runBlocking {
             assertFalse(actual = Files.exists(databaseFile))
 
-            withSettings(file = databaseFile) { settings -> assertFalse(actual = settings.hasCompletedWelcome()) }
+            withSettings(file = databaseFile) { settings -> assertTrue(actual = settings.shouldShowWelcomeScreen()) }
 
             assertTrue(actual = Files.isRegularFile(databaseFile))
         }
     }
 
     @Test
-    fun `completed welcome is remembered after restart`() {
+    fun `welcome screen preference is remembered after restart`() {
         runBlocking {
             withSettings(file = databaseFile) { settings ->
-                settings.completeWelcome()
-                settings.completeWelcome()
+                settings.setShowWelcomeScreen(enabled = false)
+                settings.setShowWelcomeScreen(enabled = false)
             }
 
-            withSettings(file = databaseFile) { settings -> assertTrue(actual = settings.hasCompletedWelcome()) }
+            withSettings(file = databaseFile) { settings ->
+                assertFalse(actual = settings.shouldShowWelcomeScreen())
+                settings.setShowWelcomeScreen(enabled = true)
+            }
+            withSettings(file = databaseFile) { settings -> assertTrue(actual = settings.shouldShowWelcomeScreen()) }
             AppDatabase.open(file = databaseFile).useDatabase { database ->
                 database.useReaderConnection { connection ->
                     connection.usePrepared(sql = "SELECT COUNT(*) FROM application_settings") { statement ->
@@ -71,7 +75,9 @@ class AppSettingsTest {
             val blockedConfig = Files.writeString(temporaryDirectory.resolve("config"), "existing")
 
             withSettings(file = blockedConfig.resolve("taskb.db")) { settings ->
-                val failure = assertFailsWith<InstanceCreationException> { settings.completeWelcome() }
+                val failure = assertFailsWith<InstanceCreationException> {
+                    settings.setShowWelcomeScreen(enabled = false)
+                }
                 assertTrue(
                     actual = generateSequence<Throwable>(seed = failure) { exception ->
                         exception.cause

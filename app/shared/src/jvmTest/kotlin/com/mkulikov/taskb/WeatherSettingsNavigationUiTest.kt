@@ -104,7 +104,7 @@ class WeatherSettingsNavigationUiTest {
                     }
                 )
             )
-            runBlocking { app.koin.get<IAppSettings>().completeWelcome() }
+            runBlocking { app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false) }
             runSkikoComposeUiTest(size = Size(width = 1440f, height = 900f)) {
                 setContent {
                     KoinIsolatedContext(context = app) {

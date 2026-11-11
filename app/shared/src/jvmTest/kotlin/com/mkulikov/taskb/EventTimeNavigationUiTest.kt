@@ -41,7 +41,7 @@ class EventTimeNavigationUiTest {
         withAppKoin(file = database) { app ->
             val repository = app.koin.get<IEventRepository>()
             runBlocking {
-                app.koin.get<IAppSettings>().completeWelcome()
+                app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
                 assertTrue(
                     actual = repository.save(
                         event = Event(

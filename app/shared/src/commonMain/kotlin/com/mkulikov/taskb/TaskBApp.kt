@@ -27,15 +27,15 @@ internal fun TaskBApp(settings: IAppSettings) {
 
     LaunchedEffect(key1 = settings) {
         var initialError: String? = null
-        val hasCompletedWelcome = try {
-            settings.hasCompletedWelcome()
+        val showWelcomeScreen = try {
+            settings.shouldShowWelcomeScreen()
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Exception) {
             initialError = "Couldn't read settings. Press Continue to get started."
-            false
+            true
         }
-        startDestination = if (hasCompletedWelcome) HomeRoute else HelloRoute(initialError = initialError)
+        startDestination = if (showWelcomeScreen) HelloRoute(initialError = initialError) else HomeRoute
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {

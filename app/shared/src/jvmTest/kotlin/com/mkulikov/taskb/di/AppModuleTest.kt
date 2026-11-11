@@ -51,11 +51,11 @@ class AppModuleTest {
                         assertSame(expected = groups, actual = application.koin.get<IGroupRepository>())
                         assertEquals(expected = launch, actual = opens)
                         if (launch == 0) {
-                            assertFalse(actual = settings.hasCompletedWelcome())
-                            settings.completeWelcome()
+                            assertTrue(actual = settings.shouldShowWelcomeScreen())
+                            settings.setShowWelcomeScreen(enabled = false)
                             locations.setLocation(location = city)
                         } else {
-                            assertTrue(actual = settings.hasCompletedWelcome())
+                            assertFalse(actual = settings.shouldShowWelcomeScreen())
                             assertEquals(expected = city, actual = locations.observeLocation().first())
                         }
                         assertEquals(expected = launch + 1, actual = opens)

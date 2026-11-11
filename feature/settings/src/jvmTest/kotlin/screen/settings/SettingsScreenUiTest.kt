@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.text.AnnotatedString
+import com.mkulikov.taskb.feature.settings.TestAppSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -44,7 +45,7 @@ class SettingsScreenUiTest {
                         location.value = value
                     }
                 }
-            SettingsStore(locations = repository).use { store ->
+            SettingsStore(locations = repository, settings = TestAppSettings()).use { store ->
                 setContent {
                     val state = store.state.collectAsState().value
                     TaskBTheme(darkTheme = false) {
