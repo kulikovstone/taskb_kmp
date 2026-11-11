@@ -34,7 +34,7 @@ class CalendarSidebarSectionsUiTest {
                     useUnmergedTree = true,
                 )
             }
-            val daily = onNodeWithTag(testTag = "calendar-sidebar-daily-heading")
+            val daily = onNodeWithTag(testTag = "calendar-sidebar-recurring-heading")
             val timed = onNodeWithTag(testTag = "calendar-sidebar-events-heading")
             val untimed = onNodeWithTag(testTag = "calendar-sidebar-tasks-heading")
             for (heading in listOf(daily, timed, untimed)) {
@@ -75,7 +75,7 @@ class CalendarSidebarSectionsUiTest {
                 )
             )
             val dailyTitleBounds = onNodeWithText(
-                text = "Daily · 2",
+                text = "Recurring · 2",
                 useUnmergedTree = true,
             ).fetchSemanticsNode().boundsInRoot
             onRoot().performMouseInput {
@@ -89,11 +89,11 @@ class CalendarSidebarSectionsUiTest {
                     expectedValue = "Collapsed",
                 )
             )
-            for (task in state.sidebarDailyItems) taskNode(task = task).assertDoesNotExist()
+            for (task in state.sidebarRecurringItems) taskNode(task = task).assertDoesNotExist()
             for (task in state.sidebarEventItems + state.sidebarMainTaskItems) taskNode(task = task)
                 .assertIsDisplayed()
             assertTrue(actual = timed.fetchSemanticsNode().boundsInRoot.top < timedTopBefore)
-            onNodeWithText(text = "Daily · 2").assertIsDisplayed()
+            onNodeWithText(text = "Recurring · 2").assertIsDisplayed()
             onNodeWithText(text = "Friday · 3 tasks · 3 events").assertIsDisplayed()
 
             timed.performClick()
@@ -121,8 +121,8 @@ class CalendarSidebarSectionsUiTest {
             for (task in state.sidebarItems) taskNode(task = task).assertDoesNotExist()
             for (heading in listOf(daily, timed, untimed)) heading.assertIsDisplayed()
 
-            onNodeWithText(text = "Daily · 2", useUnmergedTree = true).performMouseInput { click() }
-            for (task in state.sidebarDailyItems) taskNode(task = task).assertIsDisplayed()
+            onNodeWithText(text = "Recurring · 2", useUnmergedTree = true).performMouseInput { click() }
+            for (task in state.sidebarRecurringItems) taskNode(task = task).assertIsDisplayed()
             for (task in state.sidebarEventItems + state.sidebarMainTaskItems) taskNode(task = task)
                 .assertDoesNotExist()
             timed.performClick()
@@ -167,7 +167,7 @@ class CalendarSidebarSectionsUiTest {
                     .fetchSemanticsNode()
                     .config[SemanticsProperties.VerticalScrollAxisRange]
             assertTrue(actual = scrollRange.maxValue() > 0f)
-            val daily = onNodeWithTag(testTag = "calendar-sidebar-daily-heading").assertIsDisplayed()
+            val daily = onNodeWithTag(testTag = "calendar-sidebar-recurring-heading").assertIsDisplayed()
             val bounds = daily.fetchSemanticsNode().boundsInRoot
             val listBounds = onNodeWithTag(testTag = "calendar-sidebar-list").fetchSemanticsNode().boundsInRoot
             assertTrue(actual = bounds.right < listBounds.right)
@@ -180,14 +180,14 @@ class CalendarSidebarSectionsUiTest {
                     expectedValue = "Expanded",
                 )
             )
-            onNodeWithText(text = "Daily · 2", useUnmergedTree = true).performMouseInput { click() }
+            onNodeWithText(text = "Recurring · 2", useUnmergedTree = true).performMouseInput { click() }
             daily.assert(
                 matcher = SemanticsMatcher.expectValue(
                     key = SemanticsProperties.StateDescription,
                     expectedValue = "Collapsed",
                 )
             )
-            onNodeWithText(text = "Daily · 2").assertIsDisplayed()
+            onNodeWithText(text = "Recurring · 2").assertIsDisplayed()
             onNodeWithTag(testTag = "calendar-sidebar-events-heading")
                 .assert(
                     matcher = SemanticsMatcher.expectValue(
@@ -227,7 +227,7 @@ class CalendarSidebarSectionsUiTest {
                 }
             }
             val headingTags = listOf(
-                "calendar-sidebar-daily-heading",
+                "calendar-sidebar-recurring-heading",
                 "calendar-sidebar-events-heading",
                 "calendar-sidebar-tasks-heading",
             )

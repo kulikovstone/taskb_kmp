@@ -75,8 +75,8 @@ internal sealed class CalendarItem {
     val startDateTime
         get() = (this as? EventItem)?.event?.startDateTime
 
-    val isDailyRoutine
-        get() = this is TaskItem && task.isDailyRoutine
+    val isRecurring
+        get() = this is TaskItem && task.isRecurring
 
     val occurrenceId
         get() = (this as? TaskItem)?.task?.occurrenceId

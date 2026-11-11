@@ -7,7 +7,6 @@ import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 import kotlinx.datetime.DayOfWeek
@@ -49,22 +48,23 @@ class CalendarDailyTasksTest {
             events = listOf(element = event),
         )
         assertEquals(expected = listOf(today, bills), actual = state.sidebarTasks)
-        assertEquals(expected = listOf(element = today), actual = state.sidebarDailyTasks)
+        assertEquals(expected = listOf(element = today), actual = state.sidebarRecurringTasks)
         assertEquals(
             expected = listOf(element = overdue),
-            actual = state.copy(selectedDate = yesterday).sidebarDailyTasks,
+            actual = state.copy(selectedDate = yesterday).sidebarRecurringTasks,
         )
         assertEquals(
             expected = listOf(element = CalendarItem.EventItem(event = event)),
             actual = state.sidebarEventItems,
         )
-        assertTrue(actual = state.copy(selectedDate = completed.dueDate).sidebarDailyTasks.isEmpty())
+        assertTrue(actual = state.copy(selectedDate = completed.dueDate).sidebarRecurringTasks.isEmpty())
         assertEquals(
             expected = listOf(element = completed),
             actual = state.copy(selectedDate = completed.dueDate).sidebarCompletedTasks,
         )
         assertTrue(
-            actual = state.copy(selectedDate = LocalDate(year = 2026, month = 11, day = 8)).sidebarDailyTasks.isEmpty()
+            actual = state.copy(selectedDate = LocalDate(year = 2026, month = 11, day = 8))
+                .sidebarRecurringTasks.isEmpty()
         )
         assertEquals(
             expected = mapOf<LocalDate?, List<Task>>(
@@ -77,12 +77,13 @@ class CalendarDailyTasksTest {
     }
 
     @Test
-    fun `daily tasks stay in Daily while events including daily events stay in Event and the grid`() {
+    fun `all recurrence frequencies are grouped in the sidebar for the selected day`() {
         val routine = daily(id = 1).copy(showInCalendar = false)
         val alternate = Task(
             id = 2,
             name = "Every other day",
             dueDate = date,
+            createdAt = created,
             recurrence = dailyRule.copy(interval = 2),
         )
         val weekly = Event(
@@ -103,22 +104,39 @@ class CalendarDailyTasksTest {
             recurrence = dailyRule,
             startTime = LocalTime(hour = 8, minute = 0),
         )
+        val weeklyTask = alternate.copy(id = 6, name = "Weekly task", recurrence = weekly.recurrence)
+        val monthlyTask = alternate.copy(
+            id = 7,
+            name = "Monthly task",
+            recurrence = TaskRecurrence.monthly(date = date),
+        )
+        val yearlyTask = alternate.copy(
+            id = 8,
+            name = "Yearly task",
+            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Yearly, dayOfMonth = 6, month = 11),
+        )
+        val oneTime = Task(id = 9, name = "One-time task", dueDate = date, createdAt = created)
         val state = CalendarState(
             today = date,
-            tasks = listOf(routine, alternate),
+            tasks = listOf(routine, alternate, weeklyTask, monthlyTask, yearlyTask, oneTime),
             events = listOf(weekly, meeting, dailyEvent),
         )
-        assertEquals(expected = listOf(element = routine), actual = state.sidebarDailyTasks)
+        assertEquals(
+            expected = listOf(yearlyTask, monthlyTask, weeklyTask, alternate, routine),
+            actual = state.sidebarRecurringTasks,
+        )
         assertEquals(expected = listOf(5, 3, 4), actual = state.sidebarEventItems.map(transform = CalendarItem::id))
-        assertEquals(expected = listOf(element = alternate), actual = state.sidebarUntimedTasks)
-        val sections = state.sidebarDailyItems + state.sidebarEventItems + state.sidebarMainTaskItems
+        assertEquals(expected = listOf(element = oneTime), actual = state.sidebarUntimedTasks)
+        val sections = state.sidebarRecurringItems + state.sidebarEventItems + state.sidebarMainTaskItems
         assertEquals(
             expected = state.sidebarItems.map(transform = CalendarItem::key).toSet(),
             actual = sections.map(transform = CalendarItem::key).toSet(),
         )
         assertEquals(expected = sections.size, actual = sections.distinctBy(selector = CalendarItem::key).size)
-        assertEquals(expected = listOf(5, 3, 4, 2), actual = state.monthItemsByDate[date]?.map { item -> item.id })
-        assertFalse(actual = alternate.isDailyRoutine)
+        assertEquals(
+            expected = listOf(5, 3, 4, 9, 8, 7, 6, 2),
+            actual = state.monthItemsByDate[date]?.map(transform = CalendarItem::id),
+        )
     }
 
     @Test
@@ -130,7 +148,7 @@ class CalendarDailyTasksTest {
         assertEquals(expected = 20, actual = state.sidebarTasks.size)
         val noDate = state.copy(selectedDate = null)
         assertEquals(expected = listOf(element = undated), actual = noDate.sidebarTasks)
-        assertTrue(actual = noDate.sidebarDailyTasks.isEmpty())
+        assertTrue(actual = noDate.sidebarRecurringTasks.isEmpty())
         assertTrue(actual = noDate.sidebarEventItems.isEmpty())
         assertEquals(expected = listOf(element = undated), actual = noDate.sidebarUntimedTasks)
     }

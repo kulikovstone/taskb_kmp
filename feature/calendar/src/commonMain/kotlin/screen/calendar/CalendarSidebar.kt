@@ -36,13 +36,13 @@ internal fun CalendarSidebar(
 ) {
     val tasks = state.sidebarItems
     val date = state.selectedDate
-    val daily = state.sidebarDailyItems
+    val recurring = state.sidebarRecurringItems
     val events = state.sidebarEventItems
     val mainTasks = state.sidebarMainTaskItems
     val completed = state.sidebarCompletedItems
     val isDayCompleted = state.isSelectedDayCompleted
     val showTaskHeading = date != null || events.isNotEmpty()
-    var dailyExpanded by remember(key1 = date) { mutableStateOf(value = true) }
+    var recurringExpanded by remember(key1 = date) { mutableStateOf(value = true) }
     var eventsExpanded by remember(key1 = date) { mutableStateOf(value = true) }
     var tasksExpanded by remember(key1 = date) { mutableStateOf(value = true) }
     var completedExpanded by remember(key1 = date) { mutableStateOf(value = true) }
@@ -136,20 +136,20 @@ internal fun CalendarSidebar(
                                 .padding(bottom = 24.dp)
                         )
                     }
-                if (daily.isNotEmpty())
-                    item(key = "daily-heading") {
+                if (recurring.isNotEmpty())
+                    item(key = "recurring-heading") {
                         CalendarSidebarSectionHeader(
-                            title = "Daily · ${daily.size}",
-                            expanded = dailyExpanded,
-                            onToggle = { dailyExpanded = !dailyExpanded },
+                            title = "Recurring · ${recurring.size}",
+                            expanded = recurringExpanded,
+                            onToggle = { recurringExpanded = !recurringExpanded },
                             modifier = Modifier
                                 .padding(paddingValues = calendarSidebarTaskPadding)
-                                .testTag(tag = "calendar-sidebar-daily-heading"),
+                                .testTag(tag = "calendar-sidebar-recurring-heading"),
                         )
-                        if (dailyExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
+                        if (recurringExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
                     }
-                if (dailyExpanded)
-                    items(items = daily, key = { item -> item.key }) { task ->
+                if (recurringExpanded)
+                    items(items = recurring, key = { item -> item.key }) { task ->
                         val enabled = (task.isEvent || task.id !in state.pendingCompletion) && state.pendingMove == null
                         CalendarTaskRow(
                             task = task,
@@ -183,7 +183,7 @@ internal fun CalendarSidebar(
                     }
                 if (events.isNotEmpty())
                     item(key = "events-heading") {
-                        if (daily.isNotEmpty()) Spacer(modifier = Modifier.height(height = 16.dp))
+                        if (recurring.isNotEmpty()) Spacer(modifier = Modifier.height(height = 16.dp))
                         CalendarSidebarSectionHeader(
                             title = "Events · ${events.size}",
                             expanded = eventsExpanded,
@@ -232,7 +232,7 @@ internal fun CalendarSidebar(
                     item(key = "tasks-heading") {
                         if (events.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(height = if (eventsExpanded) 12.dp else 16.dp))
-                        } else if (daily.isNotEmpty()) {
+                        } else if (recurring.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(height = 16.dp))
                         }
                         CalendarSidebarSectionHeader(
@@ -284,7 +284,7 @@ internal fun CalendarSidebar(
                             Spacer(modifier = Modifier.height(height = 16.dp))
                         } else if (events.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(height = if (eventsExpanded) 12.dp else 16.dp))
-                        } else if (daily.isNotEmpty()) {
+                        } else if (recurring.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(height = 16.dp))
                         }
                         CalendarSidebarSectionHeader(

@@ -124,7 +124,7 @@ class CalendarEventsTest {
         )
         assertEquals(
             expected = listOf(element = CalendarItem.TaskItem(task = daily)),
-            actual = state.sidebarDailyItems,
+            actual = state.sidebarRecurringItems,
         )
         assertEquals(
             expected = listOf(element = CalendarItem.TaskItem(task = completed)),
@@ -132,7 +132,7 @@ class CalendarEventsTest {
         )
         val sections = state.sidebarEventItems +
             state.sidebarMainTaskItems +
-            state.sidebarDailyItems +
+            state.sidebarRecurringItems +
             state.sidebarCompletedItems
         assertEquals(
             expected = state.sidebarItems.map(transform = CalendarItem::key).toSet(),

@@ -147,7 +147,7 @@ class EventNavigationUiTest {
                 assertEquals(expected = 3, actual = saved.recurrence?.occurrenceCount)
                 assertEquals(expected = "Discuss the release", actual = saved.description)
                 onNodeWithContentDescription(label = "Complete Team meeting").assertDoesNotExist()
-                onNodeWithText(text = "Daily · 1").assertDoesNotExist()
+                onNodeWithText(text = "Recurring · 1").assertDoesNotExist()
                 onNode(
                         matcher = hasText(text = "Team meeting") and
                             hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),

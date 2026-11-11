@@ -42,7 +42,7 @@ internal val calendarTaskCheckboxSize = 20.dp
 internal val calendarTaskTitleGap = 6.dp
 internal val calendarTaskTitleInset = calendarTaskPadding + calendarTaskCheckboxSize + calendarTaskTitleGap
 
-internal fun calendarSidebarTaskTitleGap(task: CalendarItem) = if (task.isDailyRoutine) 4.dp else 6.dp
+internal fun calendarSidebarTaskTitleGap(task: CalendarItem) = if (task.isRecurring) 4.dp else 6.dp
 
 @Composable
 internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle {

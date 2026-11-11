@@ -109,7 +109,7 @@ class CalendarCompletedTasksUiTest {
                 }
             }
 
-            onNodeWithText(text = "Daily · 1").assertIsDisplayed()
+            onNodeWithText(text = "Recurring · 1").assertIsDisplayed()
             onNodeWithText(text = "Tasks · 1").assertIsDisplayed()
             onNodeWithTag(testTag = "calendar-sidebar-events-heading").assertDoesNotExist()
             onNodeWithText(text = "Completed · 3").assertIsDisplayed()
@@ -123,7 +123,7 @@ class CalendarCompletedTasksUiTest {
             assertCompletedOrder(tasks = listOf(completedRoutine, completedReview, completedTask))
 
             onNodeWithContentDescription(label = "Complete ${routine.name}", useUnmergedTree = true).performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-daily-heading").assertDoesNotExist()
+            onNodeWithTag(testTag = "calendar-sidebar-recurring-heading").assertDoesNotExist()
             onNodeWithText(text = "Completed · 4").assertIsDisplayed()
             assertCompletedOrder(tasks = listOf(routine, completedRoutine, completedReview, completedTask))
             val path = Path.of("build/reports/screenshots")
@@ -141,7 +141,7 @@ class CalendarCompletedTasksUiTest {
             onNodeWithTag(testTag = "calendar-sidebar-completed-heading").performClick()
             onNodeWithContentDescription(label = "Mark ${routine.name} incomplete", useUnmergedTree = true)
                 .performClick()
-            onNodeWithText(text = "Daily · 1").assertIsDisplayed()
+            onNodeWithText(text = "Recurring · 1").assertIsDisplayed()
             onNodeWithText(text = "Completed · 3").assertIsDisplayed()
             assertTrue(
                 actual =

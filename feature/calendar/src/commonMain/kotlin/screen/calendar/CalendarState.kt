@@ -6,7 +6,6 @@ import com.mkulikov.taskb.feature.event.api.model.occursOn
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
@@ -86,17 +85,15 @@ internal data class CalendarState(
         get() = selectedDate?.let { date -> tasksByDate[date].orEmpty().sortedWith(comparator = sidebarTaskOrder) }
             ?: undatedTasks
 
-    val sidebarDailyTasks: List<Task>
+    val sidebarRecurringTasks: List<Task>
         get() = if (selectedDate == null) {
             emptyList()
         } else {
-            sidebarTasks.filter { task ->
-                !task.isCompleted && task.isDailyRoutine
-            }
+            sidebarTasks.filter { task -> !task.isCompleted && task.isRecurring }
         }
 
     val sidebarUntimedTasks: List<Task>
-        get() = sidebarTasks.filter { task -> !task.isCompleted && (selectedDate == null || !task.isDailyRoutine) }
+        get() = sidebarTasks.filter { task -> !task.isCompleted && (selectedDate == null || !task.isRecurring) }
 
     val sidebarCompletedTasks: List<Task>
         get() = sidebarTasks
@@ -139,8 +136,8 @@ internal data class CalendarState(
                 eventItems(date = selectedDate))
             .sortedWith(comparator = calendarItemOrder)
 
-    val sidebarDailyItems
-        get() = sidebarDailyTasks.map(transform = CalendarItem::TaskItem)
+    val sidebarRecurringItems
+        get() = sidebarRecurringTasks.map(transform = CalendarItem::TaskItem)
 
     val sidebarEventItems
         get() = (holidayItems(date = selectedDate) + eventItems(date = selectedDate)).sortedWith(
@@ -180,12 +177,10 @@ private val calendarTaskOrder =
         task.isCompleted
     }.thenByDescending(selector = Task::createdAt).thenByDescending(selector = Task::id)
 
-private val sidebarTaskOrder = compareBy<Task> { task -> !task.isDailyRoutine }.then(comparator = calendarTaskOrder)
+private val sidebarTaskOrder = compareBy<Task> { task -> !task.isRecurring }.then(comparator = calendarTaskOrder)
 
-internal val Task.isDailyRoutine: Boolean
-    get() = recurrence?.let { recurrence ->
-        recurrence.frequency == RecurrenceFrequency.Daily && recurrence.interval == 1
-    } == true
+internal val Task.isRecurring: Boolean
+    get() = recurrence != null
 
 internal data class CalendarMove(
     val token: Long,

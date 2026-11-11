@@ -84,7 +84,7 @@ class TaskRecurrenceNavigationUiTest {
                 fun sidebarTask(task: Task) = hasTestTag(testTag = "calendar-task-${task.key}") and sidebar
 
                 onNodeWithTag(testTag = "calendar-day-number-$start", useUnmergedTree = true).performClick()
-                waitText(text = "Daily · 1")
+                waitText(text = "Recurring · 1")
                 onNode(matcher = sidebarTask(task = first), useUnmergedTree = true).assertIsDisplayed()
                 for (task in events) {
                     val date = requireNotNull(value = task.dueDate)

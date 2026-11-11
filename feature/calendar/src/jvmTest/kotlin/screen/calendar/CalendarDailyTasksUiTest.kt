@@ -14,13 +14,14 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
 @OptIn(ExperimentalTestApi::class)
 class CalendarDailyTasksUiTest {
     @Test
-    fun `hidden daily routines appear first in the sidebar and stay out of the month`() {
+    fun `hidden daily and weekly tasks appear first in the sidebar and stay out of the month`() {
         runSkikoComposeUiTest(size = Size(width = 1440f, height = 900f)) {
             val date = LocalDate(year = 2026, month = 11, day = 6)
             val timedDaily = Event(
@@ -31,10 +32,21 @@ class CalendarDailyTasksUiTest {
                 recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
                 occurrenceId = EventOccurrenceId(scheduleId = 3120, scheduledDate = date),
             )
+            val weekly = Task(
+                id = 313,
+                name = "Weekly planning",
+                dueDate = date,
+                recurrence = TaskRecurrence(
+                    frequency = RecurrenceFrequency.Weekly,
+                    weekdays = setOf(element = DayOfWeek.FRIDAY),
+                ),
+                occurrenceId = TaskOccurrenceId(scheduleId = 3130, scheduledDate = date),
+                showInCalendar = false,
+            )
             val state = mutableStateOf(
                 value = timedCalendarPreviewState().let { state ->
                     state.copy(
-                        tasks = state.tasks + Task(id = 320, name = "Plan the weekend"),
+                        tasks = state.tasks + listOf(weekly, Task(id = 320, name = "Plan the weekend")),
                         events = state.events + timedDaily,
                     )
                 }
@@ -71,14 +83,15 @@ class CalendarDailyTasksUiTest {
                     )
                 }
             }
-            val dailyHeader = onNodeWithText(text = "Daily · 2").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            val recurringHeader = onNodeWithText(text = "Recurring · 3")
+                .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             val timedHeader = onNodeWithText(text = "Events · 4").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             val untimedHeader = onNodeWithText(text = "Tasks · 1").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-            assertTrue(actual = dailyHeader.top < timedHeader.top && timedHeader.top < untimedHeader.top)
-            onNodeWithText(text = "Friday · 3 tasks · 4 events").assertIsDisplayed()
+            assertTrue(actual = recurringHeader.top < timedHeader.top && timedHeader.top < untimedHeader.top)
+            onNodeWithText(text = "Friday · 4 tasks · 4 events").assertIsDisplayed()
             onNodeWithText(text = "08:00–08:30 (30 min)").assertIsDisplayed()
             onNodeWithContentDescription(label = "Complete Daily call", useUnmergedTree = true).assertDoesNotExist()
-            for (task in state.value.sidebarDailyTasks) {
+            for (task in state.value.sidebarRecurringTasks) {
                 onNode(
                         matcher = hasTestTag(testTag = "calendar-task-${task.key}") and
                             hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
@@ -117,7 +130,7 @@ class CalendarDailyTasksUiTest {
             onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
             onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
             onNodeWithText(text = "Plan the weekend", useUnmergedTree = true).assertIsDisplayed()
-            onNodeWithText(text = "Daily · 2").assertDoesNotExist()
+            onNodeWithTag(testTag = "calendar-sidebar-recurring-heading").assertDoesNotExist()
             onNodeWithText(text = "Events · 4").assertDoesNotExist()
             onNodeWithText(text = "Tasks · 1").assertDoesNotExist()
         }

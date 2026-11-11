@@ -36,7 +36,7 @@ class CalendarTimedTasksUiTest {
                     )
                 }
             }
-            onNodeWithText(text = "Daily · 2").assertIsDisplayed()
+            onNodeWithText(text = "Recurring · 2").assertIsDisplayed()
             onNodeWithText(text = "Events · 3").assertIsDisplayed()
             onNodeWithText(text = "Tasks · 1").assertIsDisplayed()
             onNodeWithText(text = "Friday · 3 tasks · 3 events").assertIsDisplayed()

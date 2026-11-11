@@ -88,28 +88,28 @@ class CalendarStoreTest {
                 )
                 .use { store ->
                     runCurrent()
-                    assertEquals(expected = listOf(element = first), actual = store.state.value.sidebarDailyTasks)
+                    assertEquals(expected = listOf(element = first), actual = store.state.value.sidebarRecurringTasks)
                     assertTrue(actual = store.state.value.monthTasksByDate.isEmpty())
                     store.accept(
                         intent = CalendarIntent.ToggleCompleted(id = first.id, occurrenceId = first.occurrenceId)
                     )
                     runCurrent()
-                    assertTrue(actual = store.state.value.sidebarDailyTasks.isEmpty())
+                    assertTrue(actual = store.state.value.sidebarRecurringTasks.isEmpty())
                     assertEquals(expected = first.key, actual = store.state.value.sidebarCompletedTasks.single().key)
                     assertFalse(actual = repository.values.value.single { task -> task.key == second.key }.isCompleted)
                     assertTrue(actual = store.state.value.monthTasksByDate.isEmpty())
                     store.accept(intent = CalendarIntent.SelectDay(date = second.dueDate!!))
                     runCurrent()
-                    assertEquals(expected = listOf(element = second), actual = store.state.value.sidebarDailyTasks)
+                    assertEquals(expected = listOf(element = second), actual = store.state.value.sidebarRecurringTasks)
                     store.accept(intent = CalendarIntent.SelectDay(date = today))
                     runCurrent()
-                    assertTrue(actual = store.state.value.sidebarDailyTasks.isEmpty())
+                    assertTrue(actual = store.state.value.sidebarRecurringTasks.isEmpty())
                     assertEquals(expected = first.key, actual = store.state.value.sidebarCompletedTasks.single().key)
                     store.accept(
                         intent = CalendarIntent.ToggleCompleted(id = first.id, occurrenceId = first.occurrenceId)
                     )
                     runCurrent()
-                    assertEquals(expected = listOf(element = first), actual = store.state.value.sidebarDailyTasks)
+                    assertEquals(expected = listOf(element = first), actual = store.state.value.sidebarRecurringTasks)
                     assertTrue(actual = store.state.value.sidebarCompletedTasks.isEmpty())
                 }
         }
