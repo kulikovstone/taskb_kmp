@@ -25,6 +25,7 @@ import kotlin.test.assertTrue
 class TaskBChoiceDialogUiTest {
     @Test
     fun `recurring delete choices stay inside the shared panel in wide and short windows`() {
+        val message = "Choose which occurrences to delete."
         val labels = listOf("Only this event", "This and following events", "Entire event and all occurrences")
         for (size in listOf(Size(width = 1440f, height = 900f), Size(width = 320f, height = 240f))) {
             var selected: String? = null
@@ -33,7 +34,7 @@ class TaskBChoiceDialogUiTest {
                     TaskBTheme(darkTheme = false) {
                         TaskBChoiceDialog(
                             title = "Delete repeating event",
-                            message = "Choose which occurrences to delete.",
+                            message = message,
                             choices = labels.map { label ->
                                 TaskBDialogChoice(
                                     label = label,
@@ -49,6 +50,10 @@ class TaskBChoiceDialogUiTest {
                 val panel = onNodeWithTag(testTag = "taskb-dialog-panel")
                 val bounds = panel.getUnclippedBoundsInRoot()
                 val cancel = onNodeWithText(text = "Cancel").assertIsDisplayed().getUnclippedBoundsInRoot()
+                val description = onNodeWithText(text = message).getUnclippedBoundsInRoot()
+                val firstChoice = onNodeWithText(text = labels.first()).assertIsDisplayed().getUnclippedBoundsInRoot()
+                assertTrue(actual = firstChoice.top - description.bottom >= 12.dp)
+
                 val lastChoice = onNodeWithText(text = labels.last())
                 lastChoice.performScrollTo().assertIsDisplayed()
                 val lastChoiceBounds = lastChoice.getUnclippedBoundsInRoot()
