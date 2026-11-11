@@ -39,9 +39,12 @@ class AppNavigationUiTest {
     @Test
     fun `welcome repeats on launch until disabled in settings`() {
         val file = temporaryDirectory.resolve("taskb.db")
-        repeat(times = 2) { launch ->
-            val width = if (launch == 0) 1440f else 400f
-            val imageHeight = if (launch == 0) 900f else 636f
+        val illustrationBounds = listOf(
+            1440f to Rect(left = 232f, top = 24f, right = 1208f, bottom = 634f),
+            840f to Rect(left = 24f, top = 24f, right = 816f, bottom = 636f),
+            400f to Rect(left = 24f, top = 24f, right = 376f, bottom = 636f),
+        )
+        illustrationBounds.forEachIndexed { launch, (width, expectedBounds) ->
             withAppKoin(file = file) { application ->
                 val settings = application.koin.get<IAppSettings>()
                 runSkikoComposeUiTest(size = Size(width = width, height = 900f)) {
@@ -58,7 +61,7 @@ class AppNavigationUiTest {
                     Files.createDirectories(screenshot.parent)
                     ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", screenshot.toFile())
                     assertEquals(
-                        expected = Rect(left = 0f, top = 0f, right = width, bottom = imageHeight),
+                        expected = expectedBounds,
                         actual = onNodeWithTag(testTag = "welcome-illustration").fetchSemanticsNode().boundsInRoot,
                     )
                     onNodeWithText(text = "Get started").performClick()
@@ -66,7 +69,7 @@ class AppNavigationUiTest {
                     waitUntil(timeoutMillis = 10_000) {
                         onAllNodes(matcher = settingsButton).fetchSemanticsNodes().isNotEmpty()
                     }
-                    if (launch == 1) {
+                    if (launch == illustrationBounds.lastIndex) {
                         onNode(matcher = settingsButton).performClick()
                         val preference = hasText(text = "Show welcome screen at startup")
                         waitUntil(timeoutMillis = 10_000) {
