@@ -27,8 +27,9 @@ internal class TaskStore(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val today: () -> LocalDate = ::currentDate,
     private val clock: Clock = Clock.System,
+    initialFilter: TaskFilter? = null,
 ) : CoroutineStore<TaskIntent, TaskState, TaskMessage>(
-    initialState = TaskState(today = today(), now = clock.now()),
+    initialState = TaskState(today = today(), now = clock.now(), filter = initialFilter),
     reducer = ::reduceTask,
     context = dispatcher,
 ) {

@@ -29,10 +29,13 @@ internal fun TaskScreen(
     groupResults: Flow<GroupSelectionResult>,
     onChooseGroup: (Int?, Boolean) -> Unit,
     onOpenOccurrence: ((Task) -> Unit)? = null,
+    initialFilter: TaskFilter? = null,
 ) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
-    val store = rememberNavEntryResource(key = "tasks") { TaskStore(repository = repository, groups = groups) }
+    val store = rememberNavEntryResource(key = "tasks") {
+        TaskStore(repository = repository, groups = groups, initialFilter = initialFilter)
+    }
     val state by store.state.collectAsState()
     LaunchedEffect(key1 = store, key2 = groupResults) {
         groupResults.collect { result ->
