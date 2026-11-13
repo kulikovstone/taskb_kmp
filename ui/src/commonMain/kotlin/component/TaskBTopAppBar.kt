@@ -35,6 +35,8 @@ fun TaskBTopAppBar(
     backContentDescription: String = "Back",
     titleSpacing: Dp? = null,
     subtitle: @Composable (() -> Unit)? = null,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 4.dp),
+    contentAlpha: Float = ContentAlpha.high,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     if (titleSpacing == null) {
@@ -68,9 +70,9 @@ fun TaskBTopAppBar(
         backgroundColor = TaskBTheme.colors.surface,
         contentColor = TaskBTheme.colors.heading,
         elevation = 0.dp,
-        contentPadding = PaddingValues(horizontal = 4.dp),
+        contentPadding = contentPadding,
     ) {
-        CompositionLocalProvider(value = LocalContentAlpha provides ContentAlpha.high) {
+        CompositionLocalProvider(value = LocalContentAlpha provides contentAlpha) {
             IconButton(onClick = onBack, enabled = backEnabled) {
                 Icon(imageVector = backIcon, contentDescription = backContentDescription)
             }

@@ -56,7 +56,7 @@ internal fun Event.isPastCalendarEntry(
         isPastCalendarEvent(now = now, timeZone = timeZone)
 }
 
-internal fun calendarMonthEventText(task: Event, date: LocalDate?): String {
+internal fun calendarMonthEventText(task: Event, date: LocalDate?, endTimeFirst: Boolean = false): String {
     val start = task.startDateTime ?: return task.name
     if (!task.isMultiDayCalendarEvent || date == null || date == start.date) {
         return "${start.time.calendarTimeLabel()} ${task.name}"
@@ -64,7 +64,7 @@ internal fun calendarMonthEventText(task: Event, date: LocalDate?): String {
     if (date == task.calendarLastDate) {
         val end = requireNotNull(value = task.endDateTime)
         val time = if (end.time == LocalTime(hour = 0, minute = 0)) "24:00" else end.time.calendarTimeLabel()
-        return "${task.name} $time"
+        return if (endTimeFirst) "$time ${task.name}" else "${task.name} $time"
     }
     return task.name
 }

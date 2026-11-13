@@ -73,6 +73,7 @@ internal fun CalendarTaskRow(
     now: Instant = Clock.System.now(),
     today: LocalDate = now.toLocalDateTime(timeZone = TimeZone.currentSystemDefault()).date,
     contentPadding: PaddingValues = PaddingValues(all = 0.dp),
+    compactDay: Boolean = false,
 ) {
     if (task is CalendarItem.HolidayItem) {
         CalendarHolidayRow(
@@ -96,6 +97,7 @@ internal fun CalendarTaskRow(
             date = date,
             now = now,
             contentPadding = contentPadding,
+            compactDay = compactDay,
         )
         return
     }
@@ -105,7 +107,12 @@ internal fun CalendarTaskRow(
         alignment = LineHeightStyle.Alignment.Center,
         trim = LineHeightStyle.Trim.None,
     )
-    val titleStyle = calendarTaskTitleStyle(dense = dense)
+    val titleStyle = if (compactDay) {
+        TaskBTheme.typography.body.copy(lineHeightStyle = lineHeightStyle)
+    } else {
+        calendarTaskTitleStyle(dense = dense)
+    }
+    val completedColor = if (compactDay) colors.calendarInactiveEntryText else colors.completedText
     val overdue = !task.isCompleted && task.dueDate?.let { date -> date < today } == true
     Column(modifier = modifier.graphicsLayer { alpha = if (dragging) 0.25f else 1f }) {
         Row(
@@ -122,17 +129,25 @@ internal fun CalendarTaskRow(
                     other = if (dense) {
                         Modifier.padding(all = calendarTaskPadding)
                     } else {
-                        Modifier.padding(vertical = 4.dp)
+                        Modifier.padding(vertical = if (compactDay) 0.dp else 4.dp)
                     }
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(
-                space = if (dense) calendarTaskTitleGap else calendarSidebarTaskTitleGap(task = task)
+                space = when {
+                    dense -> calendarTaskTitleGap
+                    compactDay -> 10.dp
+                    else -> calendarSidebarTaskTitleGap(task = task)
+                }
             ),
         ) {
             Box(
                 modifier =
-                    (if (dense) Modifier.size(size = calendarTaskCheckboxSize) else Modifier.width(width = 24.dp))
+                    (if (dense) {
+                        Modifier.size(size = calendarTaskCheckboxSize)
+                    } else {
+                        Modifier.width(width = if (compactDay) 22.dp else 24.dp)
+                    })
                         .toggleable(
                             value = task.isCompleted,
                             interactionSource = interactionSource,
@@ -145,7 +160,7 @@ internal fun CalendarTaskRow(
                             contentDescription =
                                 if (task.isCompleted) "Mark ${task.name} incomplete" else "Complete ${task.name}"
                         }
-                        .then(other = if (dense) Modifier else Modifier.padding(vertical = 6.dp)),
+                        .then(other = if (dense || compactDay) Modifier else Modifier.padding(vertical = 6.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -159,10 +174,11 @@ internal fun CalendarTaskRow(
                         colors.muted
                     },
                     // Crop the icon's empty 3 dp margins without scaling its 18 dp glyph.
-                    modifier = if (dense) {
-                        Modifier.size(size = calendarTaskCheckboxSize)
-                    } else {
-                        Modifier.size(width = 24.dp, height = 18.dp)
+                    modifier = when {
+                        dense -> Modifier.size(size = calendarTaskCheckboxSize)
+                        compactDay -> Modifier.size(size = 22.dp)
+                        else -> Modifier
+                            .size(width = 24.dp, height = 18.dp)
                             .clipToBounds()
                             .wrapContentSize(align = Alignment.TopStart, unbounded = true)
                             .requiredSize(size = 24.dp)
@@ -172,7 +188,13 @@ internal fun CalendarTaskRow(
             }
             Column(
                 modifier = Modifier.weight(weight = 1f),
-                verticalArrangement = Arrangement.spacedBy(space = if (dense) 4.dp else 2.dp),
+                verticalArrangement = Arrangement.spacedBy(
+                    space = when {
+                        dense -> 4.dp
+                        compactDay -> 0.dp
+                        else -> 2.dp
+                    },
+                ),
             ) {
                 Text(
                     text = task.name,
@@ -186,7 +208,7 @@ internal fun CalendarTaskRow(
                         ) {
                             onOpenTask(task.id)
                         },
-                    color = if (task.isCompleted) colors.completedText else colors.text,
+                    color = if (task.isCompleted) completedColor else colors.text,
                     style = titleStyle,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
                     maxLines = 2,
@@ -212,6 +234,7 @@ internal fun CalendarTaskRow(
                     )
                 if (!dense && group != null)
                     Row(
+                        modifier = if (compactDay) Modifier.height(height = 20.dp) else Modifier,
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
                     ) {

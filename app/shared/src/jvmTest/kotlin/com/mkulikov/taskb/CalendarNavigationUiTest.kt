@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.core.database.AppDatabase
+import com.mkulikov.taskb.feature.event.api.repository.IEventRepository
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
@@ -18,6 +19,7 @@ import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlin.test.*
 import kotlin.time.Clock
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
 import kotlinx.datetime.format.MonthNames
@@ -32,6 +34,73 @@ class CalendarNavigationUiTest {
         monthName(names = MonthNames.ENGLISH_FULL)
         chars(value = " ")
         year()
+    }
+
+    @Test
+    fun `compact calendar opens the day from a passive entry and carries the date to both editors`() {
+        withAppKoin(file = directory.root.toPath().resolve("calendar-compact.db")) { app ->
+            val month = Clock.System.todayIn(timeZone = TimeZone.currentSystemDefault()).yearMonth.plusMonth()
+            val date = month.onDay(day = 12)
+            val db = app.koin.get<AppDatabase>()
+            runBlocking {
+                app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
+                db.taskDao().insert(
+                    task = TaskEntity(
+                        name = "Dated task",
+                        description = "Details for the selected day",
+                        dueDate = date.toEpochDays(),
+                    ),
+                )
+                db.taskDao().insert(task = TaskEntity(name = "Undated task"))
+            }
+            runSkikoComposeUiTest(size = Size(width = 400f, height = 800f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
+                }
+                waitText(text = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                onNodeWithContentDescription(label = "Next month").performClick()
+                waitText(text = "Dated task")
+                onNodeWithText(text = "Dated task", useUnmergedTree = true)
+                    .assert(matcher = !hasClickAction())
+                    .performTouchInput { click() }
+                waitText(text = "Details for the selected day")
+                onNodeWithTag(testTag = "calendar-selected-day").assertIsDisplayed()
+                onNodeWithTag(testTag = "calendar-grid").assertDoesNotExist()
+
+                onNodeWithContentDescription(label = "New task").performClick()
+                waitText(text = "New task")
+                onNodeWithContentDescription(label = "Task name").performTextInput(text = "New dated task")
+                onNodeWithContentDescription(label = "Save task").performClick()
+                waitText(text = "New dated task")
+                assertEquals(
+                    expected = date.toEpochDays(),
+                    actual = runBlocking { db.taskDao().getById(id = 3) }?.dueDate,
+                )
+
+                onNodeWithContentDescription(label = "New event").performClick()
+                waitText(text = "New event")
+                onNodeWithContentDescription(label = "Event name").performTextInput(text = "New dated event")
+                onNodeWithContentDescription(label = "Save event").performClick()
+                waitText(text = "New dated event")
+                assertEquals(
+                    expected = date,
+                    actual = runBlocking { app.koin.get<IEventRepository>().events.first().single().dueDate },
+                )
+
+                onNodeWithText(text = "No date").performClick()
+                waitText(text = "Undated task")
+                onNodeWithText(text = "No date").assertIsDisplayed()
+                onNodeWithText(text = "Dated task").assertDoesNotExist()
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = "Details for the selected day")
+                onNodeWithContentDescription(label = "Back").performClick()
+                waitText(text = monthLabel.format(value = month))
+                onNodeWithTag(testTag = "calendar-day-$date").assertIsSelected()
+            }
+        }
     }
 
     @OptIn(InternalComposeUiApi::class)

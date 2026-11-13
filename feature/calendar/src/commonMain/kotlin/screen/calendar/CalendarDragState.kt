@@ -100,13 +100,13 @@ internal class CalendarDragState {
 @Composable
 internal fun Modifier.calendarTaskDrag(
     task: CalendarItem,
-    dragState: CalendarDragState,
+    dragState: CalendarDragState?,
     enabled: Boolean,
     dense: Boolean = false,
     sourceDate: LocalDate? = task.dueDate,
     onMove: (Int, LocalDate) -> Unit,
 ): Modifier {
-    if (task.isHoliday) return this
+    if (dragState == null || task.isHoliday) return this
     var coordinates: LayoutCoordinates? by remember { mutableStateOf(value = null) }
     val latestTask by rememberUpdatedState(newValue = task)
     val latestMove by rememberUpdatedState(newValue = onMove)

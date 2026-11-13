@@ -18,12 +18,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.mkulikov.taskb.feature.calendar.component.calendarSidebarTaskPadding
 import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
-import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.dialog.TaskBChoiceDialog
 import com.mkulikov.taskb.ui.dialog.TaskBDialogChoice
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -40,6 +40,7 @@ internal fun CalendarScreen(
     onOpenOccurrence: ((Task) -> Unit)? = null,
     onCreateEvent: (LocalDate?) -> Unit = {},
     onOpenEvent: (Event) -> Unit = {},
+    onOpenDay: (LocalDate) -> Unit = {},
 ) {
     val drag = remember { CalendarDragState() }
     var origin by remember { mutableStateOf(value = Offset.Zero) }
@@ -60,15 +61,12 @@ internal fun CalendarScreen(
                 }
         ) {
             if (maxWidth < 840.dp) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    TaskBTopAppBar(title = "Calendar", onBack = onBack)
-                    Box(
-                        modifier = Modifier.weight(weight = 1f).fillMaxWidth().padding(all = 24.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(text = "Calendar is available in wide windows.", color = TaskBTheme.colors.muted)
-                    }
-                }
+                CompactCalendar(
+                    state = state,
+                    onIntent = onIntent,
+                    onBack = onBack,
+                    onOpenDay = onOpenDay,
+                )
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
                     CalendarTopBar(

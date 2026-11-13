@@ -46,15 +46,18 @@ internal fun CalendarEventRow(
     date: LocalDate?,
     now: Instant,
     contentPadding: PaddingValues,
+    compactDay: Boolean = false,
 ) {
     val hasTime = event.startDateTime != null
     val colors = TaskBTheme.colors
     val interaction = remember { MutableInteractionSource() }
-    val subdued = event.isPastCalendarEntry(date = date.takeIf { dense }, now = now)
-    val titleColor = if (subdued) colors.completedText else colors.text
-    val timeColor = if (subdued) colors.completedText else colors.taskTime
-    val secondaryColor = if (subdued) colors.completedText else colors.muted
+    val subdued = event.isPastCalendarEntry(date = date.takeIf { dense || compactDay }, now = now)
+    val pastColor = if (compactDay) colors.calendarInactiveEntryText else colors.completedText
+    val titleColor = if (subdued) pastColor else colors.text
+    val timeColor = if (subdued) pastColor else colors.taskTime
+    val secondaryColor = if (subdued) pastColor else colors.muted
     val lineHeight = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
+    val verticalPadding = if (compactDay) 0.dp else 4.dp
     Row(
         modifier = modifier
             .graphicsLayer { alpha = if (dragging) 0.25f else 1f }
@@ -72,7 +75,7 @@ internal fun CalendarEventRow(
                 onOpenEvent(event.id)
             }
             .padding(paddingValues = contentPadding)
-            .padding(top = 4.dp, bottom = 4.dp, end = if (dense) 0.dp else 8.dp),
+            .padding(top = verticalPadding, bottom = verticalPadding, end = if (dense) 0.dp else 8.dp),
         horizontalArrangement = Arrangement.spacedBy(space = if (dense) 4.dp else 10.dp),
     ) {
         if (group != null)
@@ -112,7 +115,7 @@ internal fun CalendarEventRow(
         } else {
             Column(
                 modifier = Modifier.weight(weight = 1f),
-                verticalArrangement = Arrangement.spacedBy(space = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(space = if (compactDay) 0.dp else 2.dp),
             ) {
                 if (hasTime) {
                     val range = calendarEventTimeRange(task = event)
@@ -137,7 +140,11 @@ internal fun CalendarEventRow(
                 Text(
                     text = event.name,
                     color = titleColor,
-                    style = calendarTaskTitleStyle(dense = false),
+                    style = if (compactDay) {
+                        TaskBTheme.typography.body.copy(lineHeightStyle = lineHeight)
+                    } else {
+                        calendarTaskTitleStyle(dense = false)
+                    },
                     textDecoration = TextDecoration.None,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -152,6 +159,7 @@ internal fun CalendarEventRow(
                     )
                 if (group != null)
                     Row(
+                        modifier = if (compactDay) Modifier.height(height = 20.dp) else Modifier,
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
                     ) {

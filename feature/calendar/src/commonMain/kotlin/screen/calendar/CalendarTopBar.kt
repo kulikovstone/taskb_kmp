@@ -54,7 +54,7 @@ internal fun CalendarTopBar(
 }
 
 @Composable
-private fun CalendarDateNavigation(onIntent: (CalendarIntent) -> Unit) {
+internal fun CalendarDateNavigation(onIntent: (CalendarIntent) -> Unit) {
     val colors = TaskBTheme.colors
     Row(
         horizontalArrangement = Arrangement.spacedBy(space = 8.dp),

@@ -2,9 +2,11 @@ package com.mkulikov.taskb.ui.icon
 
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.outlined.Add
+import com.composables.icons.materialsymbols.outlined.Add_task
 import com.composables.icons.materialsymbols.outlined.Arrow_back
 import com.composables.icons.materialsymbols.outlined.Arrow_downward
 import com.composables.icons.materialsymbols.outlined.Arrow_drop_down
+import com.composables.icons.materialsymbols.outlined.Calendar_add_on
 import com.composables.icons.materialsymbols.outlined.Check
 import com.composables.icons.materialsymbols.outlined.Check_box_outline_blank
 import com.composables.icons.materialsymbols.outlined.Chevron_left
@@ -75,6 +77,12 @@ object TaskBIcons {
 
     val Add
         get() = MaterialSymbols.Outlined.Add
+
+    val AddTask
+        get() = MaterialSymbols.Outlined.Add_task
+
+    val AddEvent
+        get() = MaterialSymbols.Outlined.Calendar_add_on
 
     val Done
         get() = MaterialSymbols.Outlined.Check

@@ -47,8 +47,12 @@ internal class CalendarStore(
     private val eventRepository: IEventRepository? = null,
     private val weatherRepository: IWeatherRepository? = null,
     private val holidayRepository: IHolidayRepository? = null,
+    private val initialDate: LocalDate? = null,
 ) : CoroutineStore<CalendarIntent, CalendarState, CalendarMessage>(
-    initialState = CalendarState(today = today(), now = clock.now()),
+    initialState = today().let { currentDate ->
+        val date = initialDate ?: currentDate
+        CalendarState(today = currentDate, month = date.yearMonth, selectedDate = date, now = clock.now())
+    },
     reducer = ::reduceCalendar,
     context = dispatcher,
 ) {
@@ -136,17 +140,23 @@ internal class CalendarStore(
             }
             CalendarIntent.RetryLoad -> if (observation?.isActive != true) {
                 reduce(message = CalendarMessage.Loading)
-                val events = state
+                val range = state
                     .map { state ->
-                        val from = state.days.first()
-                        val through = state.days.last()
-                        Triple(
-                            first = from,
-                            second = through,
-                            third = state.selectedDate?.takeUnless { date -> date in from..through },
-                        )
+                        if (initialDate != null) {
+                            Triple(first = initialDate, second = initialDate, third = null)
+                        } else {
+                            val days = state.days
+                            val from = days.first()
+                            val through = days.last()
+                            Triple(
+                                first = from,
+                                second = through,
+                                third = state.selectedDate?.takeUnless { date -> date in from..through },
+                            )
+                        }
                     }
                     .distinctUntilChanged()
+                val events = range
                     .flatMapLatest { (from, through, selectedDate) ->
                         val calendar = repository.observeCalendar(from = from, through = through)
                         if (selectedDate == null) {
@@ -160,17 +170,7 @@ internal class CalendarStore(
                             }
                         }
                     }
-                val calendarEvents = state
-                    .map { state ->
-                        Triple(
-                            first = state.days.first(),
-                            second = state.days.last(),
-                            third = state.selectedDate?.takeUnless { date ->
-                                date in state.days.first()..state.days.last()
-                            },
-                        )
-                    }
-                    .distinctUntilChanged()
+                val calendarEvents = range
                     .flatMapLatest { (from, through, selectedDate) ->
                         val calendar = eventRepository?.observeCalendar(from = from, through = through)
                             ?: flowOf(value = emptyList())
