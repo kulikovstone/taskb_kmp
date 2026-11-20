@@ -380,7 +380,11 @@ class CalendarNavigationUiTest {
                 onNodeWithContentDescription(label = "Task name")
                     .performTextReplacement(text = "Created from calendar")
                 val visibilityLabel = "Show in calendar"
+                onNodeWithText(text = visibilityLabel).assertDoesNotExist()
+                onNodeWithContentDescription(label = "Choose repeat pattern").performClick()
                 waitText(text = visibilityLabel)
+                onNodeWithText(text = "After").performClick()
+                onNodeWithContentDescription(label = "Repeat occurrence count").performTextReplacement(text = "1")
                 onNodeWithText(text = visibilityLabel).assertIsOn().performClick()
                 onNodeWithText(text = visibilityLabel).assertIsOff()
                 onNodeWithContentDescription(label = "Save task").performClick()

@@ -60,8 +60,13 @@ internal fun EventTimeFields(
 }
 
 @Composable
-private fun EventStartTimeField(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
-    Text(text = "Time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
+internal fun EventStartTimeField(
+    state: EventEditorState,
+    onIntent: (EventEditorIntent) -> Unit,
+    enabled: Boolean,
+    label: String = "Time",
+) {
+    Text(text = label, style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
     Spacer(modifier = Modifier.height(height = 8.dp))
     EventSelectionField(
         label = state.startTime?.let(block = ::eventTimeLabel) ?: "Choose time",
@@ -91,7 +96,7 @@ private fun EventStartTimeField(state: EventEditorState, onIntent: (EventEditorI
 }
 
 @Composable
-private fun EventEndTimeField(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
+internal fun EventEndTimeField(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
     Text(text = "End time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
     Spacer(modifier = Modifier.height(height = 8.dp))
     EventSelectionField(

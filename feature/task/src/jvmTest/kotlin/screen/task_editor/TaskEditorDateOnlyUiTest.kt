@@ -68,7 +68,10 @@ class TaskEditorDateOnlyUiTest {
                         onNodeWithContentDescription(label = "Choose end time").assertDoesNotExist()
                         onNodeWithText(text = "Start time").assertDoesNotExist()
                         onNodeWithText(text = "Duration").assertDoesNotExist()
+                        onNodeWithText(text = "Show in calendar").assertDoesNotExist()
                         if (!editing) {
+                            onNodeWithContentDescription(label = "Choose repeat pattern").performClick()
+                            scheduler.runCurrent()
                             val visibility = onNodeWithText(text = "Show in calendar").performScrollTo().assertIsOn()
                             val idle = visibility.captureToImage().toPixelMap()
                             visibility.performMouseInput { moveTo(position = center) }
@@ -85,6 +88,9 @@ class TaskEditorDateOnlyUiTest {
                             )
                             Files.createDirectories(output.parent)
                             ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
+                            onNodeWithContentDescription(label = "Clear repeat pattern").performScrollTo().performClick()
+                            scheduler.runCurrent()
+                            onNodeWithText(text = "Show in calendar").assertDoesNotExist()
                         }
                         onNodeWithContentDescription(label = "Save task").assertIsEnabled().performClick()
                         scheduler.runCurrent()

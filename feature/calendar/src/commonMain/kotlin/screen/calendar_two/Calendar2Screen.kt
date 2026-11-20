@@ -39,7 +39,7 @@ internal fun Calendar2Screen(
     onIntent: (CalendarIntent) -> Unit,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
-    onCreateTask: (LocalDate?, Int?) -> Unit,
+    onCreateItem: (LocalDate?, Int?) -> Unit,
     onOpenItem: (CalendarItem) -> Unit,
 ) {
     val query = rememberTextFieldState()
@@ -59,13 +59,13 @@ internal fun Calendar2Screen(
         }
         onIntent(intent)
     }
-    val createTask = {
+    val createItem = {
         val date = state.selectedDate ?: when (filter) {
             TaskFilter.Today -> state.today
             TaskFilter.Tomorrow -> state.today.plus(value = 1, unit = DateTimeUnit.DAY)
             else -> null
         }
-        onCreateTask(date, group?.id)
+        onCreateItem(date, group?.id)
     }
     CalendarWorkspace(state = state, onIntent = onIntent) { drag ->
         Column(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-2")) {
@@ -88,7 +88,7 @@ internal fun Calendar2Screen(
                     onOpenFilters = { showFilters = true },
                     onClearFilter = { filter = null },
                     onClearGroup = { groupId = null },
-                    onCreateTask = createTask,
+                    onCreateItem = createItem,
                     modifier = Modifier
                         .width(width = 380.dp)
                         .fillMaxHeight(),
@@ -178,7 +178,7 @@ private fun Calendar2ScreenPreview() {
             onIntent = {},
             onBack = {},
             onOpenSettings = {},
-            onCreateTask = { _, _ -> },
+            onCreateItem = { _, _ -> },
             onOpenItem = {},
         )
     }

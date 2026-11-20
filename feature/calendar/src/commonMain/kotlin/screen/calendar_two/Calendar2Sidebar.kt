@@ -62,7 +62,7 @@ internal fun Calendar2Sidebar(
     onOpenFilters: () -> Unit,
     onClearFilter: () -> Unit,
     onClearGroup: () -> Unit,
-    onCreateTask: () -> Unit,
+    onCreateItem: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = TaskBTheme.colors
@@ -98,10 +98,10 @@ internal fun Calendar2Sidebar(
                         .size(size = 44.dp)
                         .clip(shape = RoundedCornerShape(size = 10.dp))
                         .background(color = colors.actionFill)
-                        .clickable(role = Role.Button, onClick = onCreateTask),
+                        .clickable(role = Role.Button, onClick = onCreateItem),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(imageVector = TaskBIcons.Add, contentDescription = "Add task", tint = colors.onAction)
+                    Icon(imageVector = TaskBIcons.Add, contentDescription = "Add item", tint = colors.onAction)
                 }
             }
             if (date != null) {

@@ -40,6 +40,8 @@ internal sealed interface EventEditorIntent {
 
     data object Save : EventEditorIntent
 
+    data class SaveNew(val groupId: Int?) : EventEditorIntent
+
     data object PrepareDelete : EventEditorIntent
 
     data object ConfirmDelete : EventEditorIntent

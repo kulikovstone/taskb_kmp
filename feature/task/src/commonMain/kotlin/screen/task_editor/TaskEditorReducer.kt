@@ -70,11 +70,13 @@ internal fun reduceTaskEditor(state: TaskEditorState, message: TaskEditorMessage
         is TaskEditorMessage.Date -> state.copy(
             dueDate = message.value,
             recurrence = state.recurrence.takeIf { message.value != null },
+            showInCalendar = state.showInCalendar || (state.recurrence != null && message.value == null),
             dialog = null,
         )
         is TaskEditorMessage.CalendarVisibility -> state.copy(showInCalendar = message.value)
         is TaskEditorMessage.Recurrence -> state.copy(
             recurrence = message.value,
+            showInCalendar = state.showInCalendar || (state.recurrence != null && message.value == null),
             repeatInterval = state.repeatInterval.withTextIfChanged(text = (message.value?.interval ?: 1).toString()),
             repeatDay = state.repeatDay.withTextIfChanged(
                 text = (message.value?.dayOfMonth ?: state.dueDate?.day ?: 1).toString()

@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.core.database.AppDatabase
+import com.mkulikov.taskb.feature.event.api.repository.IEventRepository
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
@@ -17,7 +18,9 @@ import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -103,15 +106,33 @@ class Calendar2NavigationUiTest {
                 onNodeWithContentDescription(label = "Save task").performClick()
                 waitForText(value = "Updated work")
 
-                onNodeWithContentDescription(label = "Add task").performClick()
-                waitForText(value = "New task")
+                onNodeWithContentDescription(label = "Add item").performClick()
+                waitForText(value = "New item")
+                onNodeWithText(text = "Task").assertIsSelected()
+                onNodeWithText(text = "Options").assertDoesNotExist()
+                onNodeWithText(text = "Show in calendar").assertDoesNotExist()
+                onNodeWithText(text = "Create item").assertIsNotEnabled()
+                onRoot().saveScreenshot(name = "task-creation-empty")
                 onNodeWithContentDescription(label = "Task name").performTextInput(text = "Added from calendar")
-                onNodeWithContentDescription(label = "Save task").performClick()
+                onNodeWithText(text = "Event").performClick().assertIsSelected()
+                onNodeWithContentDescription(label = "Event name").assertTextContains(value = "Added from calendar")
+                onNodeWithText(text = "Task").performClick()
+                onNodeWithText(text = "Today").performClick()
+                onNodeWithContentDescription(label = "Choose repeat pattern").performClick()
+                onNodeWithText(text = "Options").assertIsDisplayed()
+                onNodeWithText(text = "Show in calendar").assertIsOn()
+                onRoot().saveScreenshot(name = "task-creation-repeat")
+                onNodeWithText(text = "Show in calendar").performClick()
+                onNodeWithText(text = "Show in calendar").assertIsOff()
+                onNodeWithContentDescription(label = "Clear repeat pattern").performClick()
+                waitUntilDoesNotExist(matcher = hasText(text = "Options"), timeoutMillis = 5_000)
+                onNodeWithText(text = "Show in calendar").assertDoesNotExist()
+                onNodeWithContentDescription(label = "Clear date").performClick()
+                onNodeWithText(text = "Create item").performClick()
                 waitForText(value = "Added from calendar")
-                assertEquals(
-                    expected = groupId,
-                    actual = runBlocking { db.taskDao().getById(id = laterTaskId + 1) }?.groupId,
-                )
+                val createdTask = assertNotNull(actual = runBlocking { db.taskDao().getById(id = laterTaskId + 1) })
+                assertEquals(expected = groupId, actual = createdTask.groupId)
+                assertTrue(actual = createdTask.showInCalendar)
                 onNodeWithContentDescription(label = "Settings").performClick()
                 waitForText(value = "Settings")
                 onNodeWithContentDescription(label = "Back").performClick()
@@ -126,6 +147,33 @@ class Calendar2NavigationUiTest {
                     matcher = hasText(text = "Today task") and
                         hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar")),
                 ).assertIsDisplayed()
+
+                onNodeWithContentDescription(label = "Add item").performClick()
+                waitForText(value = "New item")
+                onNodeWithContentDescription(label = "Task name").performTextInput(text = "Event from calendar")
+                onNodeWithContentDescription(label = "Task description").performTextInput(text = "Agenda")
+                onNodeWithText(text = "Event").performClick()
+                onNodeWithContentDescription(label = "Event name").assertTextContains(value = "Event from calendar")
+                onNodeWithContentDescription(label = "Event description").assertTextContains(value = "Agenda")
+                onNodeWithContentDescription(label = "Choose group").performClick()
+                waitForText(value = "Choose group")
+                onNodeWithText(text = "Work").performClick()
+                waitForText(value = "New item")
+                onNodeWithContentDescription(label = "Choose start time").performClick()
+                onNodeWithContentDescription(label = "Apply time").performClick()
+                onNodeWithText(text = "1 hour").performClick()
+                onNodeWithContentDescription(label = "Choose repeat pattern").performClick()
+                onNodeWithText(text = "Weekly").performClick()
+                onRoot().saveScreenshot(name = "task-creation-event")
+                onNodeWithText(text = "Options").assertDoesNotExist()
+                onNodeWithText(text = "Create item").performClick()
+                waitForText(value = "Event from calendar")
+                val event = runBlocking { app.koin.get<IEventRepository>().events.first().single() }
+                assertEquals(expected = today, actual = event.dueDate)
+                assertEquals(expected = "Agenda", actual = event.description)
+                assertEquals(expected = groupId, actual = event.groupId)
+                assertEquals(expected = 60, actual = event.durationMinutes)
+                assertNotNull(actual = event.recurrence)
             }
         }
     }

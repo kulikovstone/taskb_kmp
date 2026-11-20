@@ -78,11 +78,34 @@ internal fun EventRecurrenceFields(
     enabled: Boolean,
     wide: Boolean,
 ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        EventRepeatPattern(state = state, onIntent = onIntent, enabled = enabled)
+        if (state.recurrence != null) {
+            Spacer(modifier = Modifier.height(height = 16.dp))
+            EventRepeatOn(state = state, onIntent = onIntent, enabled = enabled, wide = wide)
+            Spacer(modifier = Modifier.height(height = 16.dp))
+            EventRepeatEnd(state = state, onIntent = onIntent, enabled = enabled)
+        }
+    }
+}
+
+@Composable
+internal fun EventRepeatPattern(
+    state: EventEditorState,
+    onIntent: (EventEditorIntent) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val date = state.dueDate
     val rule = state.editedRecurrence
     fun change(value: EventRecurrence?) = onIntent(EventEditorIntent.RecurrenceChanged(recurrence = value))
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Repeat", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Repeat",
+            modifier = Modifier.height(height = 18.dp),
+            style = TaskBTheme.typography.label,
+            color = TaskBTheme.colors.text,
+        )
         Spacer(modifier = Modifier.height(height = 8.dp))
         EventSelectionField(
             label = rule?.description() ?: "Does not repeat",
@@ -150,162 +173,208 @@ internal fun EventRecurrenceFields(
                         color = TaskBTheme.colors.text,
                     )
                 }
-                when (rule.frequency) {
-                    RecurrenceFrequency.Weekly -> Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-                        Text(
-                            text = "Repeat on",
-                            style = TaskBTheme.typography.label,
-                            color = TaskBTheme.colors.text,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(space = if (wide) 8.dp else 4.dp),
-                        ) {
-                            DayOfWeek.entries.forEach { day ->
-                                TaskBSelectionButton(
-                                    label = weekdayNames[day.ordinal],
-                                    selected = day in rule.weekdays,
-                                    onClick = {
-                                        val next = if (day in rule.weekdays) {
-                                            rule.weekdays - day
-                                        } else {
-                                            rule.weekdays + day
-                                        }
-                                        if (next.isNotEmpty()) change(value = rule.copy(weekdays = next))
-                                    },
-                                    modifier = Modifier.weight(weight = 1f),
-                                    enabled = enabled,
-                                )
-                            }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun EventRepeatOn(
+    state: EventEditorState,
+    onIntent: (EventEditorIntent) -> Unit,
+    enabled: Boolean,
+    wide: Boolean,
+    modifier: Modifier = Modifier,
+    showHeading: Boolean = false,
+) {
+    val rule = state.editedRecurrence ?: return
+    fun change(value: EventRecurrence) = onIntent(EventEditorIntent.RecurrenceChanged(recurrence = value))
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (showHeading && (rule.frequency == RecurrenceFrequency.Monthly ||
+                rule.frequency == RecurrenceFrequency.Yearly)
+        ) {
+            Text(
+                text = "Repeat on",
+                modifier = Modifier.height(height = 18.dp),
+                style = TaskBTheme.typography.label,
+                color = TaskBTheme.colors.text,
+            )
+            Spacer(modifier = Modifier.height(height = 8.dp))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(space = 16.dp)) {
+            when (rule.frequency) {
+                RecurrenceFrequency.Weekly -> Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+                    Text(
+                        text = "Repeat on",
+                        style = TaskBTheme.typography.label,
+                        color = TaskBTheme.colors.text,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(space = if (wide) 8.dp else 4.dp),
+                    ) {
+                        DayOfWeek.entries.forEach { day ->
+                            TaskBSelectionButton(
+                                label = weekdayNames[day.ordinal],
+                                selected = day in rule.weekdays,
+                                onClick = {
+                                    val next = if (day in rule.weekdays) {
+                                        rule.weekdays - day
+                                    } else {
+                                        rule.weekdays + day
+                                    }
+                                    if (next.isNotEmpty()) change(value = rule.copy(weekdays = next))
+                                },
+                                modifier = Modifier.weight(weight = 1f),
+                                enabled = enabled,
+                            )
                         }
                     }
-                    RecurrenceFrequency.Monthly,
-                    RecurrenceFrequency.Yearly -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
-                        ) {
+                }
+                RecurrenceFrequency.Monthly,
+                RecurrenceFrequency.Yearly -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
+                    ) {
+                        Text(
+                            text = "On",
+                            modifier = Modifier.width(width = 46.dp),
+                            style = TaskBTheme.typography.body,
+                            color = TaskBTheme.colors.text,
+                        )
+                        if (rule.frequency == RecurrenceFrequency.Yearly)
+                            RepeatMonth(
+                                month = rule.month,
+                                enabled = enabled,
+                                onChoose = { month -> change(value = rule.copy(month = month)) },
+                                modifier =
+                                    if (wide) Modifier.width(width = 180.dp) else Modifier.weight(weight = 1f),
+                            )
+                        RepeatNumber(
+                            state = state.repeatDay,
+                            description = "Repeat day",
+                            maxLength = 2,
+                            enabled = enabled,
+                        )
+                        if (rule.frequency == RecurrenceFrequency.Monthly)
                             Text(
-                                text = "On",
-                                modifier = Modifier.width(width = 46.dp),
+                                text = "of the month",
                                 style = TaskBTheme.typography.body,
                                 color = TaskBTheme.colors.text,
                             )
-                            if (rule.frequency == RecurrenceFrequency.Yearly)
-                                RepeatMonth(
-                                    month = rule.month,
-                                    enabled = enabled,
-                                    onChoose = { month -> change(value = rule.copy(month = month)) },
-                                    modifier =
-                                        if (wide) Modifier.width(width = 180.dp) else Modifier.weight(weight = 1f),
-                                )
-                            RepeatNumber(
-                                state = state.repeatDay,
-                                description = "Repeat day",
-                                maxLength = 2,
-                                enabled = enabled,
-                            )
-                            if (rule.frequency == RecurrenceFrequency.Monthly)
-                                Text(
-                                    text = "of the month",
-                                    style = TaskBTheme.typography.body,
-                                    color = TaskBTheme.colors.text,
-                                )
-                        }
-                        if (rule.dayOfMonth > 28)
-                            Text(
-                                text = "If this date is missing, use the last day of the month.",
-                                style = TaskBTheme.typography.small,
-                                color = TaskBTheme.colors.muted,
-                            )
                     }
-                    RecurrenceFrequency.Daily -> Unit
+                    if (rule.dayOfMonth > 28)
+                        Text(
+                            text = "If this date is missing, use the last day of the month.",
+                            style = TaskBTheme.typography.small,
+                            color = TaskBTheme.colors.muted,
+                        )
                 }
-                val dates = state.upcomingDates
-                Text(
-                    text = if (dates.isEmpty()) {
-                        "No occurrences match this schedule."
-                    } else {
-                        "Upcoming: " + upcomingLabel(dates = dates, frequency = rule.frequency)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = TaskBTheme.colors.selected, shape = RoundedCornerShape(size = 8.dp))
-                        .padding(all = 12.dp),
-                    style = TaskBTheme.typography.small,
-                    color = TaskBTheme.colors.secondary,
-                )
+                RecurrenceFrequency.Daily -> Unit
             }
-            state.recurrenceError?.let { message ->
-                Text(
-                    text = message,
-                    style = TaskBTheme.typography.small,
-                    color = TaskBTheme.colors.danger,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-            Spacer(modifier = Modifier.height(height = 16.dp))
-            Text(text = "Repeat ends", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
-            Spacer(modifier = Modifier.height(height = 8.dp))
-            val end = when {
-                rule.endDate != null -> "On date"
-                rule.occurrenceCount != null -> "After"
-                else -> "Never"
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-                listOf("Never", "On date", "After").forEach { label ->
-                    TaskBSelectionButton(
-                        label = label,
-                        selected = end == label,
-                        onClick = {
-                            change(
-                                value = rule.copy(
-                                    endDate = if (label == "On date") rule.endDate ?: date else null,
-                                    occurrenceCount = if (label == "After") rule.occurrenceCount ?: 10 else null,
-                                )
+            val dates = state.upcomingDates
+            Text(
+                text = if (dates.isEmpty()) {
+                    "No occurrences match this schedule."
+                } else {
+                    "Upcoming: " + upcomingLabel(dates = dates, frequency = rule.frequency)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color = TaskBTheme.colors.selected, shape = RoundedCornerShape(size = 8.dp))
+                    .padding(all = 12.dp),
+                style = TaskBTheme.typography.small,
+                color = TaskBTheme.colors.secondary,
+            )
+        }
+        state.recurrenceError?.let { message ->
+            Text(
+                text = message,
+                style = TaskBTheme.typography.small,
+                color = TaskBTheme.colors.danger,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun EventRepeatEnd(
+    state: EventEditorState,
+    onIntent: (EventEditorIntent) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val rule = state.editedRecurrence ?: return
+    val date = state.dueDate
+    fun change(value: EventRecurrence) = onIntent(EventEditorIntent.RecurrenceChanged(recurrence = value))
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Repeat ends",
+            modifier = Modifier.height(height = 18.dp),
+            style = TaskBTheme.typography.label,
+            color = TaskBTheme.colors.text,
+        )
+        Spacer(modifier = Modifier.height(height = 8.dp))
+        val end = when {
+            rule.endDate != null -> "On date"
+            rule.occurrenceCount != null -> "After"
+            else -> "Never"
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+            listOf("Never", "On date", "After").forEach { label ->
+                TaskBSelectionButton(
+                    label = label,
+                    selected = end == label,
+                    onClick = {
+                        change(
+                            value = rule.copy(
+                                endDate = if (label == "On date") rule.endDate ?: date else null,
+                                occurrenceCount = if (label == "After") rule.occurrenceCount ?: 10 else null,
                             )
-                        },
-                        modifier = Modifier.weight(weight = 1f),
-                        enabled = enabled,
-                    )
-                }
-            }
-            val endDate = rule.endDate
-            if (endDate != null) {
-                Spacer(modifier = Modifier.height(height = 8.dp))
-                EventSelectionField(
-                    label = shortDate(date = endDate),
-                    icon = TaskBIcons.Calendar,
-                    tint = TaskBTheme.colors.muted,
-                    placeholder = false,
-                    description = "Choose repeat end date",
+                        )
+                    },
+                    modifier = Modifier.weight(weight = 1f),
                     enabled = enabled,
-                    onClick = { onIntent(EventEditorIntent.ChooseRepeatEndDate) },
-                    onClear = null,
-                    clearDescription = "",
-                )
-            } else if (rule.occurrenceCount != null) {
-                Spacer(modifier = Modifier.height(height = 8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
-                ) {
-                    RepeatNumber(
-                        state = state.repeatCount,
-                        description = "Repeat occurrence count",
-                        maxLength = 7,
-                        enabled = enabled,
-                    )
-                    Text(text = "occurrences", style = TaskBTheme.typography.body, color = TaskBTheme.colors.text)
-                }
-                Text(
-                    text = "Includes the first occurrence.",
-                    style = TaskBTheme.typography.small,
-                    color = TaskBTheme.colors.muted,
-                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
+        }
+        val endDate = rule.endDate
+        if (endDate != null) {
+            Spacer(modifier = Modifier.height(height = 8.dp))
+            EventSelectionField(
+                label = shortDate(date = endDate),
+                icon = TaskBIcons.Calendar,
+                tint = TaskBTheme.colors.muted,
+                placeholder = false,
+                description = "Choose repeat end date",
+                enabled = enabled,
+                onClick = { onIntent(EventEditorIntent.ChooseRepeatEndDate) },
+                onClear = null,
+                clearDescription = "",
+            )
+        } else if (rule.occurrenceCount != null) {
+            Spacer(modifier = Modifier.height(height = 8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
+            ) {
+                RepeatNumber(
+                    state = state.repeatCount,
+                    description = "Repeat occurrence count",
+                    maxLength = 7,
+                    enabled = enabled,
+                )
+                Text(text = "occurrences", style = TaskBTheme.typography.body, color = TaskBTheme.colors.text)
+            }
+            Text(
+                text = "Includes the first occurrence.",
+                style = TaskBTheme.typography.small,
+                color = TaskBTheme.colors.muted,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
     }
 }

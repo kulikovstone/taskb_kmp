@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -98,22 +99,18 @@ internal fun TaskEditorForm(
                 Column(modifier = Modifier.weight(weight = 1f)) {
                     TaskDateSection(state = state, today = today, onIntent = onIntent)
                 }
-                TaskCalendarVisibility(
-                    state = state,
-                    enabled = enabled,
-                    onIntent = onIntent,
-                    modifier = Modifier.weight(weight = 1f),
-                )
+                Box(modifier = Modifier.weight(weight = 1f)) {
+                    if (state.recurrence != null) {
+                        TaskCalendarVisibility(state = state, enabled = enabled, onIntent = onIntent)
+                    }
+                }
             }
         } else {
             TaskDateSection(state = state, today = today, onIntent = onIntent)
-            Spacer(modifier = Modifier.height(height = 16.dp))
-            TaskCalendarVisibility(
-                state = state,
-                enabled = enabled,
-                onIntent = onIntent,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (state.recurrence != null) {
+                Spacer(modifier = Modifier.height(height = 16.dp))
+                TaskCalendarVisibility(state = state, enabled = enabled, onIntent = onIntent)
+            }
         }
         if (state.dueDate != null) {
             Spacer(modifier = Modifier.height(height = 24.dp))
@@ -132,11 +129,11 @@ internal fun TaskEditorForm(
 }
 
 @Composable
-private fun TaskCalendarVisibility(
+internal fun TaskCalendarVisibility(
     state: TaskEditorState,
     enabled: Boolean,
     onIntent: (TaskEditorIntent) -> Unit,
-    modifier: Modifier,
+    labelStyle: TextStyle = TaskBTheme.typography.label,
 ) {
     val defaultAlpha = RippleDefaults.rippleAlpha(
         contentColor = LocalContentColor.current,
@@ -152,7 +149,8 @@ private fun TaskCalendarVisibility(
     )
     CompositionLocalProvider(value = LocalRippleConfiguration provides ripple) {
         Row(
-            modifier = modifier
+            modifier = Modifier
+                .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .toggleable(
                     value = state.showInCalendar,
@@ -167,7 +165,7 @@ private fun TaskCalendarVisibility(
         ) {
             Text(
                 text = "Show in calendar",
-                style = TaskBTheme.typography.label,
+                style = labelStyle,
                 color = TaskBTheme.colors.text,
             )
             Switch(
@@ -206,7 +204,7 @@ private fun TaskNameSection(state: TaskEditorState, onIntent: (TaskEditorIntent)
 }
 
 @Composable
-private fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: (TaskEditorIntent) -> Unit) {
+internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: (TaskEditorIntent) -> Unit) {
     val enabled = !state.isBusy && state.dialog == null
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -254,13 +252,15 @@ private fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: 
 }
 
 @Composable
-private fun TaskGroupSection(
+internal fun TaskGroupSection(
     state: TaskEditorState,
     groups: List<Group>,
     onIntent: (TaskEditorIntent) -> Unit,
     onChooseGroup: () -> Unit,
+    enabled: Boolean = !state.isBusy && state.dialog == null,
+    description: String = "Choose task group",
+    clearDescription: String = "Clear task group",
 ) {
-    val enabled = !state.isBusy && state.dialog == null
     val group = groups.find { group -> group.id == state.groupId }
     val groupIcon = if (group == null) TaskBIcons.Folder else TaskBIcons.FolderFilled
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -276,11 +276,11 @@ private fun TaskGroupSection(
             icon = groupIcon,
             tint = group?.color?.color ?: TaskBTheme.colors.muted,
             placeholder = group == null,
-            description = "Choose task group",
+            description = description,
             enabled = enabled,
             onClick = onChooseGroup,
             onClear = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(id = null)) } },
-            clearDescription = "Clear task group",
+            clearDescription = clearDescription,
             height = 44.dp,
         )
     }

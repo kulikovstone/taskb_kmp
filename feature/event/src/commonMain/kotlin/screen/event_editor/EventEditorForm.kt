@@ -137,7 +137,7 @@ private fun EventNameSection(state: EventEditorState, onIntent: (EventEditorInte
 }
 
 @Composable
-private fun EventDateSection(
+internal fun EventDateSection(
     state: EventEditorState,
     today: LocalDate,
     onIntent: (EventEditorIntent) -> Unit,

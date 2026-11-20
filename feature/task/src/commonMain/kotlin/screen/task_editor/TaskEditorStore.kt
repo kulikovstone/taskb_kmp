@@ -144,7 +144,7 @@ internal class TaskEditorStore(
                 )
                     return
                 when (intent) {
-                    is TaskEditorIntent.CalendarVisibilityChanged ->
+                    is TaskEditorIntent.CalendarVisibilityChanged -> if (current.recurrence != null)
                         reduce(message = TaskEditorMessage.CalendarVisibility(value = intent.showInCalendar))
                     is TaskEditorIntent.GroupChanged ->
                         if (intent.id == null || current.groups.any { group -> group.id == intent.id }) {

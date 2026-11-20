@@ -19,6 +19,7 @@ import com.mkulikov.taskb.feature.calendar.screen.calendar_two.Calendar2Screen
 import com.mkulikov.taskb.feature.event.api.EventEditorRoute
 import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.settings.api.SettingsRoute
+import com.mkulikov.taskb.feature.task.api.TaskCreationRoute
 import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
 import com.mkulikov.taskb.feature.task.api.TaskRoute
 import com.mkulikov.taskb.feature.task.api.model.Task
@@ -53,8 +54,8 @@ internal class CalendarNavEntry : INavEntry {
                 onIntent = store::accept,
                 onBack = navigator::back,
                 onOpenSettings = { navigator.navigate(key = SettingsRoute) },
-                onCreateTask = { date, groupId ->
-                    navigator.navigate(key = TaskEditorRoute.Create(initialDate = date, initialGroupId = groupId))
+                onCreateItem = { date, groupId ->
+                    navigator.navigate(key = TaskCreationRoute(initialDate = date, initialGroupId = groupId))
                 },
                 onOpenItem = { item ->
                     when (item) {

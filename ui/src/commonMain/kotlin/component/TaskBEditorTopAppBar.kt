@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -17,10 +18,11 @@ fun TaskBEditorTopAppBar(
     title: String,
     onBack: () -> Unit,
     backEnabled: Boolean,
+    height: Dp = 96.dp,
     actions: @Composable RowScope.() -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(height = 96.dp).padding(start = 16.dp, end = 32.dp),
+        modifier = Modifier.fillMaxWidth().height(height = height).padding(start = 16.dp, end = 32.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack, enabled = backEnabled) {

@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.event.screen.event_editor
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.core.utils.time.currentDate
 import com.mkulikov.taskb.feature.event.api.model.Event
@@ -27,6 +28,8 @@ internal class EventEditorStore(
     today: () -> LocalDate = ::currentDate,
     private val occurrenceId: EventOccurrenceId? = null,
     private val onGroupSelected: (Int?) -> Unit = {},
+    name: TextFieldState = TextFieldState(),
+    description: TextFieldState = TextFieldState(),
 ) : CoroutineStore<EventEditorIntent, EventEditorState, EventEditorMessage>(
     initialState = EventEditorState(
         isNew = eventId == null,
@@ -34,6 +37,8 @@ internal class EventEditorStore(
         dueDate = initialDate ?: today(),
         groupId = initialGroup,
         today = today(),
+        name = name,
+        description = description,
     ),
     reducer = ::reduceEventEditor,
     context = dispatcher,
@@ -191,6 +196,10 @@ internal class EventEditorStore(
                                 }
                             )
                         )
+                    is EventEditorIntent.SaveNew -> if (current.isNew && current.canSave) {
+                        val groupId = intent.groupId?.takeIf { id -> current.groups.any { group -> group.id == id } }
+                        save(current = current.copy(groupId = groupId), scope = EventChangeScope.ThisAndFollowing)
+                    }
                     EventEditorIntent.Save -> if (current.canSave) {
                         val original = current.original
                         if (
