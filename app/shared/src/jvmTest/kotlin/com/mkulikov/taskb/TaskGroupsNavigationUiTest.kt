@@ -216,7 +216,7 @@ class TaskGroupsNavigationUiTest {
                 waitText(text = "Create group")
                 onNodeWithContentDescription(label = "Group name").performTextInput(text = "Travel draft")
                 onNodeWithContentDescription(label = "Orange").performClick()
-                runOnIdle { width.value = 320.dp }
+                runOnIdle { width.value = 380.dp }
                 waitForIdle()
                 onNodeWithContentDescription(label = "Group name").assertTextEquals("Travel draft")
                 onNodeWithContentDescription(label = "Orange").assertIsSelected()
