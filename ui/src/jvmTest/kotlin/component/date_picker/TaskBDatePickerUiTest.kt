@@ -136,7 +136,7 @@ class TaskBDatePickerUiTest {
                                     open.value = false
                                 },
                                 onDismiss = { open.value = false },
-                                availableHeight = 320.dp,
+                                availableHeight = 380.dp,
                             )
                     }
                 }

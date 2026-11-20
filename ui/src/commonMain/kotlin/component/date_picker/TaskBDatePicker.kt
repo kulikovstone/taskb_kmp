@@ -127,7 +127,7 @@ internal fun DatePickerContent(
 @Composable
 private fun DatePickerNavigation(state: DatePickerState) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val compact = maxWidth < 320.dp
+        val compact = maxWidth < 380.dp
         val small = maxWidth < 280.dp
         Row(
             modifier = Modifier.fillMaxWidth(),
