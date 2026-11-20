@@ -4,12 +4,11 @@ import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.core.utils.time.currentDate
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 
 internal data class TaskState(
     val tasks: List<Task> = emptyList(),
@@ -53,24 +52,7 @@ internal data class TaskState(
                         TaskGroupFilter.NoGroup -> task.groupId == null
                         is TaskGroupFilter.Selected -> task.groupId == group.id
                     } &&
-                    when (filter) {
-                        null -> true
-                        TaskFilter.Completed -> task.isCompleted
-                        else -> !task.isCompleted &&
-                            when (filter) {
-                                TaskFilter.Scheduled -> task.dueDate != null
-                                TaskFilter.Overdue -> task.dueDate?.let { date -> date < today } == true
-                                TaskFilter.Today -> task.dueDate == today
-                                TaskFilter.Tomorrow -> task.dueDate == today.plus(value = 1, unit = DateTimeUnit.DAY)
-                                TaskFilter.OtherDates ->
-                                    task.dueDate?.let { date -> date > today.plus(
-                                        value = 1,
-                                        unit = DateTimeUnit.DAY,
-                                    ) } ==
-                                        true
-                                TaskFilter.NoDate -> task.dueDate == null
-                            }
-                    }
+                    (filter?.matches(task = task, today = today) ?: true)
             }
             val order = when (sort) {
                 TaskSort.Name -> compareBy<Task> { task -> task.name.lowercase() }
@@ -97,16 +79,6 @@ internal data class TaskState(
                 "${visibleTasks.size} of $total tasks"
             }
         }
-}
-
-internal enum class TaskFilter(val label: String) {
-    Scheduled(label = "Scheduled"),
-    Overdue(label = "Overdue"),
-    Today(label = "Today"),
-    Tomorrow(label = "Tomorrow"),
-    OtherDates(label = "Other dates"),
-    NoDate(label = "No date"),
-    Completed(label = "Completed"),
 }
 
 internal enum class TaskSort {

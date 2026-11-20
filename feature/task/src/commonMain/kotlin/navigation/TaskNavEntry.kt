@@ -10,7 +10,7 @@ import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.GroupSelectionRoute
 import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
 import com.mkulikov.taskb.feature.task.api.TaskRoute
-import com.mkulikov.taskb.feature.task.screen.task.TaskFilter
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.screen.task.TaskScreen
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorScreen
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import kotlin.test.Test
 import kotlin.test.assertEquals

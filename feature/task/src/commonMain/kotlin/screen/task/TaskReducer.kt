@@ -2,6 +2,7 @@ package com.mkulikov.taskb.feature.task.screen.task
 
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 

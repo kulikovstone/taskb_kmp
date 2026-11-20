@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.component.SelectionDialog
 import com.mkulikov.taskb.feature.task.component.SelectionScreen
 import com.mkulikov.taskb.ui.component.TaskBSelectionRow

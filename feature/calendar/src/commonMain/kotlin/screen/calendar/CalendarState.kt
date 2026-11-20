@@ -40,6 +40,8 @@ internal data class CalendarState(
     val now: Instant = Clock.System.now(),
     val weather: WeatherForecast = WeatherForecast(),
     val holidayCalendar: HolidayCalendar = HolidayCalendar(),
+    val taskList: List<Task>? = null,
+    val taskListLoadError: String? = null,
 ) {
     val weatherByDate
         get() = weather.location
@@ -66,6 +68,7 @@ internal data class CalendarState(
         get() = tasks
             .asSequence()
             .filter { task -> task.dueDate == null }
+            .plus(elements = taskList.orEmpty())
             .mapNotNull { task -> task.completedAt?.plus(duration = 24.hours) }
             .filter { instant -> instant > now }
             .minOrNull()

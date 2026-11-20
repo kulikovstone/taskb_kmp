@@ -13,6 +13,7 @@ import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.ui.dialog.TaskBMessageDialog
 import kotlinx.coroutines.flow.Flow

@@ -10,6 +10,7 @@ import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.repository.IHolidayRepository
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import com.mkulikov.taskb.feature.weather.api.repository.IWeatherRepository
@@ -48,6 +49,7 @@ internal class CalendarStore(
     private val weatherRepository: IWeatherRepository? = null,
     private val holidayRepository: IHolidayRepository? = null,
     private val initialDate: LocalDate? = null,
+    private val includeTaskList: Boolean = false,
 ) : CoroutineStore<CalendarIntent, CalendarState, CalendarMessage>(
     initialState = today().let { currentDate ->
         val date = initialDate ?: currentDate
@@ -57,6 +59,7 @@ internal class CalendarStore(
     context = dispatcher,
 ) {
     private var observation: Job? = null
+    private var taskListObservation: Job? = null
     private var weatherObservation: Job? = null
     private var holidayObservation: Job? = null
     private var nextMoveToken = 0L
@@ -65,6 +68,7 @@ internal class CalendarStore(
         accept(intent = CalendarIntent.RetryLoad)
         accept(intent = CalendarIntent.RetryWeather)
         accept(intent = CalendarIntent.RetryHolidays)
+        if (includeTaskList) accept(intent = CalendarIntent.RetryTaskList)
         collectEffect(
             messages = flow {
                 while (true) {
@@ -92,6 +96,7 @@ internal class CalendarStore(
 
     override fun handleIntent(intent: CalendarIntent) {
         when (intent) {
+            CalendarIntent.RetryTaskList -> observeTaskList()
             CalendarIntent.RetryHolidays -> observeHolidays()
             CalendarIntent.RetryWeather -> {
                 weatherObservation?.cancel()
@@ -232,10 +237,7 @@ internal class CalendarStore(
                 }
             }
             is CalendarIntent.MoveTask -> {
-                val task = state.value.tasks.find { task ->
-                    task.id == intent.id && task.occurrenceId == intent.occurrenceId
-                }
-                    ?: return
+                val task = findTask(id = intent.id, occurrenceId = intent.occurrenceId) ?: return
                 if (
                     task.dueDate == intent.date ||
                         state.value.pendingMove != null ||
@@ -262,10 +264,7 @@ internal class CalendarStore(
                 move(move = move, undoing = true)
             }
             is CalendarIntent.ToggleCompleted -> {
-                val task = state.value.tasks.find { task ->
-                    task.id == intent.id && task.occurrenceId == intent.occurrenceId
-                }
-                    ?: return
+                val task = findTask(id = intent.id, occurrenceId = intent.occurrenceId) ?: return
                 if (task.id == state.value.pendingMove || task.id in state.value.pendingCompletion) return
                 reduce(message = CalendarMessage.Completing(id = task.id))
                 launchEffect {
@@ -287,6 +286,29 @@ internal class CalendarStore(
                 }
             }
         }
+    }
+
+    private fun findTask(id: Int, occurrenceId: TaskOccurrenceId?): Task? {
+        val current = state.value
+        return (current.tasks.asSequence() + current.taskList.orEmpty()).firstOrNull { task ->
+            task.id == id && task.occurrenceId == occurrenceId
+        }
+    }
+
+    private fun observeTaskList() {
+        if (!includeTaskList || taskListObservation?.isActive == true) return
+        reduce(message = CalendarMessage.TaskListLoading)
+        taskListObservation = collectEffect(
+            messages = state
+                .map { state -> state.today }
+                .distinctUntilChanged()
+                .flatMapLatest(transform = repository::observeTaskList)
+                .map<List<Task>, CalendarMessage>(transform = CalendarMessage::TaskListLoaded)
+                .catch { exception ->
+                    if (exception is CancellationException) throw exception
+                    emit(value = CalendarMessage.TaskListLoadFailed)
+                },
+        )
     }
 
     private fun observeHolidays() {

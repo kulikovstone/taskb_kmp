@@ -8,14 +8,17 @@ import androidx.navigation3.runtime.NavKey
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
+import com.mkulikov.taskb.feature.calendar.api.Calendar2Route
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarIntent
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarItem
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarScreen
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarStore
 import com.mkulikov.taskb.feature.calendar.screen.calendar_day.CalendarDayScreen
+import com.mkulikov.taskb.feature.calendar.screen.calendar_two.Calendar2Screen
 import com.mkulikov.taskb.feature.event.api.EventEditorRoute
 import com.mkulikov.taskb.feature.event.api.model.Event
+import com.mkulikov.taskb.feature.settings.api.SettingsRoute
 import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
 import com.mkulikov.taskb.feature.task.api.TaskRoute
 import com.mkulikov.taskb.feature.task.api.model.Task
@@ -39,6 +42,26 @@ internal class CalendarNavEntry : INavEntry {
                 onOpenDay = { date ->
                     store.accept(intent = CalendarIntent.SelectDay(date = date))
                     navigator.navigate(key = CalendarDayRoute(date = date))
+                },
+            )
+        }
+        scope.entry<Calendar2Route> {
+            val store = rememberCalendarStore(includeTaskList = true)
+            val state by store.state.collectAsState()
+            Calendar2Screen(
+                state = state,
+                onIntent = store::accept,
+                onBack = navigator::back,
+                onOpenSettings = { navigator.navigate(key = SettingsRoute) },
+                onCreateTask = { date, groupId ->
+                    navigator.navigate(key = TaskEditorRoute.Create(initialDate = date, initialGroupId = groupId))
+                },
+                onOpenItem = { item ->
+                    when (item) {
+                        is CalendarItem.TaskItem -> navigator.openCalendarTask(task = item.task)
+                        is CalendarItem.EventItem -> navigator.openCalendarEvent(event = item.event)
+                        is CalendarItem.HolidayItem -> Unit
+                    }
                 },
             )
         }
@@ -66,7 +89,7 @@ internal class CalendarNavEntry : INavEntry {
 }
 
 @Composable
-private fun rememberCalendarStore(initialDate: LocalDate? = null): CalendarStore {
+private fun rememberCalendarStore(initialDate: LocalDate? = null, includeTaskList: Boolean = false): CalendarStore {
     val koin = getKoin()
     return rememberNavEntryResource(key = CalendarStore::class) {
         CalendarStore(
@@ -76,6 +99,7 @@ private fun rememberCalendarStore(initialDate: LocalDate? = null): CalendarStore
             weatherRepository = if (initialDate == null) koin.get() else null,
             holidayRepository = koin.get(),
             initialDate = initialDate,
+            includeTaskList = includeTaskList,
         )
     }
 }

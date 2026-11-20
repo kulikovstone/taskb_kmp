@@ -3,6 +3,7 @@ package com.mkulikov.taskb.feature.task.screen.task
 import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.core.utils.time.currentDate
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import kotlin.time.Clock
 import kotlin.time.Duration

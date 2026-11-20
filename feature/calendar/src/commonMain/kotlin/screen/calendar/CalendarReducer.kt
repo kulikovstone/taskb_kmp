@@ -12,6 +12,12 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.yearMonth
 
 internal sealed interface CalendarMessage {
+    data class TaskListLoaded(val tasks: List<Task>) : CalendarMessage
+
+    data object TaskListLoading : CalendarMessage
+
+    data object TaskListLoadFailed : CalendarMessage
+
     data class Holidays(
         val month: YearMonth,
         val selectedMonth: YearMonth?,
@@ -54,6 +60,11 @@ internal sealed interface CalendarMessage {
 
 internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): CalendarState {
     return when (message) {
+        is CalendarMessage.TaskListLoaded -> state.copy(taskList = message.tasks, taskListLoadError = null)
+        CalendarMessage.TaskListLoading -> state.copy(taskList = null, taskListLoadError = null)
+        CalendarMessage.TaskListLoadFailed -> state.copy(
+            taskListLoadError = "Couldn't load tasks. Please try again.",
+        )
         is CalendarMessage.Holidays -> if (
             message.month != state.month ||
                 message.selectedMonth != state.selectedDate?.yearMonth?.takeUnless { month -> month == state.month }

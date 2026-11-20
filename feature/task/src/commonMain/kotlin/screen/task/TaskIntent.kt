@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.task.screen.task
 
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 
 internal sealed interface TaskIntent {

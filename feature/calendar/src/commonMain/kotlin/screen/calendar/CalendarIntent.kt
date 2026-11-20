@@ -6,6 +6,8 @@ import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import kotlinx.datetime.LocalDate
 
 internal sealed interface CalendarIntent {
+    data object RetryTaskList : CalendarIntent
+
     data object RetryHolidays : CalendarIntent
 
     data object RetryWeather : CalendarIntent
