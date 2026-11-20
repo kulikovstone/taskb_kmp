@@ -25,7 +25,7 @@ fun main() {
             onCloseRequest = ::exitApplication,
             title = "TaskB",
             icon = appIcon,
-            state = rememberWindowState(width = 1440.dp, height = 900.dp + 18.dp),
+            state = rememberWindowState(width = 1900.dp, height = 1180.dp),
         ) {
             App()
         }

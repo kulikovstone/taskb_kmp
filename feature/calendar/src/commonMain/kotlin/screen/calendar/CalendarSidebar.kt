@@ -28,7 +28,7 @@ internal fun CalendarSidebar(
         alignment = LineHeightStyle.Alignment.Center,
         trim = LineHeightStyle.Trim.None,
     )
-    Column(modifier = Modifier.width(width = 320.dp).fillMaxHeight().testTag(tag = "calendar-sidebar")) {
+    Column(modifier = Modifier.width(width = 380.dp).fillMaxHeight().testTag(tag = "calendar-sidebar")) {
         Row(
             modifier = Modifier
                 .padding(paddingValues = calendarSidebarTaskPadding)
