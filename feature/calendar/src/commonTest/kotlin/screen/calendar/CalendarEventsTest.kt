@@ -19,11 +19,27 @@ class CalendarEventsTest {
     private val now = Instant.parse(input = "2026-11-06T12:00:00Z")
 
     @Test
-    fun `only past day cells put unfinished tasks before events and completion restores event priority`() {
+    fun `past day cells put ordinary overdue tasks first then daily overdue tasks then events and completed tasks`() {
         val yesterday = date.minus(value = 1, unit = DateTimeUnit.DAY)
         val older = Task(id = 1, name = "Older overdue task", dueDate = yesterday, createdAt = now - 2.hours)
         val newer = Task(id = 2, name = "Newer overdue task", dueDate = yesterday, createdAt = now - 1.hours)
         val completed = Task(id = 3, name = "Completed task", dueDate = yesterday, createdAt = now, completedAt = now)
+        val daily = Task(
+            id = 4,
+            name = "Daily task",
+            dueDate = yesterday,
+            createdAt = now,
+            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+            showInCalendar = false,
+        )
+        val weekly = daily.copy(
+            id = 5,
+            name = "Weekly task",
+            recurrence = TaskRecurrence(
+                frequency = RecurrenceFrequency.Weekly,
+                weekdays = setOf(element = yesterday.dayOfWeek),
+            ),
+        )
         val allDay = Event(id = 1, name = "Vacation", dueDate = yesterday, createdAt = now, durationDays = 3)
         val timed = Event(
             id = 2,
@@ -35,12 +51,13 @@ class CalendarEventsTest {
         val state = CalendarState(
             today = date,
             now = now,
-            tasks = listOf(completed, older, newer),
+            tasks = listOf(completed, older, newer, daily, weekly),
             events = listOf(timed, allDay),
         )
         val overdueFirst = listOf(
             CalendarItem.TaskItem(task = newer),
             CalendarItem.TaskItem(task = older),
+            CalendarItem.TaskItem(task = daily),
             CalendarItem.EventItem(event = allDay),
             CalendarItem.EventItem(event = timed),
             CalendarItem.TaskItem(task = completed),

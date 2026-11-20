@@ -31,24 +31,26 @@ class CalendarDailyTasksTest {
     }
 
     @Test
-    fun `daily routines stay grouped in the sidebar and their calendar visibility follows the task setting`() {
+    fun `hidden daily tasks appear on the calendar only while overdue`() {
         val completed = daily(id = 1, date = LocalDate(year = 2026, month = 11, day = 4), completed = true)
             .copy(showInCalendar = false)
         val yesterday = LocalDate(year = 2026, month = 11, day = 5)
         val overdue = daily(id = 1, date = yesterday).copy(showInCalendar = false)
         val visibleCompleted = daily(id = 2, date = yesterday, completed = true)
+        val hiddenToday = daily(id = 1).copy(showInCalendar = false)
         val today = daily(id = 2)
         val tomorrowDate = LocalDate(year = 2026, month = 11, day = 7)
+        val hiddenTomorrow = daily(id = 1, date = tomorrowDate).copy(showInCalendar = false)
         val tomorrow = daily(id = 2, date = tomorrowDate)
         val event = Event(id = 4, name = "Meeting", dueDate = date, startTime = LocalTime(hour = 12, minute = 0))
         val bills = Task(id = 3, name = "Bills", dueDate = date, showInCalendar = false)
         val state = CalendarState(
             today = date,
-            tasks = listOf(completed, overdue, visibleCompleted, today, tomorrow, bills),
+            tasks = listOf(completed, overdue, visibleCompleted, today, hiddenToday, tomorrow, hiddenTomorrow, bills),
             events = listOf(element = event),
         )
-        assertEquals(expected = listOf(today, bills), actual = state.sidebarTasks)
-        assertEquals(expected = listOf(element = today), actual = state.sidebarRecurringTasks)
+        assertEquals(expected = listOf(today, hiddenToday, bills), actual = state.sidebarTasks)
+        assertEquals(expected = listOf(today, hiddenToday), actual = state.sidebarRecurringTasks)
         assertEquals(
             expected = listOf(element = overdue),
             actual = state.copy(selectedDate = yesterday).sidebarRecurringTasks,
@@ -68,7 +70,7 @@ class CalendarDailyTasksTest {
         )
         assertEquals(
             expected = mapOf<LocalDate?, List<Task>>(
-                yesterday to listOf(element = visibleCompleted),
+                yesterday to listOf(overdue, visibleCompleted),
                 date to listOf(element = today),
                 tomorrowDate to listOf(element = tomorrow),
             ),

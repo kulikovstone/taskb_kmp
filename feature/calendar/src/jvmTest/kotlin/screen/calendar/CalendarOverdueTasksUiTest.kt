@@ -6,7 +6,9 @@ import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.feature.event.api.model.Event
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import java.nio.file.Files
 import java.nio.file.Path
@@ -20,7 +22,7 @@ import kotlinx.datetime.LocalTime
 @OptIn(ExperimentalTestApi::class)
 class CalendarOverdueTasksUiTest {
     @Test
-    fun `overdue task stays visible ahead of events in an overflowing past day`() {
+    fun `overdue tasks and hidden daily routines stay visible in order in an overflowing past day`() {
         runSkikoComposeUiTest(
             size = Size(width = 1440f, height = 900f),
         ) {
@@ -40,6 +42,14 @@ class CalendarOverdueTasksUiTest {
                             dueDate = yesterday,
                             createdAt = now,
                             completedAt = now,
+                        ),
+                        Task(
+                            id = 3,
+                            name = "Daily routine",
+                            dueDate = yesterday,
+                            createdAt = now,
+                            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+                            showInCalendar = false,
                         ),
                     ),
                     events = listOf(
@@ -80,13 +90,14 @@ class CalendarOverdueTasksUiTest {
             }
             val cell = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-$yesterday"))
             val task = onNode(matcher = hasTestTag(testTag = "calendar-task-1") and cell, useUnmergedTree = true)
+            val daily = onNode(matcher = hasTestTag(testTag = "calendar-task-3") and cell, useUnmergedTree = true)
             val event = onNode(matcher = hasText(text = "Vacation") and cell, useUnmergedTree = true)
             task.assertIsDisplayed()
+            daily.assertIsDisplayed()
             event.assertIsDisplayed()
-            assertTrue(
-                actual =
-                    task.fetchSemanticsNode().boundsInRoot.bottom <= event.fetchSemanticsNode().boundsInRoot.top
-            )
+            val dailyBounds = daily.fetchSemanticsNode().boundsInRoot
+            assertTrue(actual = task.fetchSemanticsNode().boundsInRoot.bottom <= dailyBounds.top)
+            assertTrue(actual = dailyBounds.bottom <= event.fetchSemanticsNode().boundsInRoot.top)
             onNode(matcher = hasText(text = "more", substring = true) and cell, useUnmergedTree = true)
                 .assertIsDisplayed()
             val output = Path.of("build/reports/screenshots/calendar-overdue-task-first.png")
@@ -101,6 +112,13 @@ class CalendarOverdueTasksUiTest {
             onAllNodes(matcher = hasTestTag(testTag = "calendar-task-1") and cell, useUnmergedTree = true)
                 .assertCountEquals(expectedSize = 0)
             onNode(matcher = hasText(text = "Vacation") and cell, useUnmergedTree = true).assertIsDisplayed()
+
+            onNode(
+                    matcher = hasContentDescription(value = "Complete Daily routine") and cell,
+                    useUnmergedTree = true,
+                )
+                .performClick()
+            daily.assertDoesNotExist()
         }
     }
 }

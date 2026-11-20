@@ -185,14 +185,6 @@ class TaskRecurrenceNavigationUiTest {
                         .fetchSemanticsNodes()
                         .size == 1
                 }
-                onNode(
-                    matcher = hasText(text = "Renamed series") and
-                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-grid")),
-                    useUnmergedTree = true,
-                ).assertDoesNotExist()
-                val output = Path.of("build/reports/screenshots/recurrence-calendar.png")
-                Files.createDirectories(output.parent)
-                ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
                 events = runBlocking {
                     repo
                         .observeCalendar(from = start, through = start.plus(value = 10, unit = DateTimeUnit.DAY))
@@ -201,6 +193,22 @@ class TaskRecurrenceNavigationUiTest {
                 assertTrue(actual = events.all { task -> task.name == "Renamed series" })
                 assertTrue(actual = events.none(predicate = Task::showInCalendar))
                 assertEquals(expected = 1, actual = events.count(predicate = Task::isCompleted))
+                for (task in events) {
+                    val date = requireNotNull(value = task.dueDate)
+                    val cellTask = onNode(
+                        matcher = hasTestTag(testTag = "calendar-task-${task.key}") and
+                            hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-$date")),
+                        useUnmergedTree = true,
+                    )
+                    if (date < today && !task.isCompleted) {
+                        cellTask.assertIsDisplayed()
+                    } else {
+                        cellTask.assertDoesNotExist()
+                    }
+                }
+                val output = Path.of("build/reports/screenshots/recurrence-calendar.png")
+                Files.createDirectories(output.parent)
+                ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
                 onNodeWithContentDescription(label = "Back").performClick()
                 waitText(text = "Tasks")
                 onNodeWithText(text = "Tasks").performClick()

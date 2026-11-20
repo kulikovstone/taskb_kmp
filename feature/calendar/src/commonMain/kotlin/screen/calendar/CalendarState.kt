@@ -6,6 +6,7 @@ import com.mkulikov.taskb.feature.event.api.model.occursOn
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
@@ -81,7 +82,12 @@ internal data class CalendarState(
 
     val monthTasksByDate: Map<LocalDate?, List<Task>>
         get() = tasksByDate
-            .mapValues { (_, tasks) -> tasks.filter(predicate = Task::showInCalendar) }
+            .mapValues { (date, tasks) ->
+                val isPastDay = date != null && date < today
+                tasks.filter { task ->
+                    task.showInCalendar || (isPastDay && task.repeatsDaily && !task.isCompleted)
+                }
+            }
             .filterValues { tasks -> tasks.isNotEmpty() }
 
     val sidebarTasks: List<Task>
@@ -185,6 +191,9 @@ private val sidebarTaskOrder = compareBy<Task> { task -> !task.isRecurring }.the
 internal val Task.isRecurring: Boolean
     get() = recurrence != null
 
+private val Task.repeatsDaily: Boolean
+    get() = recurrence?.frequency == RecurrenceFrequency.Daily
+
 internal data class CalendarMove(
     val token: Long,
     val taskId: Int,
@@ -211,7 +220,11 @@ private val calendarItemOrder = compareBy<CalendarItem> { item ->
     .thenBy { item -> if (item.isHoliday) item.name else "" }
 
 private val pastDayCalendarItemOrder = compareBy<CalendarItem> { item ->
-    item !is CalendarItem.TaskItem || item.isCompleted
+    when {
+        item !is CalendarItem.TaskItem || item.isCompleted -> 2
+        item.task.repeatsDaily -> 1
+        else -> 0
+    }
 }.then(
     comparator = calendarItemOrder,
 )
