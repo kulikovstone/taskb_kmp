@@ -26,5 +26,5 @@ data class Task(
         } ?: id.toString()
 
     val canQuickDelete: Boolean
-        get() = quickDelete && recurrence != null && occurrenceId != null
+        get() = quickDelete && !isCompleted && recurrence != null && occurrenceId != null
 }
