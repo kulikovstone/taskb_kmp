@@ -101,10 +101,21 @@ class Calendar2NavigationUiTest {
                 onNodeWithText(text = "No tasks to show.").assertIsDisplayed()
                 onNodeWithContentDescription(label = "Search tasks").performTextClearance()
                 onNodeWithText(text = "Undated work").performClick()
-                waitForText(value = "Edit task")
+                waitForText(value = "Edit item")
+                waitForText(value = "Undated work")
+                onNodeWithTag(testTag = "item-editor").assertIsDisplayed()
+                onNodeWithText(text = "Task").assertIsSelected().assertIsNotEnabled()
+                onNodeWithText(text = "Event").assertIsNotEnabled()
+                onNodeWithText(text = "Delete").assertIsDisplayed()
+                onNodeWithText(text = "Save changes").assertIsNotEnabled()
+                onRoot().saveScreenshot(name = "calendar-2-edit-task")
                 onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Updated work")
-                onNodeWithContentDescription(label = "Save task").performClick()
-                waitForText(value = "Updated work")
+                onNodeWithText(text = "Save changes").performClick()
+                waitUntilExactlyOneExists(
+                    matcher = hasText(text = "Updated work") and
+                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-task-list")),
+                    timeoutMillis = 5_000,
+                )
 
                 onNodeWithContentDescription(label = "Add item").performClick()
                 waitForText(value = "New item")
@@ -167,16 +178,41 @@ class Calendar2NavigationUiTest {
                 onRoot().saveScreenshot(name = "task-creation-event")
                 onNodeWithText(text = "Options").assertDoesNotExist()
                 onNodeWithText(text = "Create item").performClick()
-                waitForText(value = "Event from calendar")
-                val event = runBlocking { app.koin.get<IEventRepository>().events.first().single() }
+                val eventRow = hasText(text = "Event from calendar") and
+                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                waitUntilExactlyOneExists(matcher = eventRow, timeoutMillis = 5_000)
+                val events = app.koin.get<IEventRepository>()
+                val event = runBlocking { events.events.first().single() }
                 assertEquals(expected = today, actual = event.dueDate)
                 assertEquals(expected = "Agenda", actual = event.description)
                 assertEquals(expected = groupId, actual = event.groupId)
                 assertEquals(expected = 60, actual = event.durationMinutes)
                 assertNotNull(actual = event.recurrence)
+
+                onNode(matcher = eventRow).performClick()
+                waitForText(value = "Edit item")
+                waitForText(value = event.name)
+                onNodeWithTag(testTag = "item-editor").assertIsDisplayed()
+                onNodeWithText(text = "Event").assertIsSelected().assertIsNotEnabled()
+                onNodeWithText(text = "Task").assertIsNotEnabled()
+                onNodeWithContentDescription(label = "Event description").assertTextContains(value = "Agenda")
+                onNodeWithText(text = "Work").assertIsDisplayed()
+                onNodeWithText(text = "Save changes").assertIsNotEnabled()
+                onRoot().saveScreenshot(name = "calendar-2-edit-event")
+                onNodeWithText(text = "30 min").performClick()
+                onNodeWithText(text = "Save changes").performClick()
+                waitForText(value = "Move repeating event")
+                onNodeWithText(text = "Only this event").performClick()
+                waitUntilExactlyOneExists(matcher = eventRow, timeoutMillis = 5_000)
+                val nextWeek = today.plus(value = 7, unit = DateTimeUnit.DAY)
+                val occurrences = runBlocking { events.observeCalendar(from = today, through = nextWeek).first() }
+                val durations = occurrences.associate { occurrence -> occurrence.dueDate to occurrence.durationMinutes }
+                assertEquals(expected = 30, actual = durations[today])
+                assertEquals(expected = 60, actual = durations[nextWeek])
             }
         }
     }
+
 }
 
 @OptIn(ExperimentalTestApi::class)

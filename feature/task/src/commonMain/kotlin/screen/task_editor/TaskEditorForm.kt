@@ -252,16 +252,33 @@ internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent:
 }
 
 @Composable
-internal fun TaskGroupSection(
+private fun TaskGroupSection(
     state: TaskEditorState,
     groups: List<Group>,
     onIntent: (TaskEditorIntent) -> Unit,
     onChooseGroup: () -> Unit,
     enabled: Boolean = !state.isBusy && state.dialog == null,
-    description: String = "Choose task group",
-    clearDescription: String = "Clear task group",
 ) {
     val group = groups.find { group -> group.id == state.groupId }
+    TaskGroupSection(
+        group = group,
+        enabled = enabled,
+        onChooseGroup = onChooseGroup,
+        onClearGroup = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(id = null)) } },
+        description = "Choose task group",
+        clearDescription = "Clear task group",
+    )
+}
+
+@Composable
+internal fun TaskGroupSection(
+    group: Group?,
+    enabled: Boolean,
+    onChooseGroup: () -> Unit,
+    onClearGroup: (() -> Unit)?,
+    description: String,
+    clearDescription: String,
+) {
     val groupIcon = if (group == null) TaskBIcons.Folder else TaskBIcons.FolderFilled
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -279,7 +296,7 @@ internal fun TaskGroupSection(
             description = description,
             enabled = enabled,
             onClick = onChooseGroup,
-            onClear = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(id = null)) } },
+            onClear = onClearGroup,
             clearDescription = clearDescription,
             height = 44.dp,
         )

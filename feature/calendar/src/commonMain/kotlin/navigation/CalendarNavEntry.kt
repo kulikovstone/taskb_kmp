@@ -59,8 +59,18 @@ internal class CalendarNavEntry : INavEntry {
                 },
                 onOpenItem = { item ->
                     when (item) {
-                        is CalendarItem.TaskItem -> navigator.openCalendarTask(task = item.task)
-                        is CalendarItem.EventItem -> navigator.openCalendarEvent(event = item.event)
+                        is CalendarItem.TaskItem -> navigator.navigate(
+                            key = TaskEditorRoute.EditInItemEditor(
+                                taskId = item.task.id,
+                                occurrenceId = item.task.occurrenceId,
+                            ),
+                        )
+                        is CalendarItem.EventItem -> navigator.navigate(
+                            key = EventEditorRoute.EditInItemEditor(
+                                eventId = item.event.id,
+                                occurrenceId = item.event.occurrenceId,
+                            ),
+                        )
                         is CalendarItem.HolidayItem -> Unit
                     }
                 },

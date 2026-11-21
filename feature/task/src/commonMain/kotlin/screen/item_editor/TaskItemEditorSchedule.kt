@@ -1,4 +1,4 @@
-package com.mkulikov.taskb.feature.task.screen.task_creation
+package com.mkulikov.taskb.feature.task.screen.item_editor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -14,7 +14,7 @@ import com.mkulikov.taskb.feature.task.screen.task_editor.TaskRepeatPattern
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
-internal fun TaskCreationSchedule(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit) {
+internal fun TaskItemEditorSchedule(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit) {
     val enabled = !state.isBusy && !state.isFinished && state.dialog == null
     Column(verticalArrangement = Arrangement.spacedBy(space = 24.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
@@ -44,7 +44,7 @@ internal fun TaskCreationSchedule(state: TaskEditorState, onIntent: (TaskEditorI
             }
             Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
                 Column(modifier = Modifier.weight(weight = 1f)) {
-                    CreationFieldLabel(text = "Options")
+                    ItemEditorLabel(text = "Options")
                     TaskCalendarVisibility(
                         state = state,
                         enabled = enabled,

@@ -1,7 +1,8 @@
-package com.mkulikov.taskb.feature.task.screen.task_creation
+package com.mkulikov.taskb.feature.task.screen.item_editor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
 import androidx.compose.material.Surface
@@ -19,9 +20,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
-import com.mkulikov.taskb.feature.event.api.IEventCreationEditor
+import com.mkulikov.taskb.feature.event.api.EventEditorRoute
+import com.mkulikov.taskb.feature.event.api.IEventItemEditor
 import com.mkulikov.taskb.feature.group.api.GroupSelectionResult
+import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorDialogs
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorIntent
@@ -42,12 +46,13 @@ import kotlinx.datetime.LocalDate
 import org.koin.compose.koinInject
 
 @Composable
-internal fun TaskCreationScreen(
-    initialDate: LocalDate?,
-    initialGroupId: Int?,
+internal fun TaskItemEditorScreen(
     onBack: () -> Unit,
     groupResults: Flow<GroupSelectionResult>,
     onChooseGroup: (Int?) -> Unit,
+    initialDate: LocalDate? = null,
+    initialGroupId: Int? = null,
+    edit: TaskEditorRoute.EditInItemEditor? = null,
 ) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
@@ -55,60 +60,86 @@ internal fun TaskCreationScreen(
         TaskEditorStore(
             repository = repository,
             groups = groups,
+            taskId = edit?.taskId,
+            occurrenceId = edit?.occurrenceId,
             initialDate = initialDate,
             initialGroup = initialGroupId,
         )
     }
     val state by store.state.collectAsState()
     var isEvent by rememberSaveable { mutableStateOf(value = false) }
+    val changeType: (Boolean) -> Unit = { eventSelected -> isEvent = eventSelected }
     LaunchedEffect(key1 = store, key2 = state.isFinished) {
         if (state.isFinished) onBack()
     }
     LaunchedEffect(key1 = store, key2 = groupResults) {
         groupResults.collect { result -> store.accept(intent = TaskEditorIntent.GroupChanged(id = result.groupId)) }
     }
+    val loadError = state.loadError ?: state.groupsLoadError
+    val fields = ItemEditorFields(
+        name = state.name,
+        description = state.description,
+        group = state.groups.find { group -> group.id == state.groupId },
+        isLoading = state.isLoading || state.isLoadingGroups,
+        loadError = loadError,
+        enabled = !state.isBusy && !state.isFinished && state.dialog == null && loadError == null,
+    )
+    val retry = {
+        val intent = if (state.loadError != null) TaskEditorIntent.RetryLoad else TaskEditorIntent.RetryGroups
+        store.accept(intent = intent)
+    }
+    val clearGroup = { store.accept(intent = TaskEditorIntent.GroupChanged(id = null)) }
+    val delete = { store.accept(intent = TaskEditorIntent.PrepareDelete) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
         BoxWithConstraints {
             val availableHeight = maxHeight
-            if (isEvent) {
-                val editor = koinInject<IEventCreationEditor>()
+            if (edit == null && isEvent) {
+                val editor = koinInject<IEventItemEditor>()
                 editor.Content(
                     name = state.name,
                     description = state.description,
                     initialDate = state.dueDate,
                     groupId = state.groupId,
                     availableHeight = availableHeight,
-                    onSaved = onBack,
+                    onFinished = onBack,
                 ) { event ->
-                    TaskCreationContent(
-                        state = state,
+                    ItemEditorContent(
+                        fields = fields.copy(
+                            isLoading = fields.isLoading || event.isLoading,
+                            loadError = fields.loadError ?: event.loadError,
+                            enabled = fields.enabled && event.enabled,
+                        ),
                         isEvent = true,
                         isSaving = event.isSaving,
-                        canSave = event.canSave && !state.isBusy && state.groupsLoadError == null,
-                        enabled = event.enabled && !state.isBusy,
-                        onTypeChanged = { eventSelected -> isEvent = eventSelected },
+                        canSave = event.canSave && fields.enabled,
+                        onTypeChanged = changeType,
                         onSave = event.onSave,
                         onBack = onBack,
                         onChooseGroup = { onChooseGroup(state.groupId) },
-                        onTaskIntent = store::accept,
+                        onClearGroup = clearGroup,
+                        onRetry = {
+                            retry()
+                            event.onRetry()
+                        },
                         schedule = event.schedule,
                     )
                 }
             } else {
-                TaskCreationContent(
-                    state = state,
+                ItemEditorContent(
+                    fields = fields,
                     isEvent = false,
                     isSaving = state.isSaving,
                     canSave = state.canSave,
-                    enabled = !state.isBusy && !state.isFinished && state.dialog == null,
-                    onTypeChanged = { eventSelected -> isEvent = eventSelected },
+                    onTypeChanged = changeType.takeIf { edit == null },
+                    onDelete = delete.takeIf { edit != null },
                     onSave = { store.accept(intent = TaskEditorIntent.Save) },
                     onBack = onBack,
                     onChooseGroup = { onChooseGroup(state.groupId) },
-                    onTaskIntent = store::accept,
+                    onClearGroup = clearGroup,
+                    onRetry = retry,
                 ) {
-                    TaskCreationSchedule(state = state, onIntent = store::accept)
+                    TaskItemEditorSchedule(state = state, onIntent = store::accept)
                 }
                 TaskEditorDialogs(
                     state = state,
@@ -122,28 +153,96 @@ internal fun TaskCreationScreen(
 }
 
 @Composable
-private fun TaskCreationContent(
-    state: TaskEditorState,
+internal fun EventItemEditorScreen(
+    edit: EventEditorRoute.EditInItemEditor,
+    onBack: () -> Unit,
+    groupResults: Flow<GroupSelectionResult>,
+    onChooseGroup: (Int?) -> Unit,
+) {
+    val editor = koinInject<IEventItemEditor>()
+    Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
+        BoxWithConstraints {
+            editor.Content(
+                availableHeight = maxHeight,
+                onFinished = onBack,
+                edit = edit,
+                groupResults = groupResults,
+            ) { event ->
+                ItemEditorContent(
+                    fields = ItemEditorFields(
+                        name = event.name,
+                        description = event.description,
+                        group = event.group,
+                        isLoading = event.isLoading,
+                        loadError = event.loadError,
+                        enabled = event.enabled,
+                    ),
+                    isEvent = true,
+                    isSaving = event.isSaving,
+                    canSave = event.canSave,
+                    onDelete = event.onDelete,
+                    onSave = event.onSave,
+                    onBack = onBack,
+                    onChooseGroup = { onChooseGroup(event.group?.id) },
+                    onClearGroup = event.onClearGroup,
+                    onRetry = event.onRetry,
+                    schedule = event.schedule,
+                )
+            }
+        }
+    }
+}
+
+private data class ItemEditorFields(
+    val name: TextFieldState,
+    val description: TextFieldState,
+    val group: Group? = null,
+    val isLoading: Boolean = false,
+    val loadError: String? = null,
+    val enabled: Boolean = true,
+)
+
+@Composable
+private fun ItemEditorContent(
+    fields: ItemEditorFields,
     isEvent: Boolean,
     isSaving: Boolean,
     canSave: Boolean,
-    enabled: Boolean,
-    onTypeChanged: (Boolean) -> Unit,
+    onTypeChanged: ((Boolean) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     onSave: () -> Unit,
     onBack: () -> Unit,
     onChooseGroup: () -> Unit,
-    onTaskIntent: (TaskEditorIntent) -> Unit,
+    onClearGroup: () -> Unit,
+    onRetry: () -> Unit,
     schedule: @Composable () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize().testTag(tag = "task-creation")) {
+    val editing = onDelete != null
+    val enabled = fields.enabled
+    Column(modifier = Modifier.fillMaxSize().testTag(tag = if (editing) "item-editor" else "task-creation")) {
         Box {
-            TaskBEditorTopAppBar(title = "New item", onBack = onBack, backEnabled = !isSaving, height = 70.dp) {
+            TaskBEditorTopAppBar(
+                title = if (editing) "Edit item" else "New item",
+                onBack = onBack,
+                backEnabled = !isSaving,
+                height = 70.dp,
+            ) {
+                if (onDelete != null) {
+                    TaskBEditorButton(
+                        label = "Delete",
+                        icon = TaskBIcons.Delete,
+                        onClick = onDelete,
+                        enabled = enabled,
+                        destructive = true,
+                        modifier = Modifier.widthIn(min = 96.dp),
+                    )
+                }
                 TaskBEditorButton(
-                    label = "Create item",
-                    icon = TaskBIcons.Add,
+                    label = if (editing) "Save changes" else "Create item",
+                    icon = if (editing) TaskBIcons.Done else TaskBIcons.Add,
                     onClick = onSave,
                     enabled = canSave,
-                    modifier = Modifier.widthIn(min = 135.dp),
+                    modifier = Modifier.widthIn(min = if (editing) 150.dp else 135.dp),
                 )
             }
             Divider(modifier = Modifier.align(alignment = Alignment.BottomCenter), color = TaskBTheme.colors.border)
@@ -155,12 +254,12 @@ private fun TaskCreationContent(
                 .padding(horizontal = 24.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
-            val error = state.groupsLoadError
+            val error = fields.loadError
             when {
-                state.isLoadingGroups -> TaskBLoading()
+                fields.isLoading -> TaskBLoading()
                 error != null -> TaskBLoadError(
                     message = error,
-                    onRetry = { onTaskIntent(TaskEditorIntent.RetryGroups) },
+                    onRetry = onRetry,
                 )
                 else -> Column(
                     modifier = Modifier
@@ -173,9 +272,9 @@ private fun TaskCreationContent(
                     Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
                         Column(modifier = Modifier.weight(weight = 1f)) {
                             val name = if (isEvent) "Event name" else "Task name"
-                            CreationFieldLabel(text = name)
+                            ItemEditorLabel(text = name)
                             TaskBTextField(
-                                state = state.name,
+                                state = fields.name,
                                 description = name,
                                 placeholder = if (isEvent) "Enter event name" else "Enter task name",
                                 enabled = enabled,
@@ -186,9 +285,8 @@ private fun TaskCreationContent(
                         }
                         Column(modifier = Modifier.weight(weight = 1f)) {
                             TaskGroupSection(
-                                state = state,
-                                groups = state.groups,
-                                onIntent = onTaskIntent,
+                                group = fields.group,
+                                onClearGroup = onClearGroup.takeIf { fields.group != null },
                                 onChooseGroup = onChooseGroup,
                                 enabled = enabled,
                                 description = "Choose group",
@@ -198,9 +296,9 @@ private fun TaskCreationContent(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
                         Column(modifier = Modifier.weight(weight = 1f)) {
-                            CreationFieldLabel(text = "Description")
+                            ItemEditorLabel(text = "Description")
                             TaskBTextArea(
-                                state = state.description,
+                                state = fields.description,
                                 description = if (isEvent) "Event description" else "Task description",
                                 placeholder = "Add a description",
                                 enabled = enabled,
@@ -209,21 +307,21 @@ private fun TaskCreationContent(
                             )
                         }
                         Column(modifier = Modifier.weight(weight = 1f)) {
-                            CreationFieldLabel(text = "Type")
+                            ItemEditorLabel(text = "Type")
                             Row(horizontalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                                 TaskBSelectionButton(
                                     label = "Task",
                                     selected = !isEvent,
-                                    enabled = enabled,
+                                    enabled = enabled && onTypeChanged != null,
                                     modifier = Modifier.weight(weight = 1f),
-                                    onClick = { onTypeChanged(false) },
+                                    onClick = { onTypeChanged?.invoke(false) },
                                 )
                                 TaskBSelectionButton(
                                     label = "Event",
                                     selected = isEvent,
-                                    enabled = enabled,
+                                    enabled = enabled && onTypeChanged != null,
                                     modifier = Modifier.weight(weight = 1f),
-                                    onClick = { onTypeChanged(true) },
+                                    onClick = { onTypeChanged?.invoke(true) },
                                 )
                             }
                         }
@@ -236,7 +334,7 @@ private fun TaskCreationContent(
 }
 
 @Composable
-internal fun CreationFieldLabel(text: String) {
+internal fun ItemEditorLabel(text: String) {
     Text(
         text = text,
         style = TaskBTheme.typography.label,
@@ -251,19 +349,19 @@ internal fun CreationFieldLabel(text: String) {
 private fun TaskCreationPreview() {
     val state = TaskEditorState(isLoadingGroups = false)
     TaskBTheme(darkTheme = false) {
-        TaskCreationContent(
-            state = state,
+        ItemEditorContent(
+            fields = ItemEditorFields(name = state.name, description = state.description),
             isEvent = false,
             isSaving = false,
             canSave = false,
-            enabled = true,
             onTypeChanged = {},
             onSave = {},
             onBack = {},
             onChooseGroup = {},
-            onTaskIntent = {},
+            onClearGroup = {},
+            onRetry = {},
         ) {
-            TaskCreationSchedule(state = state, onIntent = {})
+            TaskItemEditorSchedule(state = state, onIntent = {})
         }
     }
 }

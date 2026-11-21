@@ -14,4 +14,6 @@ sealed interface EventEditorRoute : NavKey {
     ) : EventEditorRoute
 
     data class Edit(val eventId: Int, val occurrenceId: EventOccurrenceId? = null) : EventEditorRoute
+
+    data class EditInItemEditor(val eventId: Int, val occurrenceId: EventOccurrenceId? = null) : EventEditorRoute
 }

@@ -14,4 +14,6 @@ sealed interface TaskEditorRoute : NavKey {
     ) : TaskEditorRoute
 
     data class Edit(val taskId: Int, val occurrenceId: TaskOccurrenceId? = null) : TaskEditorRoute
+
+    data class EditInItemEditor(val taskId: Int, val occurrenceId: TaskOccurrenceId? = null) : TaskEditorRoute
 }
