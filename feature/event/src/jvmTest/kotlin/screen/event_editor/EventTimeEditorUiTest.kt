@@ -1,8 +1,13 @@
 package com.mkulikov.taskb.feature.event.screen.event_editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
@@ -13,6 +18,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.unit.dp
+import com.mkulikov.taskb.feature.event.component.EventItemEditorSchedule
 import com.mkulikov.taskb.feature.event.testing.FakeEventRepository
 import com.mkulikov.taskb.feature.event.testing.FakeGroupRepository
 import com.mkulikov.taskb.ui.theme.Palette
@@ -86,7 +92,7 @@ class EventTimeEditorUiTest {
     }
 
     @Test
-    fun `all day date range has no clear action and saves in both layouts and themes`() {
+    fun `all day date range has no clear action and saves in both themes at different widths`() {
         for (wide in listOf(true, false)) for (dark in listOf(false, true)) {
             val scheduler = TestCoroutineScheduler()
             val repo = FakeEventRepository()
@@ -99,19 +105,14 @@ class EventTimeEditorUiTest {
                 )
                 .use { store ->
                     scheduler.runCurrent()
+                    store.state.value.name.setTextAndPlaceCursorAtEnd(text = "Vacation")
                     runSkikoComposeUiTest(size = Size(width = if (wide) 1280f else 400f, height = 980f)) {
                         setContent {
                             TaskBTheme(darkTheme = dark) {
                                 val state = store.state.collectAsState().value
                                 Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
                                     Box {
-                                        EventEditorContent(
-                                            state = state,
-                                            onIntent = store::accept,
-                                            wide = wide,
-                                            onBack = {},
-                                            onChooseGroup = {},
-                                        )
+                                        EventScheduleTestContent(state = state, onIntent = store::accept)
                                         EventEditorDialogs(
                                             state = state,
                                             today = state.today,
@@ -122,23 +123,11 @@ class EventTimeEditorUiTest {
                                 }
                             }
                         }
-                        onNodeWithContentDescription(label = "Event name").performTextReplacement(text = "Vacation")
-                        if (wide) {
-                            val name = onNodeWithContentDescription(
-                                label = "Event name",
-                            ).fetchSemanticsNode().boundsInRoot
-                            val group = onNodeWithContentDescription(label = "Choose event group")
-                                .fetchSemanticsNode()
-                                .boundsInRoot
-                            assertEquals(expected = name.top, actual = group.top, absoluteTolerance = 0.5f)
-                            val start = onNodeWithContentDescription(label = "Choose date")
-                                .fetchSemanticsNode()
-                                .boundsInRoot
-                            val end = onNodeWithContentDescription(label = "Choose event end date")
-                                .fetchSemanticsNode()
-                                .boundsInRoot
-                            assertEquals(expected = start.top, actual = end.top, absoluteTolerance = 0.5f)
-                        }
+                        val start = onNodeWithContentDescription(label = "Choose date")
+                            .fetchSemanticsNode().boundsInRoot
+                        val end = onNodeWithContentDescription(label = "Choose event end date")
+                            .fetchSemanticsNode().boundsInRoot
+                        assertEquals(expected = start.top, actual = end.top, absoluteTolerance = 0.5f)
                         onNodeWithContentDescription(label = "Clear date").assertDoesNotExist()
                         onNodeWithContentDescription(label = "Choose event end date")
                             .performScrollTo()
@@ -173,7 +162,7 @@ class EventTimeEditorUiTest {
                         )
                         Files.createDirectories(output.parent)
                         ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", output.toFile())
-                        onNodeWithContentDescription(label = "Save event").performClick()
+                        store.accept(intent = EventEditorIntent.Save)
                         scheduler.runCurrent()
                         assertEquals(expected = 3, actual = repo.lastWrite?.durationDays)
                         assertNull(actual = repo.lastWrite?.startTime)
@@ -196,19 +185,14 @@ class EventTimeEditorUiTest {
                 )
                 .use { store ->
                     scheduler.runCurrent()
+                    store.state.value.name.setTextAndPlaceCursorAtEnd(text = "Meeting")
                     runSkikoComposeUiTest(size = Size(width = if (wide) 1280f else 400f, height = 980f)) {
                         setContent {
                             TaskBTheme(darkTheme = false) {
                                 val state = store.state.collectAsState().value
                                 Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
                                     Box {
-                                        EventEditorContent(
-                                            state = state,
-                                            onIntent = store::accept,
-                                            wide = wide,
-                                            onBack = {},
-                                            onChooseGroup = {},
-                                        )
+                                        EventScheduleTestContent(state = state, onIntent = store::accept)
                                         EventEditorDialogs(
                                             state = state,
                                             today = state.today,
@@ -219,7 +203,6 @@ class EventTimeEditorUiTest {
                                 }
                             }
                         }
-                        onNodeWithContentDescription(label = "Event name").performTextReplacement(text = "Meeting")
                         onNodeWithContentDescription(label = "Choose start time").performScrollTo().performClick()
                         scheduler.runCurrent()
                         waitForIdle()
@@ -248,11 +231,18 @@ class EventTimeEditorUiTest {
                             )
                             .performScrollTo()
                             .assertIsDisplayed()
-                        onNodeWithContentDescription(label = "Save event").performClick()
+                        store.accept(intent = EventEditorIntent.Save)
                         scheduler.runCurrent()
                         assertEquals(expected = 15, actual = repo.lastWrite?.durationMinutes)
                     }
                 }
         }
+    }
+}
+
+@Composable
+internal fun EventScheduleTestContent(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit) {
+    Column(modifier = Modifier.verticalScroll(state = rememberScrollState())) {
+        EventItemEditorSchedule(state = state, onIntent = onIntent)
     }
 }

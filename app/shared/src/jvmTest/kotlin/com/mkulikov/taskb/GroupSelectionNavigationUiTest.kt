@@ -16,7 +16,7 @@ import com.mkulikov.taskb.core.navigation.AppRoot
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.home.api.HomeRoute
-import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
+import com.mkulikov.taskb.feature.task.api.TaskCreationRoute
 import com.mkulikov.taskb.feature.task.api.TaskRoute
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -52,10 +52,10 @@ class GroupSelectionNavigationUiTest {
                         }
                     }
                     waitForNode(matcher = hasText(text = "Tasks") and hasClickAction())
-                    runOnIdle { navigator.navigate(key = TaskEditorRoute.Create(initialDate = date)) }
+                    runOnIdle { navigator.navigate(key = TaskCreationRoute(initialDate = date)) }
                     waitForNode(matcher = hasContentDescription(value = "Task name"))
                     onNodeWithContentDescription(label = "Task name").performTextInput(text = "Retained task draft")
-                    onNodeWithContentDescription(label = "Choose task group").performClick()
+                    onNodeWithContentDescription(label = "Choose group").performClick()
                     waitForNode(matcher = hasText(text = "No groups yet."))
                     onNodeWithText(text = "No group").assertDoesNotExist()
                     onNodeWithContentDescription(label = "Search groups").performTextInput(text = "Travel")
@@ -84,9 +84,9 @@ class GroupSelectionNavigationUiTest {
                     onNode(matcher = groupRow(name = "Travel")).assertIsDisplayed().performClick()
                     waitForNode(matcher = hasContentDescription(value = "Task name"))
                     onNodeWithContentDescription(label = "Task name").assertTextEquals("Retained task draft")
-                    onNodeWithContentDescription(label = "Choose task group")
+                    onNodeWithContentDescription(label = "Choose group")
                         .assert(matcher = hasText(text = "Travel"))
-                    onNodeWithContentDescription(label = "Save task").performClick()
+                    onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                     waitForNode(matcher = hasText(text = "Tasks") and hasClickAction())
 
                     val group = runBlocking { database.groupDao().observeGroups().first().single() }

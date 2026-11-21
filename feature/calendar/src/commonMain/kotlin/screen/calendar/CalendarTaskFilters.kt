@@ -1,6 +1,5 @@
-package com.mkulikov.taskb.feature.calendar.screen.calendar_two
+package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarState
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import kotlin.time.Duration.Companion.hours

@@ -46,6 +46,7 @@ class EventDateRangeNavigationUiTest {
                     onAllNodes(matcher = hasTestTag(testTag = "calendar-grid")).fetchSemanticsNodes().isNotEmpty()
                 }
                 onNodeWithTag(testTag = "calendar-day-number-$start", useUnmergedTree = true).performClick()
+                onNodeWithContentDescription(label = "Add item").performClick()
                 onNodeWithText(text = "Event").performClick()
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(matcher = hasContentDescription(value = "Event name"))
@@ -56,7 +57,7 @@ class EventDateRangeNavigationUiTest {
                 onNodeWithContentDescription(label = "Clear date").assertDoesNotExist()
                 onNodeWithContentDescription(label = "Choose event end date").performClick()
                 onNodeWithContentDescription(label = "Choose ${format.format(value = end)}").performClick()
-                onNodeWithContentDescription(label = "Save event").performClick()
+                onNodeWithText(text = "Create item").performClick()
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(matcher = hasTestTag(testTag = "calendar-grid")).fetchSemanticsNodes().isNotEmpty()
                 }

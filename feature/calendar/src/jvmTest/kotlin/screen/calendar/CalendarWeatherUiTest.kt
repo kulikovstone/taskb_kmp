@@ -129,7 +129,7 @@ class CalendarWeatherUiTest {
                 )
             setContent {
                 TaskBTheme(darkTheme = true) {
-                    CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+                    CalendarTestScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
                 }
             }
             for (day in days.filter { weather -> weather.date in state.days }) {
@@ -179,7 +179,7 @@ class CalendarWeatherUiTest {
             val intents = mutableListOf<CalendarIntent>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state,
                         onIntent = intents::add,
                         onBack = {},

@@ -1,9 +1,13 @@
 package com.mkulikov.taskb.feature.task.screen.task_editor
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsFocused
@@ -16,7 +20,9 @@ import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.screen.item_editor.TaskItemEditorContent
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -47,13 +53,14 @@ class TaskEditorInputUiTest {
                     setContent {
                         TaskBTheme {
                             val state = store.state.collectAsState().value
-                            TaskEditorContent(
-                                state = state,
-                                onIntent = store::accept,
-                                wide = wide.value,
-                                onBack = {},
-                                onChooseGroup = {},
-                            )
+                            Box(modifier = Modifier.width(width = if (wide.value) 720.dp else 380.dp)) {
+                                TaskItemEditorContent(
+                                    state = state,
+                                    onIntent = store::accept,
+                                    onBack = {},
+                                    onChooseGroup = {},
+                                )
+                            }
                         }
                     }
                     val name = onNodeWithContentDescription(label = "Task name")
@@ -92,10 +99,9 @@ class TaskEditorInputUiTest {
                 runSkikoComposeUiTest {
                     setContent {
                         TaskBTheme {
-                            TaskEditorContent(
+                            TaskItemEditorContent(
                                 state = store.state.collectAsState().value,
                                 onIntent = store::accept,
-                                wide = false,
                                 onBack = {},
                                 onChooseGroup = {},
                             )
@@ -138,7 +144,7 @@ class TaskEditorInputUiTest {
                             expectedValue = TextRange(index = 12),
                         )
                     )
-                    onNodeWithContentDescription(label = "Save task").performClick()
+                    onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                     scheduler.runCurrent()
                     assertEquals(expected = "Схема связей модулей", actual = repository.lastWrite?.name)
                 }
@@ -159,10 +165,9 @@ class TaskEditorInputUiTest {
                 runSkikoComposeUiTest {
                     setContent {
                         TaskBTheme {
-                            TaskEditorContent(
+                            TaskItemEditorContent(
                                 state = store.state.collectAsState().value,
                                 onIntent = store::accept,
-                                wide = false,
                                 onBack = {},
                                 onChooseGroup = {},
                             )
@@ -184,7 +189,7 @@ class TaskEditorInputUiTest {
                     name.performTextInput(text = "New name")
                     waitForIdle()
                     name.assertTextEquals("New name")
-                    onNodeWithContentDescription(label = "Save task").performClick()
+                    onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                     scheduler.runCurrent()
                     assertEquals(expected = "New name", actual = repository.lastWrite?.name)
                 }

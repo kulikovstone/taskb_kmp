@@ -16,13 +16,9 @@ import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.screen.item_editor.EventItemEditorScreen
 import com.mkulikov.taskb.feature.task.screen.item_editor.TaskItemEditorScreen
 import com.mkulikov.taskb.feature.task.screen.task.TaskScreen
-import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorScreen
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 
 internal class TaskNavEntry : INavEntry {
-    private val calendarTaskGroupId = MutableStateFlow<Int?>(value = null)
-
     override fun register(scope: EntryProviderScope<NavKey>, navigator: IAppNavigator) {
         scope.entry<TaskRoute> {
             TaskList(navigator = navigator)
@@ -35,13 +31,14 @@ internal class TaskNavEntry : INavEntry {
                 TaskItemEditorScreen(
                     initialDate = route.initialDate,
                     initialGroupId = route.initialGroupId,
+                    initialIsEvent = route.initialIsEvent,
                     onBack = navigator::back,
                     groupResults = results,
                     onChooseGroup = chooseGroup,
                 )
             }
         }
-        scope.entry<TaskEditorRoute.EditInItemEditor> { route ->
+        scope.entry<TaskEditorRoute> { route ->
             ItemEditorWithGroupSelection(navigator = navigator) { results, chooseGroup ->
                 TaskItemEditorScreen(
                     edit = route,
@@ -51,7 +48,7 @@ internal class TaskNavEntry : INavEntry {
                 )
             }
         }
-        scope.entry<EventEditorRoute.EditInItemEditor> { route ->
+        scope.entry<EventEditorRoute> { route ->
             ItemEditorWithGroupSelection(navigator = navigator) { results, chooseGroup ->
                 EventItemEditorScreen(
                     edit = route,
@@ -60,48 +57,6 @@ internal class TaskNavEntry : INavEntry {
                     onChooseGroup = chooseGroup,
                 )
             }
-        }
-        scope.entry<TaskEditorRoute.Create> { route ->
-            val groups = rememberNavEntryResource(key = "group-result") {
-                navigator.createResultReceiver<GroupSelectionResult>()
-            }
-            TaskEditorScreen(
-                initialDate = route.initialDate,
-                initialGroupId = route.initialGroupId
-                    ?: if (route.rememberGroupSelection) calendarTaskGroupId.value else null,
-                onBack = navigator::back,
-                groupResults = groups.results,
-                onGroupSelected = { groupId -> if (route.rememberGroupSelection) calendarTaskGroupId.value = groupId },
-                onChooseGroup = { groupId ->
-                    navigator.navigate(
-                        key = GroupSelectionRoute(
-                            resultKey = groups.key,
-                            selectedGroupId = groupId,
-                            showNoGroup = false,
-                        )
-                    )
-                },
-            )
-        }
-        scope.entry<TaskEditorRoute.Edit> { route ->
-            val groups = rememberNavEntryResource(key = "group-result") {
-                navigator.createResultReceiver<GroupSelectionResult>()
-            }
-            TaskEditorScreen(
-                taskId = route.taskId,
-                occurrenceId = route.occurrenceId,
-                onBack = navigator::back,
-                groupResults = groups.results,
-                onChooseGroup = { groupId ->
-                    navigator.navigate(
-                        key = GroupSelectionRoute(
-                            resultKey = groups.key,
-                            selectedGroupId = groupId,
-                            showNoGroup = false,
-                        )
-                    )
-                },
-            )
         }
     }
 
@@ -132,11 +87,11 @@ internal class TaskNavEntry : INavEntry {
         TaskScreen(
             onBack = navigator::back,
             onCreateTask = { date, groupId ->
-                navigator.navigate(key = TaskEditorRoute.Create(initialDate = date, initialGroupId = groupId))
+                navigator.navigate(key = TaskCreationRoute(initialDate = date, initialGroupId = groupId))
             },
-            onEditTask = { taskId -> navigator.navigate(key = TaskEditorRoute.Edit(taskId = taskId)) },
+            onEditTask = { taskId -> navigator.navigate(key = TaskEditorRoute(taskId = taskId)) },
             onOpenOccurrence = { task ->
-                navigator.navigate(key = TaskEditorRoute.Edit(taskId = task.id, occurrenceId = task.occurrenceId))
+                navigator.navigate(key = TaskEditorRoute(taskId = task.id, occurrenceId = task.occurrenceId))
             },
             groupResults = groups.results,
             onChooseGroup = { selected, noGroup ->

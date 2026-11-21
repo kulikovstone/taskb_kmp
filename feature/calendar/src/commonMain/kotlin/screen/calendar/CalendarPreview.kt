@@ -301,15 +301,13 @@ private fun CalendarCompletedDayPreview() {
         ),
     )
     TaskBTheme(darkTheme = false) {
-        CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
-    }
-}
-
-@Preview(name = "Calendar – compact window", widthDp = 400, heightDp = 640)
-@Composable
-private fun CalendarCompactPreview() {
-    val state = CalendarState(today = LocalDate(year = 2026, month = 11, day = 8), isLoading = false)
-    TaskBTheme(darkTheme = false) {
-        CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+        CalendarScreen(
+            state = state,
+            onIntent = {},
+            onBack = {},
+            onOpenItem = {},
+            onCreateItem = { _, _ -> },
+            onOpenSettings = {},
+        )
     }
 }

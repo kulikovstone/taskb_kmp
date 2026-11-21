@@ -23,7 +23,7 @@ class CalendarSidebarSectionsUiTest {
             val state = timedCalendarPreviewState()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+                    CalendarTestScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
                 }
             }
             fun taskNode(task: CalendarItem): SemanticsNodeInteraction {
@@ -159,7 +159,7 @@ class CalendarSidebarSectionsUiTest {
             )
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+                    CalendarTestScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
                 }
             }
             val scrollRange =
@@ -211,7 +211,7 @@ class CalendarSidebarSectionsUiTest {
             )
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             state.value = when (intent) {
@@ -255,12 +255,12 @@ class CalendarSidebarSectionsUiTest {
                     )
                 )
             for (tag in headingTags) onNodeWithTag(testTag = tag).performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
+            onNodeWithContentDescription(label = "Clear date filter").performClick()
+            onNodeWithContentDescription(label = "Clear date filter").assertDoesNotExist()
             for (tag in headingTags) onNodeWithTag(testTag = tag).assertDoesNotExist()
             onNode(
                     matcher = hasText(text = "Plan the weekend") and
-                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar-list")),
+                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-task-list")),
                     useUnmergedTree = true,
                 )
                 .assertIsDisplayed()

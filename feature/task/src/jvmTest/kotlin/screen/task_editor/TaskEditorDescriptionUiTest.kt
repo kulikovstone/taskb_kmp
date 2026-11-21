@@ -16,6 +16,7 @@ import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.screen.item_editor.TaskItemEditorContent
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -45,10 +46,9 @@ class TaskEditorDescriptionUiTest {
                     setContent {
                         TaskBTheme(darkTheme = false) {
                             Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-                                TaskEditorContent(
+                                TaskItemEditorContent(
                                     state = store.state.collectAsState().value,
                                     onIntent = store::accept,
-                                    wide = false,
                                     onBack = {},
                                     onChooseGroup = {},
                                 )
@@ -64,7 +64,7 @@ class TaskEditorDescriptionUiTest {
                     description.assertTextEquals(expected)
                     assertNull(actual = repository.lastWrite)
 
-                    onNodeWithContentDescription(label = "Save task").performClick()
+                    onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                     scheduler.runCurrent()
                     assertEquals(expected = "Draft task", actual = repository.lastWrite?.name)
                     assertEquals(expected = expected, actual = repository.lastWrite?.description)
@@ -97,10 +97,9 @@ class TaskEditorDescriptionUiTest {
                                     .width(width = if (wide.value) 1280.dp else 400.dp)
                                     .fillMaxHeight()
                             ) {
-                                TaskEditorContent(
+                                TaskItemEditorContent(
                                     state = store.state.collectAsState().value,
                                     onIntent = store::accept,
-                                    wide = wide.value,
                                     onBack = {},
                                     onChooseGroup = {},
                                 )
@@ -136,7 +135,7 @@ class TaskEditorDescriptionUiTest {
                         )
                     )
                     description.performTextClearance()
-                    onNodeWithContentDescription(label = "Save task").performClick()
+                    onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                     scheduler.runCurrent()
                     assertEquals(expected = "", actual = repository.lastWrite?.description)
                     assertEquals(expected = "Original task", actual = repository.lastWrite?.name)
@@ -159,10 +158,9 @@ class TaskEditorDescriptionUiTest {
                     setContent {
                         TaskBTheme(darkTheme = false) {
                             Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-                                TaskEditorContent(
+                                TaskItemEditorContent(
                                     state = store.state.collectAsState().value,
                                     onIntent = store::accept,
-                                    wide = false,
                                     onBack = {},
                                     onChooseGroup = {},
                                 )
@@ -172,16 +170,15 @@ class TaskEditorDescriptionUiTest {
                     onNodeWithContentDescription(label = "Task name").performTextInput(text = "Long task")
                     val description = onNodeWithContentDescription(label = "Task description")
                     val initialHeight = description.fetchSemanticsNode().boundsInRoot.height
-                    val saveTop = onNodeWithContentDescription(
-                        label = "Save task",
-                    ).fetchSemanticsNode().boundsInRoot.top
+                    val save = onNodeWithText(text = "Create item")
+                    val saveTop = save.fetchSemanticsNode().boundsInRoot.top
                     val text = (1..24).joinToString(separator = "\n") { lineNumber -> "Description line $lineNumber" }
                     description.performTextReplacement(text = text)
                     waitForIdle()
                     assertTrue(actual = description.fetchSemanticsNode().boundsInRoot.height > initialHeight)
                     onNodeWithContentDescription(label = "Choose date").performScrollTo().assertIsDisplayed()
                     onNodeWithContentDescription(label = "Task name").assertIsNotDisplayed()
-                    val save = onNodeWithContentDescription(label = "Save task").assertIsDisplayed()
+                    save.assertIsDisplayed()
                     assertEquals(expected = saveTop, actual = save.fetchSemanticsNode().boundsInRoot.top)
                     save.performClick()
                     scheduler.runCurrent()

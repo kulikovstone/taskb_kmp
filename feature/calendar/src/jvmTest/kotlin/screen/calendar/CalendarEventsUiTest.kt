@@ -56,7 +56,7 @@ class CalendarEventsUiTest {
             runSkikoComposeUiTest(size = Size(width = 1440f, height = 900f)) {
                 setContent {
                     TaskBTheme(darkTheme = dark) {
-                        CalendarScreen(
+                        CalendarTestScreen(
                             state = state.value,
                             onIntent = {},
                             onBack = {},
@@ -149,7 +149,7 @@ class CalendarEventsUiTest {
             val state = preview.copy(events = listOf(timed, short, allDay))
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+                    CalendarTestScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
                 }
             }
             onNodeWithText(text = "Events · 3").assertIsDisplayed()

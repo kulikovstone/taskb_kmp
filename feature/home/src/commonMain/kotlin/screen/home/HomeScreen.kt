@@ -23,7 +23,6 @@ internal fun HomeScreen(
     onTasksClick: () -> Unit,
     onGroupsClick: () -> Unit,
     onCalendarClick: () -> Unit,
-    onCalendar2Click: () -> Unit,
     onSettingsClick: () -> Unit = {},
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -35,7 +34,6 @@ internal fun HomeScreen(
             TaskBButton(label = "Groups", onClick = onGroupsClick)
             TaskBButton(label = "Tasks", onClick = onTasksClick)
             TaskBButton(label = "Calendar", onClick = onCalendarClick)
-            TaskBButton(label = "Calendar 2", onClick = onCalendar2Click)
             TaskBButton(label = "Settings", onClick = onSettingsClick)
         }
         Text(
@@ -58,7 +56,6 @@ private fun HomeScreenPreview() {
                 onTasksClick = {},
                 onGroupsClick = {},
                 onCalendarClick = {},
-                onCalendar2Click = {},
             )
         }
     }

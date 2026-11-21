@@ -42,7 +42,7 @@ import org.junit.rules.TemporaryFolder
 import org.koin.compose.KoinIsolatedContext
 
 @OptIn(ExperimentalTestApi::class)
-class Calendar2NavigationUiTest {
+class CalendarWorkspaceNavigationUiTest {
     @get:Rule val directory = TemporaryFolder()
 
     @Test
@@ -70,11 +70,11 @@ class Calendar2NavigationUiTest {
                         TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
                     }
                 }
-                waitForText(value = "Calendar 2")
-                onNodeWithText(text = "Calendar").assertIsDisplayed()
+                waitForText(value = "Calendar")
+                onAllNodes(matcher = hasText(text = "Calendar")).assertCountEquals(expectedSize = 1)
                 onRoot().saveScreenshot(name = "home-calendar-2")
-                onNodeWithText(text = "Calendar 2").performClick()
-                onNodeWithTag(testTag = "calendar-2").assertIsDisplayed()
+                onNodeWithText(text = "Calendar").performClick()
+                onNodeWithTag(testTag = "calendar-screen").assertIsDisplayed()
                 onNodeWithTag(testTag = "calendar-day-$today").assertIsSelected()
                 onNodeWithText(text = "Future work").assertDoesNotExist()
                 onRoot().saveScreenshot(name = "calendar-2-selected-day")
@@ -93,14 +93,14 @@ class Calendar2NavigationUiTest {
                 onNodeWithContentDescription(label = "Filters").performClick()
                 onNodeWithText(text = "No date").performClick()
                 val workFilter = hasText(text = "Work") and
-                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-filters"))
+                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-filters"))
                 onNode(matcher = workFilter).performClick()
                 onNodeWithContentDescription(label = "Close filters").performClick()
                 onNodeWithText(text = "Future work").assertIsDisplayed()
                 onNodeWithContentDescription(label = "Filters").performClick()
                 onNodeWithText(text = "No date").performClick()
                 onNode(matcher = workFilter).performClick()
-                onNodeWithTag(testTag = "calendar-2-filters").saveScreenshot(name = "calendar-2-filters")
+                onNodeWithTag(testTag = "calendar-filters").saveScreenshot(name = "calendar-filters")
                 onNodeWithText(text = "Apply").performClick()
                 onNodeWithText(text = "Undated work").assertIsDisplayed()
                 onNodeWithText(text = "Undated personal").assertDoesNotExist()
@@ -124,7 +124,7 @@ class Calendar2NavigationUiTest {
                 onNodeWithText(text = "Save changes").performClick()
                 waitUntilExactlyOneExists(
                     matcher = hasText(text = "Updated work") and
-                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-task-list")),
+                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-task-list")),
                     timeoutMillis = 5_000,
                 )
 
@@ -170,7 +170,7 @@ class Calendar2NavigationUiTest {
                 onNodeWithContentDescription(label = "Clear task filter").assertDoesNotExist()
                 onNode(
                     matcher = hasText(text = "Today task") and
-                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar")),
+                        hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar")),
                 ).assertIsDisplayed()
 
                 onNodeWithContentDescription(label = "Add item").performClick()
@@ -193,7 +193,7 @@ class Calendar2NavigationUiTest {
                 onNodeWithText(text = "Options").assertDoesNotExist()
                 onNodeWithText(text = "Create item").performClick()
                 val eventRow = hasText(text = "Event from calendar") and
-                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar"))
                 waitUntilExactlyOneExists(matcher = eventRow, timeoutMillis = 5_000)
                 val events = app.koin.get<IEventRepository>()
                 val event = runBlocking { events.events.first().single() }
@@ -264,9 +264,9 @@ class Calendar2NavigationUiTest {
                         TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
                     }
                 }
-                waitForText(value = "Calendar 2")
-                onNodeWithText(text = "Calendar 2").performClick()
-                val sidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                waitForText(value = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
+                val sidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar"))
                 val sidebarTask = hasText(text = name) and sidebar
                 waitUntilExactlyOneExists(matcher = sidebarTask, timeoutMillis = 5_000)
                 val todayCell = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-$today"))
@@ -285,7 +285,7 @@ class Calendar2NavigationUiTest {
                 onNodeWithText(text = "Save changes").performClick()
                 waitForText(value = "Move repeating task")
                 onNodeWithText(text = "Only this event").performClick()
-                waitUntilExactlyOneExists(matcher = hasTestTag(testTag = "calendar-2"), timeoutMillis = 5_000)
+                waitUntilExactlyOneExists(matcher = hasTestTag(testTag = "calendar-screen"), timeoutMillis = 5_000)
 
                 if (yesterday.yearMonth != today.yearMonth) {
                     onNodeWithContentDescription(label = "Previous month").performClick()
@@ -314,7 +314,7 @@ class Calendar2NavigationUiTest {
     }
 
     @Test
-    fun `quick delete is available for recurring occurrences regardless of date and completion`() {
+    fun `quick delete is available for incomplete recurring occurrences regardless of date`() {
         val today = Clock.System.todayIn(timeZone = TimeZone.currentSystemDefault())
         val yesterday = today.minus(value = 1, unit = DateTimeUnit.DAY)
         val tomorrow = today.plus(value = 1, unit = DateTimeUnit.DAY)
@@ -330,8 +330,8 @@ class Calendar2NavigationUiTest {
                         TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
                     }
                 }
-                waitForText(value = "Calendar 2")
-                onNodeWithText(text = "Calendar 2").performClick()
+                waitForText(value = "Calendar")
+                onNodeWithText(text = "Calendar").performClick()
                 if (yesterday.yearMonth != today.yearMonth) {
                     onNodeWithContentDescription(label = "Previous month").performClick()
                 }
@@ -350,7 +350,7 @@ class Calendar2NavigationUiTest {
                 waitUntil(timeoutMillis = 5_000) { onAllNodes(matcher = action).fetchSemanticsNodes().size == 1 }
 
                 val taskRow = hasText(text = name) and
-                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar"))
                 onNode(matcher = taskRow).performClick()
                 waitForText(value = "Edit item")
                 waitForText(value = name)
@@ -361,12 +361,12 @@ class Calendar2NavigationUiTest {
 
                 onNodeWithContentDescription(label = "Clear date filter").performClick()
                 onNodeWithContentDescription(label = "Search tasks").performTextInput(text = name)
-                val sidebar = onNodeWithTag(testTag = "calendar-2-sidebar")
+                val sidebar = onNodeWithTag(testTag = "calendar-sidebar")
                 val todayTask = runBlocking {
                     repository.observeCalendar(from = today, through = today).first().single()
                 }
                 val todayAction = action and hasAnyAncestor(
-                    matcher = hasTestTag(testTag = "calendar-2-task-${todayTask.key}"),
+                    matcher = hasTestTag(testTag = "calendar-list-task-${todayTask.key}"),
                 )
                 waitUntilExactlyOneExists(matcher = todayAction, timeoutMillis = 5_000)
                 sidebar.saveScreenshot(name = "calendar-2-quick-delete")
@@ -390,27 +390,30 @@ class Calendar2NavigationUiTest {
                 val nextTask = remaining.single { task -> task.dueDate == tomorrow }
                 assertTrue(actual = nextTask.quickDelete)
                 val nextAction = action and hasAnyAncestor(
-                    matcher = hasTestTag(testTag = "calendar-2-task-${nextTask.key}"),
+                    matcher = hasTestTag(testTag = "calendar-list-task-${nextTask.key}"),
                 )
                 waitUntilExactlyOneExists(matcher = nextAction, timeoutMillis = 5_000)
 
+                onNodeWithContentDescription(label = "Search tasks").performTextClearance()
                 onNode(matcher = pastDay).performClick()
-                val inSidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                val inSidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar"))
                 val complete = hasContentDescription(value = "Complete $name") and inSidebar
+                val completed = hasContentDescription(value = "Mark $name incomplete") and inSidebar
                 waitUntilExactlyOneExists(matcher = pastDay and isSelected(), timeoutMillis = 5_000)
                 waitUntilExactlyOneExists(matcher = complete, timeoutMillis = 5_000)
                 onNode(matcher = complete).performClick()
-                waitUntilExactlyOneExists(
-                    matcher = hasContentDescription(value = "Mark $name incomplete") and inSidebar,
-                    timeoutMillis = 5_000,
+                waitUntilExactlyOneExists(matcher = completed, timeoutMillis = 5_000)
+                onNode(matcher = action and inSidebar).assertDoesNotExist()
+
+                onNodeWithContentDescription(label = "Clear date filter").performClick()
+                val pastTask = remaining.single { task -> task.dueDate == yesterday }
+                val pastTaskRow = hasAnyAncestor(
+                    matcher = hasTestTag(testTag = "calendar-list-task-${pastTask.key}"),
                 )
-                onNode(matcher = action and inSidebar).assertIsDisplayed().performClick()
-                waitForText(value = "Delete task occurrence?")
-                onNodeWithText(text = "Delete").performClick()
-                waitUntilDoesNotExist(matcher = hasText(text = "Delete task occurrence?"), timeoutMillis = 5_000)
-                waitUntilDoesNotExist(matcher = action and inSidebar, timeoutMillis = 5_000)
-                val tasks = runBlocking { repository.observeCalendar(from = yesterday, through = tomorrow).first() }
-                assertEquals(expected = tomorrow, actual = tasks.single().dueDate)
+                waitUntilExactlyOneExists(matcher = completed and pastTaskRow, timeoutMillis = 5_000)
+                onNode(matcher = action and pastTaskRow).assertDoesNotExist()
+                onNode(matcher = completed and pastTaskRow).performClick()
+                waitUntilExactlyOneExists(matcher = action and pastTaskRow, timeoutMillis = 5_000)
             }
         }
     }

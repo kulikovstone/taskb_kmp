@@ -54,7 +54,7 @@ class CalendarDailyTasksUiTest {
             val intents = mutableListOf<CalendarIntent>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             intents.add(element = intent)
@@ -127,8 +127,8 @@ class CalendarDailyTasksUiTest {
                     actual = intents.single(),
                 )
             }
-            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
+            onNodeWithContentDescription(label = "Clear date filter").performClick()
+            onNodeWithContentDescription(label = "Clear date filter").assertDoesNotExist()
             onNodeWithText(text = "Plan the weekend", useUnmergedTree = true).assertIsDisplayed()
             onNodeWithTag(testTag = "calendar-sidebar-recurring-heading").assertDoesNotExist()
             onNodeWithText(text = "Events · 4").assertDoesNotExist()

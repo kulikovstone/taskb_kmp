@@ -34,39 +34,12 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.LocalTime
 
 @Composable
-internal fun EventTimeFields(
-    state: EventEditorState,
-    onIntent: (EventEditorIntent) -> Unit,
-    enabled: Boolean,
-    wide: Boolean,
-) {
-    if (wide) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
-            Column(modifier = Modifier.weight(weight = 1f)) {
-                EventStartTimeField(state = state, onIntent = onIntent, enabled = enabled)
-            }
-            Column(modifier = Modifier.weight(weight = 1f)) {
-                if (state.startTime != null)
-                    EventEndTimeField(state = state, onIntent = onIntent, enabled = enabled)
-            }
-        }
-    } else {
-        EventStartTimeField(state = state, onIntent = onIntent, enabled = enabled)
-        if (state.startTime != null) {
-            Spacer(modifier = Modifier.height(height = 24.dp))
-            EventEndTimeField(state = state, onIntent = onIntent, enabled = enabled)
-        }
-    }
-}
-
-@Composable
 internal fun EventStartTimeField(
     state: EventEditorState,
     onIntent: (EventEditorIntent) -> Unit,
     enabled: Boolean,
-    label: String = "Time",
 ) {
-    Text(text = label, style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
+    Text(text = "Start time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
     Spacer(modifier = Modifier.height(height = 8.dp))
     EventSelectionField(
         label = state.startTime?.let(block = ::eventTimeLabel) ?: "Choose time",

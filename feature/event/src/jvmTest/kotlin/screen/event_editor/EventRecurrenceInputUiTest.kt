@@ -45,12 +45,9 @@ class EventRecurrenceInputUiTest {
                     runSkikoComposeUiTest(size = Size(width = if (wide) 1280f else 440f, height = 1100f)) {
                         setContent {
                             TaskBTheme(darkTheme = false) {
-                                EventEditorContent(
+                                EventScheduleTestContent(
                                     state = store.state.collectAsState().value,
                                     onIntent = store::accept,
-                                    wide = wide,
-                                    onBack = {},
-                                    onChooseGroup = {},
                                 )
                             }
                         }
@@ -95,7 +92,7 @@ class EventRecurrenceInputUiTest {
                                 expectedValue = TextRange(index = 1),
                             )
                         )
-                        onNodeWithContentDescription(label = "Save event").performClick()
+                        store.accept(intent = EventEditorIntent.Save)
                         scheduler.runCurrent()
                         val saved = requireNotNull(value = repository.lastWrite?.recurrence)
                         assertEquals(expected = 132, actual = saved.interval)

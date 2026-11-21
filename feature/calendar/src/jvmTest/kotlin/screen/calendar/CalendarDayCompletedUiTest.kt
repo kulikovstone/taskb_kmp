@@ -40,7 +40,7 @@ class CalendarDayCompletedUiTest {
             )
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             if (intent is CalendarIntent.ToggleCompleted)
@@ -142,7 +142,7 @@ class CalendarDayCompletedUiTest {
             )
             setContent {
                 TaskBTheme(darkTheme = true) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             state.value = when (intent) {
@@ -168,9 +168,9 @@ class CalendarDayCompletedUiTest {
             )
             onNodeWithTag(testTag = "calendar-day-number-2026-11-05", useUnmergedTree = true).performClick()
             onNodeWithTag(testTag = "calendar-day-completed").assertDoesNotExist()
-            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+            onNodeWithContentDescription(label = "Clear date filter").performClick()
             onNodeWithTag(testTag = "calendar-day-completed").assertDoesNotExist()
-            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+            onNodeWithTag(testTag = "calendar-today").performClick()
             onNodeWithTag(testTag = "calendar-day-completed").assertIsDisplayed()
         }
     }

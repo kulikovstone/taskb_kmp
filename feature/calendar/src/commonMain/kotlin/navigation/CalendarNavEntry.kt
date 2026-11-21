@@ -8,22 +8,14 @@ import androidx.navigation3.runtime.NavKey
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
-import com.mkulikov.taskb.feature.calendar.api.Calendar2Route
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
-import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarIntent
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarItem
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarScreen
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarStore
-import com.mkulikov.taskb.feature.calendar.screen.calendar_day.CalendarDayScreen
-import com.mkulikov.taskb.feature.calendar.screen.calendar_two.Calendar2Screen
 import com.mkulikov.taskb.feature.event.api.EventEditorRoute
-import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.settings.api.SettingsRoute
 import com.mkulikov.taskb.feature.task.api.TaskCreationRoute
 import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
-import com.mkulikov.taskb.feature.task.api.TaskRoute
-import com.mkulikov.taskb.feature.task.api.model.Task
-import kotlinx.datetime.LocalDate
 import org.koin.compose.getKoin
 
 internal class CalendarNavEntry : INavEntry {
@@ -35,24 +27,6 @@ internal class CalendarNavEntry : INavEntry {
                 state = state,
                 onIntent = store::accept,
                 onBack = navigator::back,
-                onOpenTask = { taskId -> navigator.navigate(key = TaskEditorRoute.Edit(taskId = taskId)) },
-                onOpenOccurrence = navigator::openCalendarTask,
-                onCreateEvent = navigator::createCalendarEvent,
-                onOpenEvent = navigator::openCalendarEvent,
-                onCreateTask = navigator::createCalendarTask,
-                onOpenDay = { date ->
-                    store.accept(intent = CalendarIntent.SelectDay(date = date))
-                    navigator.navigate(key = CalendarDayRoute(date = date))
-                },
-            )
-        }
-        scope.entry<Calendar2Route> {
-            val store = rememberCalendarStore(includeTaskList = true)
-            val state by store.state.collectAsState()
-            Calendar2Screen(
-                state = state,
-                onIntent = store::accept,
-                onBack = navigator::back,
                 onOpenSettings = { navigator.navigate(key = SettingsRoute) },
                 onCreateItem = { date, groupId ->
                     navigator.navigate(key = TaskCreationRoute(initialDate = date, initialGroupId = groupId))
@@ -60,13 +34,13 @@ internal class CalendarNavEntry : INavEntry {
                 onOpenItem = { item ->
                     when (item) {
                         is CalendarItem.TaskItem -> navigator.navigate(
-                            key = TaskEditorRoute.EditInItemEditor(
+                            key = TaskEditorRoute(
                                 taskId = item.task.id,
                                 occurrenceId = item.task.occurrenceId,
                             ),
                         )
                         is CalendarItem.EventItem -> navigator.navigate(
-                            key = EventEditorRoute.EditInItemEditor(
+                            key = EventEditorRoute(
                                 eventId = item.event.id,
                                 occurrenceId = item.event.occurrenceId,
                             ),
@@ -76,57 +50,19 @@ internal class CalendarNavEntry : INavEntry {
                 },
             )
         }
-        scope.entry<CalendarDayRoute> { route ->
-            val store = rememberCalendarStore(initialDate = route.date)
-            val state by store.state.collectAsState()
-            CalendarDayScreen(
-                date = route.date,
-                state = state,
-                onIntent = store::accept,
-                onBack = navigator::back,
-                onOpenItem = { item ->
-                    when (item) {
-                        is CalendarItem.TaskItem -> navigator.openCalendarTask(task = item.task)
-                        is CalendarItem.EventItem -> navigator.openCalendarEvent(event = item.event)
-                        is CalendarItem.HolidayItem -> Unit
-                    }
-                },
-                onCreateTask = { navigator.createCalendarTask(date = route.date) },
-                onCreateEvent = { navigator.createCalendarEvent(date = route.date) },
-                onOpenNoDate = { navigator.navigate(key = TaskRoute.NoDate) },
-            )
-        }
     }
 }
 
 @Composable
-private fun rememberCalendarStore(initialDate: LocalDate? = null, includeTaskList: Boolean = false): CalendarStore {
+private fun rememberCalendarStore(): CalendarStore {
     val koin = getKoin()
     return rememberNavEntryResource(key = CalendarStore::class) {
         CalendarStore(
             repository = koin.get(),
             groups = koin.get(),
             eventRepository = koin.get(),
-            weatherRepository = if (initialDate == null) koin.get() else null,
+            weatherRepository = koin.get(),
             holidayRepository = koin.get(),
-            initialDate = initialDate,
-            includeTaskList = includeTaskList,
         )
     }
-}
-
-private fun IAppNavigator.openCalendarTask(task: Task) {
-    navigate(key = TaskEditorRoute.Edit(taskId = task.id, occurrenceId = task.occurrenceId))
-}
-
-private fun IAppNavigator.openCalendarEvent(event: Event) {
-    navigate(key = EventEditorRoute.Edit(eventId = event.id, occurrenceId = event.occurrenceId))
-}
-
-private fun IAppNavigator.createCalendarTask(date: LocalDate?) {
-    navigate(key = TaskEditorRoute.Create(initialDate = date, rememberGroupSelection = true))
-}
-
-private fun IAppNavigator.createCalendarEvent(date: LocalDate?) {
-    navigate(key = EventEditorRoute.Create(initialDate = date, rememberGroupSelection = true))
 }

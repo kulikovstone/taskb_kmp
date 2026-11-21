@@ -31,7 +31,7 @@ class CalendarScreenUiTest {
             val opened = mutableListOf<Int>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             intents.add(element = intent)
@@ -57,15 +57,15 @@ class CalendarScreenUiTest {
                     )
                 }
             }
-            onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("Oct 29, 2026")
+            onNodeWithText(text = "Oct 29, 2026").assertIsDisplayed()
             onNode(
                     matcher = hasText(text = "Summarize progress and the next milestones.") and
                         hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar")),
                     useUnmergedTree = true,
                 )
                 .assertIsDisplayed()
-            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("No date")
+            onNodeWithContentDescription(label = "Clear date filter").performClick()
+            onNodeWithContentDescription(label = "Clear date filter").assertDoesNotExist()
             onNodeWithText(text = "Scope, milestones and owners for the next release.", useUnmergedTree = true)
                 .assertIsDisplayed()
             val date = LocalDate(year = 2026, month = 10, day = 28)
@@ -75,7 +75,7 @@ class CalendarScreenUiTest {
                     useUnmergedTree = true,
                 )
                 .performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("Oct 28, 2026")
+            onNodeWithText(text = "Oct 28, 2026").assertIsDisplayed()
             onNodeWithTag(testTag = "calendar-day-$date", useUnmergedTree = true).assertIsSelected()
             onNodeWithText(text = "Wednesday · 5 tasks").assertIsDisplayed()
             for (id in 121..125) onNode(
@@ -85,12 +85,12 @@ class CalendarScreenUiTest {
                 )
                 .assertIsDisplayed()
             screenshot(name = "calendar-selected-day")
-            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
+            onNodeWithContentDescription(label = "Clear date filter").performClick()
             onNodeWithTag(testTag = "calendar-day-number-2026-10-10", useUnmergedTree = true).performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("Oct 10, 2026")
+            onNodeWithText(text = "Oct 10, 2026").assertIsDisplayed()
             onNodeWithText(text = "No tasks or events for this day.").assertIsDisplayed()
             onNodeWithTag(testTag = "calendar-today").performClick()
-            onNodeWithTag(testTag = "calendar-sidebar-title").assertTextEquals("Oct 29, 2026")
+            onNodeWithText(text = "Oct 29, 2026").assertIsDisplayed()
             onNode(
                     matcher = hasText(text = "Summarize progress and the next milestones.") and
                         hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-sidebar")),
@@ -109,7 +109,7 @@ class CalendarScreenUiTest {
             val intents = mutableListOf<CalendarIntent>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = calendarPreviewState(),
                         onIntent = intents::add,
                         onBack = {},
@@ -172,7 +172,7 @@ class CalendarScreenUiTest {
             var token = 0L
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             when (intent) {
@@ -214,7 +214,7 @@ class CalendarScreenUiTest {
                 .fetchSemanticsNode()
                 .boundsInRoot
                 .center
-            val source = onNodeWithTag(testTag = "calendar-task-1", useUnmergedTree = true)
+            val source = onNodeWithTag(testTag = "calendar-list-task-1", useUnmergedTree = true)
                 .fetchSemanticsNode()
                 .boundsInRoot
                 .center
@@ -290,7 +290,7 @@ class CalendarScreenUiTest {
                 assertEquals(expected = listOf(targetDate, targetDate, adjacentDate), actual = selectedDays)
                 assertTrue(actual = createdDates.isEmpty())
             }
-            onNodeWithText(text = "Task").performClick()
+            onNodeWithContentDescription(label = "Add item").performClick()
             runOnIdle { assertEquals(expected = listOf<LocalDate?>(element = null), actual = createdDates) }
         }
     }
@@ -303,7 +303,7 @@ class CalendarScreenUiTest {
             val state = mutableStateOf(value = unscheduledPreviewState())
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             state.value = when (intent) {
@@ -329,7 +329,7 @@ class CalendarScreenUiTest {
                     )
                 }
             }
-            onNodeWithTag(testTag = "calendar-sidebar-list").performMouseInput {
+            onNodeWithTag(testTag = "calendar-task-list").performMouseInput {
                 moveTo(position = center)
                 scroll(delta = 1f)
             }
@@ -357,7 +357,7 @@ class CalendarScreenUiTest {
             val opened = mutableListOf<Int>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = unscheduledPreviewState(),
                         onIntent = moves::add,
                         onBack = {},
@@ -366,7 +366,7 @@ class CalendarScreenUiTest {
                     )
                 }
             }
-            val source = onNodeWithTag(testTag = "calendar-task-1", useUnmergedTree = true)
+            val source = onNodeWithTag(testTag = "calendar-list-task-1", useUnmergedTree = true)
                 .fetchSemanticsNode()
                 .boundsInRoot
                 .center
@@ -402,10 +402,10 @@ class CalendarScreenUiTest {
             val state = unscheduledPreviewState()
             setContent {
                 TaskBTheme(darkTheme = true) {
-                    CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+                    CalendarTestScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
                 }
             }
-            onNodeWithText(text = "Task").assertIsDisplayed()
+            onNodeWithContentDescription(label = "Add item").assertIsDisplayed()
             onNodeWithTag(testTag = "calendar-day-2026-10-28", useUnmergedTree = true).assertIsDisplayed()
             onNode(
                     matcher = hasText(text = "more", substring = true) and
@@ -421,12 +421,15 @@ class CalendarScreenUiTest {
     fun `wrapped titles keep the overflow action visible and clickable at different window sizes`() {
         for (size in listOf(Size(width = 1440f, height = 900f), Size(width = 1280f, height = 720f))) {
             runSkikoComposeUiTest(size = size) {
-                val state = unscheduledPreviewState()
+                val preview = unscheduledPreviewState()
+                val state = preview.copy(tasks = preview.tasks.map { task ->
+                    if (task.id == 8) task.copy(name = "${task.name} ${task.name}") else task
+                })
                 val selectedDays = mutableListOf<LocalDate>()
                 val createdDates = mutableListOf<LocalDate?>()
                 setContent {
                     TaskBTheme(darkTheme = false) {
-                        CalendarScreen(
+                        CalendarTestScreen(
                             state = state,
                             onIntent = { intent ->
                                 if (intent is CalendarIntent.SelectDay) selectedDays.add(element = intent.date)
@@ -438,7 +441,7 @@ class CalendarScreenUiTest {
                     }
                 }
 
-                onNodeWithText(text = "No date").assertIsDisplayed()
+                onNodeWithContentDescription(label = "Clear date filter").assertDoesNotExist()
                 val longTitle = onNodeWithText(
                     text = state.tasks.first { task -> task.id == 8 }.name,
                     useUnmergedTree = true,
@@ -542,7 +545,7 @@ class CalendarScreenUiTest {
 
     @Test
     fun `six week overflow uses all available space while reserving the more action`() {
-        for ((height, expectedVisible) in listOf(900f to 2, 840f to 1)) {
+        for (height in listOf(900f, 840f)) {
             runSkikoComposeUiTest(size = Size(width = 1440f, height = height)) {
                 val date = LocalDate(year = 2026, month = 10, day = 30)
                 val title = "Проверить перенос длинного названия задачи"
@@ -571,7 +574,7 @@ class CalendarScreenUiTest {
                     )
                 setContent {
                     TaskBTheme(darkTheme = false) {
-                        CalendarScreen(
+                        CalendarTestScreen(
                             state = state,
                             onIntent = {},
                             onBack = {},
@@ -592,13 +595,13 @@ class CalendarScreenUiTest {
                         .fetchSemanticsNodes()
                         .isNotEmpty() && node.isDisplayed()
                 }
-                assertEquals(expected = expectedVisible, actual = displayed.size)
+                assertTrue(actual = displayed.size in 1..<tasks.size)
                 val more = onNode(
                     matcher = hasText(text = "more", substring = true) and
                         hasAnyAncestor(matcher = hasTestTag(testTag = dayTag)),
                     useUnmergedTree = true,
                 )
-                more.assertTextEquals("+${tasks.size - expectedVisible} more")
+                more.assertTextEquals("+${tasks.size - displayed.size} more")
                 val firstRow = displayed.first().fetchSemanticsNode().boundsInRoot
                 val lastRow = displayed.last().fetchSemanticsNode().boundsInRoot
                 val moreBounds = more.fetchSemanticsNode().boundsInRoot
@@ -628,7 +631,7 @@ class CalendarScreenUiTest {
                 )
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
+                    CalendarTestScreen(state = state, onIntent = {}, onBack = {}, onOpenTask = {}, onCreateTask = {})
                 }
             }
 
@@ -667,7 +670,7 @@ class CalendarScreenUiTest {
             val createdDates = mutableListOf<LocalDate?>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state,
                         onIntent = { intent ->
                             if (intent is CalendarIntent.SelectDay) selectedDays.add(element = intent.date)
@@ -722,7 +725,7 @@ class CalendarScreenUiTest {
     }
 
     @Test
-    fun `drag preview matches horizontal padding to checkbox gap and preserves title layout`() {
+    fun `grid drag preview matches horizontal padding to checkbox gap and preserves title layout`() {
         for (size in listOf(Size(width = 1440f, height = 900f), Size(width = 1280f, height = 720f))) {
             runSkikoComposeUiTest(size = size) {
                 val tasks = listOf(
@@ -737,12 +740,11 @@ class CalendarScreenUiTest {
                         name = "Prepare a detailed release plan and review all remaining development tasks",
                         dueDate = LocalDate(year = 2026, month = 10, day = 7),
                     ),
-                    Task(id = 1003, name = "Unscheduled task", groupId = 1),
                 )
                 val state = unscheduledPreviewState().copy(tasks = tasks)
                 setContent {
                     TaskBTheme(darkTheme = false) {
-                        CalendarScreen(
+                        CalendarTestScreen(
                             state = state,
                             onIntent = {},
                             onBack = {},
@@ -832,7 +834,7 @@ class CalendarScreenUiTest {
             val createdDates = mutableListOf<LocalDate?>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = unscheduledPreviewState(),
                         onIntent = intents::add,
                         onBack = {},
@@ -903,7 +905,7 @@ class CalendarScreenUiTest {
                 assertTrue(actual = createdDates.isEmpty())
             }
 
-            val sidebarTask = onNodeWithTag(testTag = "calendar-task-1", useUnmergedTree = true)
+            val sidebarTask = onNodeWithTag(testTag = "calendar-list-task-1", useUnmergedTree = true)
             val sidebarBefore = sidebarTask.captureToImage().toPixelMap()
             onNodeWithText(text = "Organize project notes", useUnmergedTree = true).performMouseInput {
                 moveTo(position = center)

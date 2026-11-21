@@ -10,7 +10,7 @@ import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.navigation.AppRoot
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
-import com.mkulikov.taskb.feature.event.api.EventEditorRoute
+import com.mkulikov.taskb.feature.task.api.TaskCreationRoute
 import com.mkulikov.taskb.feature.event.api.repository.IEventRepository
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.home.api.HomeRoute
@@ -49,21 +49,22 @@ class EventNavigationUiTest {
                     repeat(times = 2) { opening ->
                         runOnIdle {
                             navigator.navigate(
-                                key = EventEditorRoute.Create(
+                                key = TaskCreationRoute(
+                                    initialIsEvent = true,
                                     initialDate = LocalDate(year = 2026, month = 11, day = 5)
                                 )
                             )
                         }
-                        waitText(text = "New event")
+                        waitText(text = "New item")
                         waitUntil(timeoutMillis = 10_000) {
                             onAllNodes(matcher = hasContentDescription(value = "Event name"))
                                 .fetchSemanticsNodes()
                                 .isNotEmpty()
                         }
-                        onNodeWithContentDescription(label = "Save event").assertIsNotEnabled()
+                        onNodeWithText(text = "Create item").assertIsNotEnabled()
                         onNodeWithContentDescription(label = "Event name").performTextInput(text = "Draft event")
                         onNodeWithContentDescription(label = "Event description").assertIsDisplayed()
-                        onNodeWithContentDescription(label = "Choose event group")
+                        onNodeWithContentDescription(label = "Choose group")
                             .performScrollTo()
                             .assertIsDisplayed()
                         onNodeWithContentDescription(label = "Choose start time")
@@ -72,14 +73,14 @@ class EventNavigationUiTest {
                         onNodeWithContentDescription(label = "Choose repeat pattern")
                             .performScrollTo()
                             .assertIsDisplayed()
-                        onNodeWithContentDescription(label = "Save event").assertIsEnabled()
+                        onNodeWithText(text = "Create item").assertIsEnabled()
                         if (opening == 0) {
                             onNodeWithContentDescription(label = "Event name").performScrollTo()
                             screenshot(name = "event-create-$suffix")
                         }
                         onNodeWithContentDescription(label = "Back").performClick()
                         waitText(text = "Tasks")
-                        onNodeWithText(text = "New event").assertDoesNotExist()
+                        onNodeWithText(text = "New item").assertDoesNotExist()
                     }
                 }
                 assertTrue(actual = runBlocking { app.koin.get<IEventRepository>().events.first() }.isEmpty())
@@ -104,14 +105,11 @@ class EventNavigationUiTest {
                         TaskBTheme(darkTheme = false) { AppRoot(startDestination = CalendarRoute) }
                     }
                 }
-                waitText(text = "Event")
-                val taskButton = onNodeWithText(text = "Task").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                val eventButton = onNodeWithText(text = "Event").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                assertTrue(actual = eventButton.left > taskButton.right)
-                onNodeWithText(text = "New task").assertDoesNotExist()
+                waitUntilExactlyOneExists(matcher = hasTestTag(testTag = "calendar-grid"), timeoutMillis = 10_000)
                 onNodeWithTag(testTag = "calendar-day-number-$date", useUnmergedTree = true).performClick()
+                onNodeWithContentDescription(label = "Add item").performClick()
                 onNodeWithText(text = "Event").performClick()
-                waitText(text = "Create event")
+                waitText(text = "New item")
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(matcher = hasContentDescription(value = "Event name"))
                         .fetchSemanticsNodes()
@@ -120,10 +118,10 @@ class EventNavigationUiTest {
                 onNodeWithContentDescription(label = "Event name").performTextInput(text = "Team meeting")
                 onNodeWithContentDescription(label = "Event description")
                     .performTextInput(text = "Discuss the release")
-                onNodeWithContentDescription(label = "Choose event group").performClick()
+                onNodeWithContentDescription(label = "Choose group").performClick()
                 waitText(text = "Work")
                 onNodeWithText(text = "Work").performClick()
-                waitText(text = "Create event")
+                waitText(text = "New item")
                 onNodeWithContentDescription(label = "Choose start time").performScrollTo().performClick()
                 waitText(text = "Choose time")
                 onNodeWithContentDescription(label = "Apply time").performClick()
@@ -133,7 +131,7 @@ class EventNavigationUiTest {
                 onNodeWithContentDescription(label = "Repeat occurrence count")
                     .performScrollTo()
                     .performTextReplacement(text = "3")
-                onNodeWithContentDescription(label = "Save event").performClick()
+                onNodeWithText(text = "Create item").performClick()
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(matcher = hasTestTag(testTag = "calendar-event:1:1:$date"), useUnmergedTree = true)
                         .fetchSemanticsNodes()
@@ -154,10 +152,10 @@ class EventNavigationUiTest {
                         useUnmergedTree = true,
                     )
                     .performClick()
-                waitText(text = "Edit event")
+                waitText(text = "Edit item")
                 onNodeWithContentDescription(label = "Event description").assertTextEquals("Discuss the release")
                 onNodeWithContentDescription(label = "Event name").performTextReplacement(text = "Updated meeting")
-                onNodeWithContentDescription(label = "Save event").performClick()
+                onNodeWithText(text = "Save changes").performClick()
                 waitText(text = "Updated meeting")
                 val source = onNode(
                         matcher = hasText(text = "Updated meeting") and
@@ -205,24 +203,25 @@ class EventNavigationUiTest {
                         useUnmergedTree = true,
                     )
                     .performClick()
-                waitText(text = "Edit event")
-                onNodeWithContentDescription(label = "Delete event").performClick()
+                waitText(text = "Edit item")
+                onNodeWithText(text = "Delete").performClick()
                 waitText(text = "Delete repeating event")
                 onNodeWithText(text = "Entire event and all occurrences").performClick()
-                waitText(text = "Event")
+                waitUntilExactlyOneExists(matcher = hasTestTag(testTag = "calendar-grid"), timeoutMillis = 10_000)
                 waitUntil(timeoutMillis = 10_000) { runBlocking { events.events.first() }.isEmpty() }
                 assertNull(actual = runBlocking { db.taskDao().getById(id = 1) })
+                onNodeWithContentDescription(label = "Add item").performClick()
                 onNodeWithText(text = "Event").performClick()
-                waitText(text = "Create event")
+                waitText(text = "New item")
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(matcher = hasContentDescription(value = "Event name"))
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                onNode(matcher = hasContentDescription(value = "Choose event group") and hasText(text = "Work"))
+                onNode(matcher = hasContentDescription(value = "Choose group") and hasText(text = "No group"))
                     .assertIsDisplayed()
                 onNodeWithContentDescription(label = "Event name").performTextInput(text = "All-day event")
-                onNodeWithContentDescription(label = "Save event").performClick()
+                onNodeWithText(text = "Create item").performClick()
                 waitText(text = "All-day event")
                 onNodeWithContentDescription(label = "Complete All-day event").assertDoesNotExist()
                 screenshot(name = "calendar-events")

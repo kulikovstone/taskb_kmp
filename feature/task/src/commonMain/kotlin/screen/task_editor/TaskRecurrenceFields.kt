@@ -72,24 +72,6 @@ internal fun TaskRecurrence.description(): String {
 }
 
 @Composable
-internal fun TaskRecurrenceFields(
-    state: TaskEditorState,
-    onIntent: (TaskEditorIntent) -> Unit,
-    enabled: Boolean,
-    wide: Boolean,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        TaskRepeatPattern(state = state, onIntent = onIntent, enabled = enabled)
-        if (state.recurrence != null) {
-            Spacer(modifier = Modifier.height(height = 16.dp))
-            TaskRepeatOn(state = state, onIntent = onIntent, enabled = enabled, wide = wide)
-            Spacer(modifier = Modifier.height(height = 16.dp))
-            TaskRepeatEnd(state = state, onIntent = onIntent, enabled = enabled)
-        }
-    }
-}
-
-@Composable
 internal fun TaskRepeatPattern(
     state: TaskEditorState,
     onIntent: (TaskEditorIntent) -> Unit,

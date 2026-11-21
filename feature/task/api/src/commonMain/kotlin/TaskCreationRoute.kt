@@ -6,4 +6,5 @@ import kotlinx.datetime.LocalDate
 data class TaskCreationRoute(
     val initialDate: LocalDate? = null,
     val initialGroupId: Int? = null,
+    val initialIsEvent: Boolean = false,
 ) : NavKey

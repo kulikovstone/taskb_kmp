@@ -16,7 +16,7 @@ interface IEventItemEditor {
         description: TextFieldState? = null,
         initialDate: LocalDate? = null,
         groupId: Int? = null,
-        edit: EventEditorRoute.EditInItemEditor? = null,
+        edit: EventEditorRoute? = null,
         groupResults: Flow<GroupSelectionResult>? = null,
         render: @Composable (EventItemEditorForm) -> Unit,
     )

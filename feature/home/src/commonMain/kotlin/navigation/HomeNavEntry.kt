@@ -4,7 +4,6 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.core.navigation.INavEntry
-import com.mkulikov.taskb.feature.calendar.api.Calendar2Route
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
 import com.mkulikov.taskb.feature.group.api.GroupsRoute
 import com.mkulikov.taskb.feature.home.api.HomeRoute
@@ -20,7 +19,6 @@ internal class HomeNavEntry(private val appVersion: String) : INavEntry {
                 onTasksClick = { navigator.navigate(key = TaskRoute) },
                 onGroupsClick = { navigator.navigate(key = GroupsRoute) },
                 onCalendarClick = { navigator.navigate(key = CalendarRoute) },
-                onCalendar2Click = { navigator.navigate(key = Calendar2Route) },
                 onSettingsClick = { navigator.navigate(key = SettingsRoute) },
             )
         }

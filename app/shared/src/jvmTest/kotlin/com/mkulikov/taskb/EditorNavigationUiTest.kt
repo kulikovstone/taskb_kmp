@@ -12,6 +12,7 @@ import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.feature.group.api.GroupEditorRoute
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.home.api.HomeRoute
+import com.mkulikov.taskb.feature.task.api.TaskCreationRoute
 import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -48,7 +49,7 @@ class EditorNavigationUiTest {
 
                 runOnIdle {
                     navigator.navigate(
-                        key = TaskEditorRoute.Create(
+                        key = TaskCreationRoute(
                             initialDate = LocalDate(year = 2026, month = 10, day = 28),
                             initialGroupId = groupId,
                         )
@@ -59,11 +60,11 @@ class EditorNavigationUiTest {
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                onNodeWithContentDescription(label = "Choose task group")
+                onNodeWithContentDescription(label = "Choose group")
                     .assert(matcher = hasText(text = "External group"))
                 onNodeWithContentDescription(label = "Search tasks").assertDoesNotExist()
                 onNodeWithContentDescription(label = "Task name").performTextInput(text = "External task")
-                onNodeWithContentDescription(label = "Save task").performClick()
+                onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                 waitHome()
                 val task = runBlocking { database.taskDao().observeTasks().first().single() }
                 assertEquals(expected = groupId, actual = task.groupId)
@@ -79,17 +80,17 @@ class EditorNavigationUiTest {
                 onNodeWithContentDescription(label = "Save group").performClick()
                 waitHome()
 
-                runOnIdle { navigator.navigate(key = TaskEditorRoute.Edit(taskId = task.id)) }
+                runOnIdle { navigator.navigate(key = TaskEditorRoute(taskId = task.id)) }
                 waitUntil {
                     onAllNodes(matcher = hasContentDescription(value = "Task name"))
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
                 onNodeWithContentDescription(label = "Task name").assertTextEquals("External task")
-                onNodeWithContentDescription(label = "Choose task group")
+                onNodeWithContentDescription(label = "Choose group")
                     .assert(matcher = hasText(text = "Renamed group"))
                 onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Renamed task")
-                onNodeWithContentDescription(label = "Save task").performClick()
+                onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                 waitHome()
                 assertEquals(
                     expected = "Renamed task",
@@ -112,14 +113,14 @@ class EditorNavigationUiTest {
                     }
                 }
                 waitHome()
-                runOnIdle { navigator.navigate(key = TaskEditorRoute.Create(initialDate = date)) }
+                runOnIdle { navigator.navigate(key = TaskCreationRoute(initialDate = date)) }
                 waitUntil {
                     onAllNodes(matcher = hasContentDescription(value = "Task name"))
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
                 onNodeWithContentDescription(label = "Task name").performTextInput(text = "Draft with date")
-                onNodeWithContentDescription(label = "Choose task group").performClick()
+                onNodeWithContentDescription(label = "Choose group").performClick()
                 waitUntil {
                     onAllNodes(matcher = hasText(text = "No groups yet.")).fetchSemanticsNodes().isNotEmpty()
                 }
@@ -129,8 +130,8 @@ class EditorNavigationUiTest {
                 onNodeWithText(text = "No groups match your search.").assertIsDisplayed()
                 onNodeWithContentDescription(label = "Back").performClick()
                 onNodeWithContentDescription(label = "Task name").assertTextEquals("Draft with date")
-                onNodeWithContentDescription(label = "Clear task group").assertDoesNotExist()
-                onNodeWithContentDescription(label = "Choose task group").performClick()
+                onNodeWithContentDescription(label = "Clear group").assertDoesNotExist()
+                onNodeWithContentDescription(label = "Choose group").performClick()
                 onNodeWithContentDescription(label = "Search groups")
                     .assert(
                         matcher = SemanticsMatcher.expectValue(
@@ -149,15 +150,15 @@ class EditorNavigationUiTest {
                 waitUntil { onAllNodes(matcher = newGroupRow).fetchSemanticsNodes().isNotEmpty() }
                 onNode(matcher = newGroupRow).performClick()
                 onNodeWithContentDescription(label = "Task name").assertTextEquals("Draft with date")
-                onNodeWithContentDescription(label = "Choose task group")
+                onNodeWithContentDescription(label = "Choose group")
                     .assert(matcher = hasText(text = "New group"))
-                onNodeWithContentDescription(label = "Choose task group").performClick()
+                onNodeWithContentDescription(label = "Choose group").performClick()
                 onNode(matcher = newGroupRow).assertIsSelected()
                 onNodeWithContentDescription(label = "Search groups").performTextInput(text = "Missing")
                 onNodeWithContentDescription(label = "Back").performClick()
-                onNodeWithContentDescription(label = "Choose task group")
+                onNodeWithContentDescription(label = "Choose group")
                     .assert(matcher = hasText(text = "New group"))
-                onNodeWithContentDescription(label = "Save task").performClick()
+                onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                 waitHome()
                 val task = runBlocking { database.taskDao().observeTasks().first().single() }
                 assertEquals(expected = groupId, actual = task.groupId)
@@ -185,7 +186,7 @@ class EditorNavigationUiTest {
                     }
                 }
                 waitHome()
-                runOnIdle { navigator.navigate(key = TaskEditorRoute.Create(initialGroupId = groupId)) }
+                runOnIdle { navigator.navigate(key = TaskCreationRoute(initialGroupId = groupId)) }
                 waitUntil {
                     onAllNodes(matcher = hasContentDescription(value = "Task name"))
                         .fetchSemanticsNodes()
@@ -208,7 +209,7 @@ class EditorNavigationUiTest {
                         .isNotEmpty()
                 }
                 onNodeWithContentDescription(label = "Task name").assertTextEquals("Retained task draft")
-                onNodeWithContentDescription(label = "Choose task group").performClick()
+                onNodeWithContentDescription(label = "Choose group").performClick()
                 onNodeWithContentDescription(label = "Search groups").performTextInput(text = "wor")
                 onNodeWithText(text = "No group").assertDoesNotExist()
                 onNode(matcher = isDialog()).assertDoesNotExist()
@@ -221,13 +222,13 @@ class EditorNavigationUiTest {
                 onNodeWithContentDescription(label = "Save group").assertIsNotEnabled()
                 onNodeWithContentDescription(label = "Back").performClick()
                 waitHome()
-                runOnIdle { navigator.navigate(key = TaskEditorRoute.Edit(taskId = Int.MAX_VALUE)) }
+                runOnIdle { navigator.navigate(key = TaskEditorRoute(taskId = Int.MAX_VALUE)) }
                 waitUntil {
                     onAllNodes(matcher = hasText(text = "This task no longer exists."))
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                onNodeWithContentDescription(label = "Save task").assertIsNotEnabled()
+                onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).assertIsNotEnabled()
                 onNodeWithContentDescription(label = "Back").performClick()
                 waitHome()
                 runOnIdle { navigator.navigate(key = GroupEditorRoute.Edit(groupId = Int.MAX_VALUE)) }

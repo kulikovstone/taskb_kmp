@@ -8,50 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
-
-@Composable
-internal fun CalendarTopBar(
-    state: CalendarState,
-    onIntent: (CalendarIntent) -> Unit,
-    onBack: () -> Unit,
-    onCreateTask: () -> Unit,
-    onCreateEvent: () -> Unit,
-) {
-    val colors = TaskBTheme.colors
-    Row(
-        modifier = Modifier.fillMaxWidth().height(height = 96.dp).padding(start = 16.dp, end = 32.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(size = 48.dp)) {
-            Icon(imageVector = TaskBIcons.Back, contentDescription = "Back", tint = colors.heading)
-        }
-        Spacer(modifier = Modifier.width(width = 8.dp))
-        Row(
-            modifier = Modifier.weight(weight = 1f),
-            horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = calendarMonthLabel.format(value = state.month),
-                modifier = Modifier.weight(weight = 1f, fill = false).offset(y = (-2).dp),
-                style = TaskBTheme.typography.display,
-                color = colors.heading,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            CalendarDateNavigation(onIntent = onIntent)
-        }
-        Spacer(modifier = Modifier.width(width = 16.dp))
-        TaskBEditorButton(label = "Task", icon = TaskBIcons.Add, onClick = onCreateTask)
-        Spacer(modifier = Modifier.width(width = 8.dp))
-        TaskBEditorButton(label = "Event", icon = TaskBIcons.Add, onClick = onCreateEvent)
-    }
-}
 
 @Composable
 internal fun CalendarDateNavigation(onIntent: (CalendarIntent) -> Unit) {

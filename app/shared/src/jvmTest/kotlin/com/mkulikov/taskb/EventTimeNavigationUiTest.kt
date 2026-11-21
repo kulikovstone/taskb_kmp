@@ -126,10 +126,10 @@ class EventTimeNavigationUiTest {
                 }
                 screenshot(name = "task-time-calendar-integration")
                 onNode(matcher = hasText(text = "Team sync") and sidebar, useUnmergedTree = true).performClick()
-                waitText(text = "Edit event")
+                waitText(text = "Edit item")
                 onNodeWithContentDescription(label = "Event name").performTextReplacement(text = "Updated event")
                 onNodeWithText(text = "30 min").performScrollTo().performClick()
-                onNodeWithContentDescription(label = "Save event").performClick()
+                onNodeWithText(text = "Save changes").performClick()
                 waitText(text = "Updated event")
                 assertEquals(
                     expected = LocalTime(hour = 12, minute = 0),

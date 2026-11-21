@@ -1,108 +1,191 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.component.CalendarWorkspace
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
+import com.mkulikov.taskb.ui.dialog.TaskBConfirmationDialog
+import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-
-private val calendarDesktopMinWidth = 840.dp
+import kotlinx.datetime.plus
 
 @Composable
 internal fun CalendarScreen(
     state: CalendarState,
     onIntent: (CalendarIntent) -> Unit,
     onBack: () -> Unit,
-    onOpenTask: (Int) -> Unit,
-    onCreateTask: (LocalDate?) -> Unit,
-    onOpenOccurrence: ((Task) -> Unit)? = null,
-    onCreateEvent: (LocalDate?) -> Unit = {},
-    onOpenEvent: (Event) -> Unit = {},
-    onOpenDay: (LocalDate) -> Unit = {},
+    onOpenSettings: () -> Unit,
+    onCreateItem: (LocalDate?, Int?) -> Unit,
+    onOpenItem: (CalendarItem) -> Unit,
 ) {
-    val openTask: (Task) -> Unit = { task -> onOpenOccurrence?.invoke(task) ?: onOpenTask(task.id) }
-    val openItem: (CalendarItem) -> Unit = { item ->
-        when (item) {
-            is CalendarItem.TaskItem -> openTask(item.task)
-            is CalendarItem.EventItem -> onOpenEvent(item.event)
-            is CalendarItem.HolidayItem -> Unit
+    val query = rememberTextFieldState()
+    var filter by rememberSaveable { mutableStateOf<TaskFilter?>(value = null) }
+    var groupId by rememberSaveable { mutableStateOf<Int?>(value = null) }
+    var showFilters by rememberSaveable { mutableStateOf(value = false) }
+    val group = state.groups.find { group -> group.id == groupId }
+    val activeGroupId = if (groupId == noGroupFilterId) groupId else group?.id
+    val calendarAction: (CalendarIntent) -> Unit = { intent ->
+        when (intent) {
+            is CalendarIntent.SelectDay -> {
+                filter = null
+                groupId = null
+            }
+            CalendarIntent.Today -> filter = null
+            else -> Unit
         }
+        onIntent(intent)
     }
-    CalendarWorkspace(state = state, onIntent = onIntent, minFeedbackWidth = calendarDesktopMinWidth) { drag ->
-        if (maxWidth < calendarDesktopMinWidth) {
-            CompactCalendar(
+    val createItem = {
+        val date = state.selectedDate ?: when (filter) {
+            TaskFilter.Today -> state.today
+            TaskFilter.Tomorrow -> state.today.plus(value = 1, unit = DateTimeUnit.DAY)
+            else -> null
+        }
+        onCreateItem(date, group?.id)
+    }
+    CalendarWorkspace(state = state, onIntent = onIntent) { drag ->
+        Column(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-screen")) {
+            CalendarTopBar(
                 state = state,
-                onIntent = onIntent,
+                onIntent = calendarAction,
                 onBack = onBack,
-                onOpenDay = onOpenDay,
+                onOpenSettings = onOpenSettings,
             )
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                CalendarTopBar(
+            Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
+                CalendarSidebar(
                     state = state,
+                    query = query,
+                    filter = filter,
+                    groupId = activeGroupId,
+                    group = group,
+                    drag = drag,
                     onIntent = onIntent,
-                    onBack = onBack,
-                    onCreateTask = { onCreateTask(state.selectedDate) },
-                    onCreateEvent = { onCreateEvent(state.selectedDate) },
+                    onOpenItem = onOpenItem,
+                    onOpenFilters = { showFilters = true },
+                    onClearFilter = { filter = null },
+                    onClearGroup = { groupId = null },
+                    onCreateItem = createItem,
+                    modifier = Modifier
+                        .width(width = 380.dp)
+                        .fillMaxHeight(),
                 )
-                when {
-                    state.isLoading -> TaskBLoading(modifier = Modifier.weight(weight = 1f))
-                    state.loadError != null -> TaskBLoadError(
-                        message = state.loadError,
-                        onRetry = { onIntent(CalendarIntent.RetryLoad) },
-                    )
-                    else -> Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
-                        CalendarSidebar(
-                            state = state,
-                            drag = drag,
-                            onIntent = onIntent,
-                            onOpenTask = openItem,
+                Box(modifier = Modifier.weight(weight = 1f).fillMaxHeight()) {
+                    when {
+                        state.isLoading -> TaskBLoading()
+                        state.loadError != null -> TaskBLoadError(
+                            message = state.loadError,
+                            onRetry = { onIntent(CalendarIntent.RetryLoad) },
                         )
-                        CalendarMonthGrid(
+                        else -> CalendarMonthGrid(
                             state = state,
                             drag = drag,
-                            onIntent = onIntent,
-                            onOpenTask = openItem,
-                            modifier = Modifier.weight(weight = 1f).fillMaxHeight(),
+                            onIntent = calendarAction,
+                            onOpenTask = onOpenItem,
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
             }
         }
     }
-}
-
-@Preview(name = "Calendar", widthDp = 1440, heightDp = 900)
-@Composable
-private fun CalendarScreenPreview() {
-    TaskBTheme(darkTheme = false) {
-        CalendarScreen(
-            state = calendarPreviewState(),
-            onIntent = {},
-            onBack = {},
-            onOpenTask = {},
-            onCreateTask = {},
+    if (showFilters) {
+        CalendarFiltersDialog(
+            groups = state.groups,
+            groupCounts = state.directoryTasks().groupingBy { task -> task.groupId }.eachCount(),
+            filter = filter,
+            groupId = activeGroupId,
+            onDismiss = { showFilters = false },
+            onApply = { selectedFilter, selectedGroup ->
+                filter = selectedFilter
+                groupId = selectedGroup
+                if (selectedFilter != null) onIntent(CalendarIntent.ShowUnscheduled)
+                showFilters = false
+            },
+        )
+    }
+    val task = state.quickDeleteConfirmation
+    val date = task?.dueDate
+    if (task != null && date != null) {
+        val dateLabel = calendarSidebarDateLabel.format(value = date)
+        TaskBConfirmationDialog(
+            title = "Delete task occurrence?",
+            message = "Only the occurrence of “${task.name}” on $dateLabel will be deleted.",
+            confirmText = "Delete",
+            onConfirm = { onIntent(CalendarIntent.ConfirmQuickDelete) },
+            onDismiss = { onIntent(CalendarIntent.DismissQuickDelete) },
         )
     }
 }
 
-@Preview(name = "Calendar with timed tasks", widthDp = 1440, heightDp = 900)
 @Composable
-private fun CalendarTimedScreenPreview() {
+private fun CalendarTopBar(
+    state: CalendarState,
+    onIntent: (CalendarIntent) -> Unit,
+    onBack: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val colors = TaskBTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height = 70.dp)
+            .padding(start = 16.dp, end = 32.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack, modifier = Modifier.size(size = 48.dp)) {
+            Icon(imageVector = TaskBIcons.Back, contentDescription = "Back", tint = colors.heading)
+        }
+        Row(
+            modifier = Modifier.weight(weight = 1f).padding(start = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
+        ) {
+            Text(
+                text = calendarMonthLabel.format(value = state.month),
+                modifier = Modifier.weight(weight = 1f, fill = false),
+                style = TaskBTheme.typography.display,
+                color = colors.heading,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            CalendarDateNavigation(onIntent = onIntent)
+        }
+        IconButton(onClick = onOpenSettings, modifier = Modifier.size(size = 48.dp)) {
+            Icon(imageVector = TaskBIcons.Settings, contentDescription = "Settings", tint = colors.accent)
+        }
+    }
+}
+
+@Preview(name = "Calendar – selected day", widthDp = 1900, heightDp = 1180)
+@Composable
+private fun CalendarScreenPreview() {
     TaskBTheme(darkTheme = false) {
+        val state = timedCalendarPreviewState()
         CalendarScreen(
-            state = timedCalendarPreviewState(),
+            state = state.copy(taskList = state.tasks),
             onIntent = {},
             onBack = {},
-            onOpenTask = {},
-            onCreateTask = {},
+            onOpenSettings = {},
+            onCreateItem = { _, _ -> },
+            onOpenItem = {},
         )
     }
 }

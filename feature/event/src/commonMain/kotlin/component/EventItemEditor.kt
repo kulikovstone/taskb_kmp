@@ -43,7 +43,7 @@ internal class EventItemEditor(
         description: TextFieldState?,
         initialDate: LocalDate?,
         groupId: Int?,
-        edit: EventEditorRoute.EditInItemEditor?,
+        edit: EventEditorRoute?,
         groupResults: Flow<GroupSelectionResult>?,
         render: @Composable (EventItemEditorForm) -> Unit,
     ) {
@@ -109,7 +109,7 @@ internal class EventItemEditor(
 }
 
 @Composable
-private fun EventItemEditorSchedule(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit) {
+internal fun EventItemEditorSchedule(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit) {
     val enabled = !state.isBusy && !state.isFinished && state.dialog == null
     Column(verticalArrangement = Arrangement.spacedBy(space = 24.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
@@ -123,7 +123,7 @@ private fun EventItemEditorSchedule(state: EventEditorState, onIntent: (EventEdi
         Column {
             Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
                 Column(modifier = Modifier.weight(weight = 1f)) {
-                    EventStartTimeField(state = state, onIntent = onIntent, enabled = enabled, label = "Start time")
+                    EventStartTimeField(state = state, onIntent = onIntent, enabled = enabled)
                 }
                 Column(modifier = Modifier.weight(weight = 1f)) {
                     if (state.startTime != null) {

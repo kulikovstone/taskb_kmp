@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.task.screen.item_editor.TaskItemEditorContent
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -45,10 +46,9 @@ class TaskRecurrenceEditorUiTest {
                             val state = store.state.collectAsState().value
                             Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
                                 Box {
-                                    TaskEditorContent(
+                                    TaskItemEditorContent(
                                         state = state,
                                         onIntent = store::accept,
-                                        wide = false,
                                         onBack = {},
                                         onChooseGroup = {},
                                     )
@@ -101,7 +101,7 @@ class TaskRecurrenceEditorUiTest {
                         expected = LocalDate(year = 2046, month = 6, day = 12),
                         actual = store.state.value.recurrence?.endDate,
                     )
-                    onNodeWithContentDescription(label = "Save task").performClick()
+                    onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                     scheduler.runCurrent()
                     assertEquals(
                         expected = LocalDate(year = 2036, month = 6, day = 12),
@@ -136,10 +136,9 @@ class TaskRecurrenceEditorUiTest {
                         setContent {
                             TaskBTheme(darkTheme = false) {
                                 Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-                                    TaskEditorContent(
+                                    TaskItemEditorContent(
                                         state = store.state.collectAsState().value,
                                         onIntent = store::accept,
-                                        wide = wide,
                                         onBack = {},
                                         onChooseGroup = {},
                                     )
@@ -198,7 +197,7 @@ class TaskRecurrenceEditorUiTest {
                         waitForIdle()
                         onNodeWithText(text = "Does not repeat").assertIsDisplayed()
                         onNodeWithText(text = "Repeat ends").assertDoesNotExist()
-                        onNodeWithContentDescription(label = "Save task").performClick()
+                        onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                         scheduler.runCurrent()
                         assertNull(actual = repo.lastWrite?.recurrence)
                     }

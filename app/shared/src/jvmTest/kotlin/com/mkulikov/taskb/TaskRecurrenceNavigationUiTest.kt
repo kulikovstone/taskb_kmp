@@ -44,10 +44,10 @@ class TaskRecurrenceNavigationUiTest {
                 }
                 waitText(text = "Calendar")
                 onNodeWithText(text = "Calendar").performClick()
-                waitText(text = "No date")
-                onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
-                onNodeWithText(text = "Task").performClick()
-                waitText(text = "Create task")
+                waitForCalendar()
+                onNodeWithContentDescription(label = "Clear date filter").performClick()
+                onNodeWithContentDescription(label = "Add item").performClick()
+                waitText(text = "New item")
                 onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Recurring routine")
                 onNodeWithContentDescription(label = "Choose date").performClick()
                 val dateLabel = LocalDate.Format {
@@ -67,8 +67,8 @@ class TaskRecurrenceNavigationUiTest {
                 onNodeWithContentDescription(label = "Repeat occurrence count")
                     .performScrollTo()
                     .performTextReplacement(text = "3")
-                onNodeWithContentDescription(label = "Save task").performClick()
-                waitText(text = "No date")
+                onNodeWithText(text = "Create item").performClick()
+                waitForCalendar()
                 var events = runBlocking {
                     repo
                         .observeCalendar(from = start, through = start.plus(value = 10, unit = DateTimeUnit.DAY))
@@ -150,11 +150,11 @@ class TaskRecurrenceNavigationUiTest {
                         .isNotEmpty()
                 }
                 onNode(matcher = sidebarTask(task = second), useUnmergedTree = true).performClick()
-                waitText(text = "Edit task")
-                onNodeWithContentDescription(label = "Delete task").performClick()
+                waitText(text = "Edit item")
+                onNodeWithText(text = "Delete").performClick()
                 waitText(text = "Delete repeating task")
                 onNodeWithText(text = "Only this event").performClick()
-                waitText(text = "No date")
+                waitForCalendar()
                 assertEquals(
                     expected = 2,
                     actual = runBlocking {
@@ -175,11 +175,11 @@ class TaskRecurrenceNavigationUiTest {
                         .isNotEmpty()
                 }
                 onNode(matcher = sidebarTask(task = third), useUnmergedTree = true).performClick()
-                waitText(text = "Edit task")
+                waitText(text = "Edit item")
                 onNodeWithContentDescription(label = "Task name").performTextReplacement(text = "Renamed series")
                 onNodeWithText(text = "Show in calendar").assertIsOn().performClick()
-                onNodeWithContentDescription(label = "Save task").performClick()
-                waitText(text = "No date")
+                onNodeWithText(text = "Save changes").performClick()
+                waitForCalendar()
                 waitUntil(timeoutMillis = 10_000) {
                     onAllNodes(matcher = hasText(text = "Renamed series") and sidebar, useUnmergedTree = true)
                         .fetchSemanticsNodes()
@@ -218,14 +218,18 @@ class TaskRecurrenceNavigationUiTest {
                     actual = onAllNodes(matcher = hasText(text = "Renamed series")).fetchSemanticsNodes().size,
                 )
                 onNodeWithText(text = "Renamed series").performClick()
-                waitText(text = "Edit task")
-                onNodeWithContentDescription(label = "Delete task").performClick()
+                waitText(text = "Edit item")
+                onNodeWithText(text = "Delete").performClick()
                 waitText(text = "Delete repeating task")
                 onNodeWithText(text = "Entire task and all events").performClick()
                 waitText(text = "No tasks yet.")
                 assertTrue(actual = runBlocking { db.taskDao().observeRecords().first().isEmpty() })
             }
         }
+    }
+
+    private fun SkikoComposeUiTest.waitForCalendar() {
+        waitUntilExactlyOneExists(matcher = hasTestTag(testTag = "calendar-grid"), timeoutMillis = 10_000)
     }
 
     private suspend fun SkikoComposeUiTest.waitText(text: String) {

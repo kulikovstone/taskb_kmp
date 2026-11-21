@@ -57,7 +57,7 @@ class CalendarCompletedTasksUiTest {
             )
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             state.value = when (intent) {
@@ -152,19 +152,14 @@ class CalendarCompletedTasksUiTest {
                             .top
             )
 
-            onNodeWithTag(testTag = "calendar-sidebar-toggle").performClick()
-            onNodeWithText(text = "Completed · 1").assertIsDisplayed()
-            taskNode(task = undatedActive).assertIsDisplayed()
-            assertCompletedOrder(tasks = listOf(element = undatedCompleted))
-            assertTrue(
-                actual =
-                    taskNode(task = undatedActive).fetchSemanticsNode().boundsInRoot.bottom <
-                        onNodeWithTag(testTag = "calendar-sidebar-completed-heading")
-                            .fetchSemanticsNode()
-                            .boundsInRoot
-                            .top
-            )
-            onNodeWithTag(testTag = "calendar-sidebar-completed-heading").performClick()
+            onNodeWithContentDescription(label = "Clear date filter").performClick()
+            onNodeWithTag(testTag = "calendar-sidebar-completed-heading").assertDoesNotExist()
+            val activeRow = onNodeWithTag(testTag = "calendar-list-task-${undatedActive.key}", useUnmergedTree = true)
+            val done = onNodeWithTag(testTag = "calendar-list-task-${undatedCompleted.key}", useUnmergedTree = true)
+            activeRow.assertIsDisplayed()
+            done.assertIsDisplayed()
+            val activeBottom = activeRow.fetchSemanticsNode().boundsInRoot.bottom
+            assertTrue(actual = activeBottom <= done.fetchSemanticsNode().boundsInRoot.top)
             onNodeWithTag(testTag = "calendar-day-number-${preview.selectedDate}", useUnmergedTree = true)
                 .performClick()
             onNodeWithTag(testTag = "calendar-sidebar-completed-heading")

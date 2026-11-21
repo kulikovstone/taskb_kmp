@@ -14,7 +14,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -36,130 +35,127 @@ import kotlin.math.roundToInt
 internal fun CalendarWorkspace(
     state: CalendarState,
     onIntent: (CalendarIntent) -> Unit,
-    minFeedbackWidth: Dp = 0.dp,
-    content: @Composable BoxWithConstraintsScope.(CalendarDragState) -> Unit,
+    content: @Composable (CalendarDragState) -> Unit,
 ) {
     val drag = remember { CalendarDragState() }
     var origin by remember { mutableStateOf(value = Offset.Zero) }
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
-        BoxWithConstraints(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .onGloballyPositioned { coordinates -> origin = coordinates.positionInRoot() },
         ) {
             content(drag)
-            if (maxWidth >= minFeedbackWidth) {
-                if (state.error != null) {
+            if (state.error != null) {
+                Surface(
+                    modifier = Modifier
+                        .align(alignment = Alignment.BottomEnd)
+                        .padding(all = 34.dp)
+                        .widthIn(max = 480.dp),
+                    shape = RoundedCornerShape(size = 8.dp),
+                    color = TaskBTheme.colors.dangerSoft,
+                    elevation = 4.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = state.error,
+                            color = TaskBTheme.colors.danger,
+                            style = TaskBTheme.typography.body,
+                            modifier = Modifier.weight(weight = 1f, fill = false),
+                        )
+                        TextButton(onClick = { onIntent(CalendarIntent.DismissError) }) {
+                            Text(text = "Dismiss", color = TaskBTheme.colors.danger)
+                        }
+                    }
+                }
+            } else {
+                state.undo?.let { move ->
                     Surface(
                         modifier = Modifier
                             .align(alignment = Alignment.BottomEnd)
                             .padding(all = 34.dp)
-                            .widthIn(max = 480.dp),
+                            .testTag(tag = "calendar-undo"),
                         shape = RoundedCornerShape(size = 8.dp),
-                        color = TaskBTheme.colors.dangerSoft,
+                        color = TaskBTheme.colors.inverseSurface,
                         elevation = 4.dp,
                     ) {
                         Row(
-                            modifier = Modifier.padding(start = 16.dp),
+                            modifier = Modifier.heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
                         ) {
                             Text(
-                                text = state.error,
-                                color = TaskBTheme.colors.danger,
+                                text =
+                                    ("${if (move.isEvent) "Event" else "Task"} moved to " +
+                                        "${calendarDateLabel.format(value = move.date)}"),
+                                color = TaskBTheme.colors.onInverseSurface,
                                 style = TaskBTheme.typography.body,
-                                modifier = Modifier.weight(weight = 1f, fill = false),
                             )
-                            TextButton(onClick = { onIntent(CalendarIntent.DismissError) }) {
-                                Text(text = "Dismiss", color = TaskBTheme.colors.danger)
-                            }
-                        }
-                    }
-                } else {
-                    state.undo?.let { move ->
-                        Surface(
-                            modifier = Modifier
-                                .align(alignment = Alignment.BottomEnd)
-                                .padding(all = 34.dp)
-                                .testTag(tag = "calendar-undo"),
-                            shape = RoundedCornerShape(size = 8.dp),
-                            color = TaskBTheme.colors.inverseSurface,
-                            elevation = 4.dp,
-                        ) {
-                            Row(
-                                modifier = Modifier.heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
+                            TextButton(
+                                onClick = { onIntent(CalendarIntent.UndoMove) },
+                                enabled = state.pendingMove == null && move.taskId !in state.pendingTaskUpdates,
                             ) {
                                 Text(
-                                    text =
-                                        ("${if (move.isEvent) "Event" else "Task"} moved to " +
-                                            "${calendarDateLabel.format(value = move.date)}"),
-                                    color = TaskBTheme.colors.onInverseSurface,
-                                    style = TaskBTheme.typography.body,
+                                    text = "Undo",
+                                    color = TaskBTheme.colors.inverseAccent,
+                                    style = TaskBTheme.typography.button,
                                 )
-                                TextButton(
-                                    onClick = { onIntent(CalendarIntent.UndoMove) },
-                                    enabled = state.pendingMove == null && move.taskId !in state.pendingTaskUpdates,
-                                ) {
-                                    Text(
-                                        text = "Undo",
-                                        color = TaskBTheme.colors.inverseAccent,
-                                        style = TaskBTheme.typography.button,
-                                    )
-                                }
                             }
                         }
                     }
                 }
-                drag.item?.let { task ->
-                    val density = LocalDensity.current
-                    val dense = drag.dense
-                    val horizontalPadding = when {
-                        dense -> calendarTaskTitleGap - calendarTaskPadding
-                        task.startDateTime != null -> 8.dp
-                        else -> calendarSidebarTaskTitleGap(task = task)
-                    }
-                    val verticalPadding = 2.dp
-                    val sourceHorizontalPadding = if (dense) {
-                        0.dp
-                    } else {
-                        calendarSidebarTaskPadding.calculateLeftPadding(layoutDirection = LayoutDirection.Ltr) +
-                            calendarSidebarTaskPadding.calculateRightPadding(
-                                layoutDirection = LayoutDirection.Ltr
-                            )
-                    }
-                    Surface(
-                        modifier = Modifier
-                            .offset {
-                                    IntOffset(
-                                        x = (drag.position.x - origin.x + 12.dp.toPx()).roundToInt(),
-                                        y = (drag.position.y - origin.y + 12.dp.toPx()).roundToInt(),
-                                    )
-                                }
-                            .requiredSize(
-                                width = with(receiver = density) { drag.size.width.toDp() } -
-                                    sourceHorizontalPadding + horizontalPadding * 2,
-                                height = with(receiver = density) { drag.size.height.toDp() } + verticalPadding * 2,
-                            )
-                            .testTag(tag = "calendar-drag-preview"),
-                        shape = RoundedCornerShape(size = 8.dp),
-                        border = BorderStroke(width = 1.dp, color = TaskBTheme.colors.accent),
-                        color = TaskBTheme.colors.surface,
-                        elevation = 4.dp,
-                    ) {
-                        CalendarTaskRow(
-                            task = task,
-                            group = state.groups.find { group -> group.id == task.groupId },
-                            onOpenTask = {},
-                            onToggle = {},
-                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-                            dense = dense,
-                            enabled = false,
-                            date = drag.sourceDate,
-                            now = state.now,
-                            today = state.today,
+            }
+            drag.item?.let { task ->
+                val density = LocalDensity.current
+                val dense = drag.dense
+                val horizontalPadding = when {
+                    dense -> calendarTaskTitleGap - calendarTaskPadding
+                    task.startDateTime != null -> 8.dp
+                    else -> calendarSidebarTaskTitleGap(task = task)
+                }
+                val verticalPadding = 2.dp
+                val sourceHorizontalPadding = if (dense) {
+                    0.dp
+                } else {
+                    calendarSidebarTaskPadding.calculateLeftPadding(layoutDirection = LayoutDirection.Ltr) +
+                        calendarSidebarTaskPadding.calculateRightPadding(
+                            layoutDirection = LayoutDirection.Ltr
                         )
-                    }
+                }
+                Surface(
+                    modifier = Modifier
+                        .offset {
+                                IntOffset(
+                                    x = (drag.position.x - origin.x + 12.dp.toPx()).roundToInt(),
+                                    y = (drag.position.y - origin.y + 12.dp.toPx()).roundToInt(),
+                                )
+                            }
+                        .requiredSize(
+                            width = with(receiver = density) { drag.size.width.toDp() } -
+                                sourceHorizontalPadding + horizontalPadding * 2,
+                            height = with(receiver = density) { drag.size.height.toDp() } + verticalPadding * 2,
+                        )
+                        .testTag(tag = "calendar-drag-preview"),
+                    shape = RoundedCornerShape(size = 8.dp),
+                    border = BorderStroke(width = 1.dp, color = TaskBTheme.colors.accent),
+                    color = TaskBTheme.colors.surface,
+                    elevation = 4.dp,
+                ) {
+                    CalendarTaskRow(
+                        task = task,
+                        group = state.groups.find { group -> group.id == task.groupId },
+                        onOpenTask = {},
+                        onToggle = {},
+                        modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
+                        dense = dense,
+                        enabled = false,
+                        date = drag.sourceDate,
+                        now = state.now,
+                        today = state.today,
+                    )
                 }
             }
         }

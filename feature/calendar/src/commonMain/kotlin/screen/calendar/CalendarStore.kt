@@ -48,13 +48,8 @@ internal class CalendarStore(
     private val eventRepository: IEventRepository? = null,
     private val weatherRepository: IWeatherRepository? = null,
     private val holidayRepository: IHolidayRepository? = null,
-    private val initialDate: LocalDate? = null,
-    private val includeTaskList: Boolean = false,
 ) : CoroutineStore<CalendarIntent, CalendarState, CalendarMessage>(
-    initialState = today().let { currentDate ->
-        val date = initialDate ?: currentDate
-        CalendarState(today = currentDate, month = date.yearMonth, selectedDate = date, now = clock.now())
-    },
+    initialState = CalendarState(today = today(), now = clock.now()),
     reducer = ::reduceCalendar,
     context = dispatcher,
 ) {
@@ -68,7 +63,7 @@ internal class CalendarStore(
         accept(intent = CalendarIntent.RetryLoad)
         accept(intent = CalendarIntent.RetryWeather)
         accept(intent = CalendarIntent.RetryHolidays)
-        if (includeTaskList) accept(intent = CalendarIntent.RetryTaskList)
+        accept(intent = CalendarIntent.RetryTaskList)
         collectEffect(
             messages = flow {
                 while (true) {
@@ -147,18 +142,14 @@ internal class CalendarStore(
                 reduce(message = CalendarMessage.Loading)
                 val range = state
                     .map { state ->
-                        if (initialDate != null) {
-                            Triple(first = initialDate, second = initialDate, third = null)
-                        } else {
-                            val days = state.days
-                            val from = days.first()
-                            val through = days.last()
-                            Triple(
-                                first = from,
-                                second = through,
-                                third = state.selectedDate?.takeUnless { date -> date in from..through },
-                            )
-                        }
+                        val days = state.days
+                        val from = days.first()
+                        val through = days.last()
+                        Triple(
+                            first = from,
+                            second = through,
+                            third = state.selectedDate?.takeUnless { date -> date in from..through },
+                        )
                     }
                     .distinctUntilChanged()
                 val events = range
@@ -286,7 +277,6 @@ internal class CalendarStore(
                 }
             }
             is CalendarIntent.PrepareQuickDelete -> {
-                if (!includeTaskList) return
                 val current = state.value
                 val task = findTask(id = intent.id, occurrenceId = intent.occurrenceId) ?: return
                 if (
@@ -335,7 +325,7 @@ internal class CalendarStore(
     }
 
     private fun observeTaskList() {
-        if (!includeTaskList || taskListObservation?.isActive == true) return
+        if (taskListObservation?.isActive == true) return
         reduce(message = CalendarMessage.TaskListLoading)
         taskListObservation = collectEffect(
             messages = state

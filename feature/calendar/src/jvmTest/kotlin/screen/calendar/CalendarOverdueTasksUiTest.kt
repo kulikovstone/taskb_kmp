@@ -72,7 +72,7 @@ class CalendarOverdueTasksUiTest {
             )
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = { intent ->
                             if (intent is CalendarIntent.ToggleCompleted)

@@ -37,7 +37,7 @@ class AppModuleTest {
                         val settings = application.koin.get<IAppSettings>()
                         val navigator = application.koin.get<IAppNavigator>()
                         assertSame(expected = navigator, actual = application.koin.get<IAppNavigator>())
-                        assertEquals(expected = 7, actual = application.koin.getAll<INavEntry>().size)
+                        assertEquals(expected = 6, actual = application.koin.getAll<INavEntry>().size)
                         val locations = application.koin.get<IAppLocationRepository>()
                         val city = AppLocation(
                             name = "Paris, France",

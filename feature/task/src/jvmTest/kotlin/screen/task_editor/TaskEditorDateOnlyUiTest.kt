@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.screen.item_editor.TaskItemEditorContent
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -47,10 +48,9 @@ class TaskEditorDateOnlyUiTest {
                         setContent {
                             TaskBTheme(darkTheme = dark) {
                                 Surface {
-                                    TaskEditorContent(
+                                    TaskItemEditorContent(
                                         state = store.state.collectAsState().value,
                                         onIntent = store::accept,
-                                        wide = width >= 840,
                                         onBack = {},
                                         onChooseGroup = {},
                                     )
@@ -92,7 +92,9 @@ class TaskEditorDateOnlyUiTest {
                             scheduler.runCurrent()
                             onNodeWithText(text = "Show in calendar").assertDoesNotExist()
                         }
-                        onNodeWithContentDescription(label = "Save task").assertIsEnabled().performClick()
+                        onNodeWithText(text = if (editing) "Save changes" else "Create item")
+                            .assertIsEnabled()
+                            .performClick()
                         scheduler.runCurrent()
                         assertTrue(actual = store.state.value.isFinished)
                         assertEquals(expected = "Date-only task", actual = repository.lastWrite?.name)

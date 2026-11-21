@@ -1,4 +1,4 @@
-package com.mkulikov.taskb.feature.calendar.screen.calendar_two
+package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,7 +27,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.calendar.screen.calendar.timedCalendarPreviewState
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.ui.dialog.TaskBDialog
@@ -43,7 +42,7 @@ private val mainFilters = listOf(
 )
 
 @Composable
-internal fun Calendar2FiltersDialog(
+internal fun CalendarFiltersDialog(
     groups: List<Group>,
     groupCounts: Map<Int?, Int>,
     filter: TaskFilter?,
@@ -52,7 +51,7 @@ internal fun Calendar2FiltersDialog(
     onApply: (TaskFilter?, Int?) -> Unit,
 ) {
     TaskBDialog(onDismissRequest = onDismiss) {
-        Calendar2FiltersPanel(
+        CalendarFiltersPanel(
             groups = groups,
             groupCounts = groupCounts,
             filter = filter,
@@ -65,7 +64,7 @@ internal fun Calendar2FiltersDialog(
 }
 
 @Composable
-private fun Calendar2FiltersPanel(
+private fun CalendarFiltersPanel(
     groups: List<Group>,
     groupCounts: Map<Int?, Int>,
     filter: TaskFilter?,
@@ -81,7 +80,7 @@ private fun Calendar2FiltersPanel(
         modifier = modifier
             .widthIn(max = 800.dp)
             .fillMaxWidth()
-            .testTag(tag = "calendar-2-filters"),
+            .testTag(tag = "calendar-filters"),
         shape = RoundedCornerShape(size = 10.dp),
         color = colors.surface,
     ) {
@@ -227,12 +226,12 @@ private fun FilterOption(
     }
 }
 
-@Preview(name = "Calendar 2 – filters", widthDp = 800, heightDp = 404)
+@Preview(name = "Calendar – filters", widthDp = 800, heightDp = 404)
 @Composable
-private fun Calendar2FiltersPreview() {
+private fun CalendarFiltersPreview() {
     TaskBTheme(darkTheme = false) {
         val state = timedCalendarPreviewState()
-        Calendar2FiltersPanel(
+        CalendarFiltersPanel(
             groups = state.groups,
             groupCounts = state.tasks.groupingBy { task -> task.groupId }.eachCount(),
             filter = null,

@@ -3,10 +3,8 @@ package com.mkulikov.taskb.feature.task.screen.task_editor
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.LocalRippleConfiguration
@@ -34,116 +32,11 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.task.component.taskDateLabel
 import com.mkulikov.taskb.ui.button.TaskBSelectionButton
-import com.mkulikov.taskb.ui.component.TaskBTextArea
-import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
-
-@Composable
-internal fun TaskEditorForm(
-    state: TaskEditorState,
-    groups: List<Group>,
-    today: LocalDate,
-    onIntent: (TaskEditorIntent) -> Unit,
-    onChooseGroup: () -> Unit,
-    wide: Boolean,
-    modifier: Modifier,
-) {
-    val enabled = !state.isBusy && state.dialog == null
-    Column(
-        modifier = modifier
-            .verticalScroll(state = rememberScrollState())
-            .padding(horizontal = if (wide) 0.dp else 24.dp, vertical = if (wide) 32.dp else 24.dp)
-    ) {
-        if (wide) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
-                Column(modifier = Modifier.weight(weight = 1f)) {
-                    TaskNameSection(state = state, onIntent = onIntent, enabled = enabled)
-                }
-                Column(modifier = Modifier.weight(weight = 1f)) {
-                    TaskGroupSection(
-                        state = state,
-                        groups = groups,
-                        onIntent = onIntent,
-                        onChooseGroup = onChooseGroup,
-                    )
-                }
-            }
-        } else {
-            TaskNameSection(state = state, onIntent = onIntent, enabled = enabled)
-            Spacer(modifier = Modifier.height(height = 24.dp))
-            TaskGroupSection(state = state, groups = groups, onIntent = onIntent, onChooseGroup = onChooseGroup)
-        }
-        Spacer(modifier = Modifier.height(height = 24.dp))
-        Text(
-            text = "Description",
-            style = TaskBTheme.typography.label,
-            color = TaskBTheme.colors.text,
-            modifier = Modifier.height(height = 18.dp),
-        )
-        Spacer(modifier = Modifier.height(height = 8.dp))
-        TaskBTextArea(
-            state = state.description,
-            description = "Task description",
-            placeholder = "Add a description",
-            enabled = enabled,
-            minLines = if (wide) 2 else 4,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(height = 24.dp))
-        if (wide) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
-                Column(modifier = Modifier.weight(weight = 1f)) {
-                    TaskDateSection(state = state, today = today, onIntent = onIntent)
-                }
-                Box(modifier = Modifier.weight(weight = 1f)) {
-                    if (state.recurrence != null) {
-                        TaskCalendarVisibility(state = state, enabled = enabled, onIntent = onIntent)
-                    }
-                }
-            }
-        } else {
-            TaskDateSection(state = state, today = today, onIntent = onIntent)
-            if (state.recurrence != null) {
-                Spacer(modifier = Modifier.height(height = 16.dp))
-                TaskCalendarVisibility(state = state, enabled = enabled, onIntent = onIntent)
-            }
-        }
-        if (state.dueDate != null) {
-            Spacer(modifier = Modifier.height(height = 24.dp))
-            TaskRecurrenceFields(state = state, onIntent = onIntent, enabled = enabled, wide = wide)
-        }
-        if (state.original?.recurrence != null) {
-            Spacer(modifier = Modifier.height(height = 16.dp))
-            Text(
-                text = "Name, description, group and calendar visibility apply to all occurrences. " +
-                    "Schedule changes preserve completed history.",
-                style = TaskBTheme.typography.small,
-                color = TaskBTheme.colors.muted,
-            )
-        }
-    }
-}
-
-@Composable
-private fun TaskCalendarVisibility(
-    state: TaskEditorState,
-    enabled: Boolean,
-    onIntent: (TaskEditorIntent) -> Unit,
-) {
-    TaskOptionSwitch(
-        label = "Show in calendar",
-        checked = state.showInCalendar,
-        enabled = enabled,
-        labelStyle = TaskBTheme.typography.label,
-        onCheckedChange = { checked ->
-            onIntent(TaskEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
-        },
-    )
-}
 
 @Composable
 internal fun TaskOptionSwitch(
@@ -201,26 +94,6 @@ internal fun TaskOptionSwitch(
 }
 
 @Composable
-private fun TaskNameSection(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit, enabled: Boolean) {
-    Text(
-        text = "Task name",
-        style = TaskBTheme.typography.label,
-        color = TaskBTheme.colors.text,
-        modifier = Modifier.height(height = 18.dp),
-    )
-    Spacer(modifier = Modifier.height(height = 8.dp))
-    TaskBTextField(
-        state = state.name,
-        description = "Task name",
-        placeholder = "Enter task name",
-        enabled = enabled,
-        autoFocus = true,
-        onDone = { if (state.canSave) onIntent(TaskEditorIntent.Save) },
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
 internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: (TaskEditorIntent) -> Unit) {
     val enabled = !state.isBusy && state.dialog == null
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -266,25 +139,6 @@ internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent:
             )
         }
     }
-}
-
-@Composable
-private fun TaskGroupSection(
-    state: TaskEditorState,
-    groups: List<Group>,
-    onIntent: (TaskEditorIntent) -> Unit,
-    onChooseGroup: () -> Unit,
-    enabled: Boolean = !state.isBusy && state.dialog == null,
-) {
-    val group = groups.find { group -> group.id == state.groupId }
-    TaskGroupSection(
-        group = group,
-        enabled = enabled,
-        onChooseGroup = onChooseGroup,
-        onClearGroup = state.groupId?.let { { onIntent(TaskEditorIntent.GroupChanged(id = null)) } },
-        description = "Choose task group",
-        clearDescription = "Clear task group",
-    )
 }
 
 @Composable

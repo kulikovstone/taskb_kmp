@@ -9,6 +9,7 @@ import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextRange
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.task.screen.item_editor.TaskItemEditorContent
 import com.mkulikov.taskb.feature.task.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.task.testing.FakeTaskRepository
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -45,10 +46,9 @@ class TaskRecurrenceInputUiTest {
                     runSkikoComposeUiTest(size = Size(width = if (wide) 1280f else 440f, height = 1100f)) {
                         setContent {
                             TaskBTheme(darkTheme = false) {
-                                TaskEditorContent(
+                                TaskItemEditorContent(
                                     state = store.state.collectAsState().value,
                                     onIntent = store::accept,
-                                    wide = wide,
                                     onBack = {},
                                     onChooseGroup = {},
                                 )
@@ -95,7 +95,7 @@ class TaskRecurrenceInputUiTest {
                                 expectedValue = TextRange(index = 1),
                             )
                         )
-                        onNodeWithContentDescription(label = "Save task").performClick()
+                        onNode(matcher = hasText(text = "Create item") or hasText(text = "Save changes")).performClick()
                         scheduler.runCurrent()
                         val saved = requireNotNull(value = repository.lastWrite?.recurrence)
                         assertEquals(expected = 132, actual = saved.interval)

@@ -5,7 +5,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -78,8 +78,7 @@ internal fun CalendarDayList(
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
     modifier: Modifier = Modifier,
-    drag: CalendarDragState? = null,
-    showQuickDelete: Boolean = false,
+    drag: CalendarDragState,
 ) {
     val tasks = state.sidebarItems
     val date = state.selectedDate
@@ -88,9 +87,7 @@ internal fun CalendarDayList(
     val mainTasks = state.sidebarMainTaskItems
     val completed = state.sidebarCompletedItems
     val isDayCompleted = state.isSelectedDayCompleted
-    val showTaskHeading = date != null || events.isNotEmpty()
-    val compactDay = drag == null
-    val sectionGap = if (compactDay) 20.dp else 16.dp
+    val sectionGap = 16.dp
     var recurringExpanded by remember(key1 = date) { mutableStateOf(value = true) }
     var eventsExpanded by remember(key1 = date) { mutableStateOf(value = true) }
     var tasksExpanded by remember(key1 = date) { mutableStateOf(value = true) }
@@ -99,7 +96,7 @@ internal fun CalendarDayList(
     Column(modifier = modifier) {
         if (tasks.isEmpty())
             Text(
-                text = if (date == null) "No tasks or events without a date." else "No tasks or events for this day.",
+                text = "No tasks or events for this day.",
                 modifier = Modifier.padding(paddingValues = calendarSidebarTaskPadding),
                 color = colors.muted,
                 style = TaskBTheme.typography.body,
@@ -113,7 +110,7 @@ internal fun CalendarDayList(
             LazyColumn(
                 state = scroll,
                 modifier = Modifier.weight(weight = 1f).fillMaxHeight().testTag(tag = "calendar-sidebar-list"),
-                contentPadding = PaddingValues(bottom = if (compactDay) 24.dp else 12.dp),
+                contentPadding = PaddingValues(bottom = 12.dp),
             ) {
                 if (isDayCompleted)
                     item(key = "day-completed") {
@@ -142,7 +139,6 @@ internal fun CalendarDayList(
                         drag = drag,
                         onIntent = onIntent,
                         onOpenTask = onOpenTask,
-                        showQuickDelete = showQuickDelete,
                     )
                 if (events.isNotEmpty())
                     item(key = "events-heading") {
@@ -155,7 +151,7 @@ internal fun CalendarDayList(
                                 .padding(paddingValues = calendarSidebarTaskPadding)
                                 .testTag(tag = "calendar-sidebar-events-heading"),
                         )
-                        if (eventsExpanded) Spacer(modifier = Modifier.height(height = if (compactDay) 8.dp else 4.dp))
+                        if (eventsExpanded) Spacer(modifier = Modifier.height(height = 4.dp))
                     }
                 if (eventsExpanded)
                     calendarDayEntries(
@@ -164,12 +160,12 @@ internal fun CalendarDayList(
                         drag = drag,
                         onIntent = onIntent,
                         onOpenTask = onOpenTask,
-                        wideEventSpacing = true,
+                        eventSpacing = true,
                     )
-                if (mainTasks.isNotEmpty() && showTaskHeading)
+                if (mainTasks.isNotEmpty())
                     item(key = "tasks-heading") {
                         if (events.isNotEmpty()) {
-                            val gap = if (!compactDay && eventsExpanded) sectionGap - 4.dp else sectionGap
+                            val gap = if (eventsExpanded) sectionGap - 4.dp else sectionGap
                             Spacer(modifier = Modifier.height(height = gap))
                         } else if (recurring.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(height = sectionGap))
@@ -184,7 +180,7 @@ internal fun CalendarDayList(
                         )
                         if (tasksExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
                     }
-                if (!showTaskHeading || tasksExpanded)
+                if (tasksExpanded)
                     calendarDayEntries(
                         entries = mainTasks,
                         state = state,
@@ -197,7 +193,7 @@ internal fun CalendarDayList(
                         if (mainTasks.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(height = sectionGap))
                         } else if (events.isNotEmpty()) {
-                            val gap = if (!compactDay && eventsExpanded) sectionGap - 4.dp else sectionGap
+                            val gap = if (eventsExpanded) sectionGap - 4.dp else sectionGap
                             Spacer(modifier = Modifier.height(height = gap))
                         } else if (recurring.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(height = sectionGap))
@@ -219,10 +215,9 @@ internal fun CalendarDayList(
                         drag = drag,
                         onIntent = onIntent,
                         onOpenTask = onOpenTask,
-                        showQuickDelete = showQuickDelete,
                     )
             }
-            if (drag != null && (scroll.canScrollForward || scroll.canScrollBackward))
+            if (scroll.canScrollForward || scroll.canScrollBackward)
                 TaskBVerticalScrollbar(state = scroll, modifier = Modifier.fillMaxHeight())
         }
     }
@@ -231,24 +226,20 @@ internal fun CalendarDayList(
 private fun LazyListScope.calendarDayEntries(
     entries: List<CalendarItem>,
     state: CalendarState,
-    drag: CalendarDragState?,
+    drag: CalendarDragState,
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
-    wideEventSpacing: Boolean = false,
-    showQuickDelete: Boolean = false,
+    eventSpacing: Boolean = false,
 ) {
-    itemsIndexed(items = entries, key = { _, item -> item.key }) { index, item ->
+    items(items = entries, key = CalendarItem::key) { item ->
         CalendarDayEntry(
             item = item,
             state = state,
             drag = drag,
             onIntent = onIntent,
             onOpenTask = onOpenTask,
-            showQuickDelete = showQuickDelete,
         )
-        if (drag == null && index < entries.lastIndex) {
-            Spacer(modifier = Modifier.height(height = 8.dp))
-        } else if (drag != null && wideEventSpacing) {
+        if (eventSpacing) {
             Spacer(modifier = Modifier.height(height = 4.dp))
         }
     }
@@ -258,17 +249,12 @@ private fun LazyListScope.calendarDayEntries(
 private fun CalendarDayEntry(
     item: CalendarItem,
     state: CalendarState,
-    drag: CalendarDragState?,
+    drag: CalendarDragState,
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
-    showQuickDelete: Boolean,
 ) {
     val date = state.selectedDate ?: item.dueDate
-    val quickDelete = if (showQuickDelete && item is CalendarItem.TaskItem) {
-        item.task.quickDeleteIntent()
-    } else {
-        null
-    }
+    val quickDelete = (item as? CalendarItem.TaskItem)?.task?.quickDeleteIntent()
     val enabled = !item.isHoliday &&
         (item.isEvent || item.id !in state.pendingTaskUpdates) &&
         state.pendingMove == null
@@ -286,12 +272,11 @@ private fun CalendarDayEntry(
                 onIntent(item.moveTo(date = target))
             },
         enabled = enabled,
-        dragging = drag?.item?.key == item.key,
+        dragging = drag.item?.key == item.key,
         date = date,
         now = state.now,
         today = state.today,
         contentPadding = calendarSidebarTaskPadding,
-        compactDay = drag == null,
         onQuickDelete = quickDelete?.let { intent -> { onIntent(intent) } },
     )
 }

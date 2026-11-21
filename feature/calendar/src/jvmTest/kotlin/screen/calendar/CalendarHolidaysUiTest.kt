@@ -74,7 +74,7 @@ class CalendarHolidaysUiTest {
             val opened = mutableListOf<Int>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = state.value,
                         onIntent = intents::add,
                         onBack = {},

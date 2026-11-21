@@ -52,7 +52,8 @@ internal fun TaskItemEditorScreen(
     onChooseGroup: (Int?) -> Unit,
     initialDate: LocalDate? = null,
     initialGroupId: Int? = null,
-    edit: TaskEditorRoute.EditInItemEditor? = null,
+    initialIsEvent: Boolean = false,
+    edit: TaskEditorRoute? = null,
 ) {
     val repository = koinInject<ITaskRepository>()
     val groups = koinInject<IGroupRepository>()
@@ -67,7 +68,7 @@ internal fun TaskItemEditorScreen(
         )
     }
     val state by store.state.collectAsState()
-    var isEvent by rememberSaveable { mutableStateOf(value = false) }
+    var isEvent by rememberSaveable { mutableStateOf(value = initialIsEvent) }
     val changeType: (Boolean) -> Unit = { eventSelected -> isEvent = eventSelected }
     LaunchedEffect(key1 = store, key2 = state.isFinished) {
         if (state.isFinished) onBack()
@@ -75,26 +76,11 @@ internal fun TaskItemEditorScreen(
     LaunchedEffect(key1 = store, key2 = groupResults) {
         groupResults.collect { result -> store.accept(intent = TaskEditorIntent.GroupChanged(id = result.groupId)) }
     }
-    val loadError = state.loadError ?: state.groupsLoadError
-    val fields = ItemEditorFields(
-        name = state.name,
-        description = state.description,
-        group = state.groups.find { group -> group.id == state.groupId },
-        isLoading = state.isLoading || state.isLoadingGroups,
-        loadError = loadError,
-        enabled = !state.isBusy && !state.isFinished && state.dialog == null && loadError == null,
-    )
-    val retry = {
-        val intent = if (state.loadError != null) TaskEditorIntent.RetryLoad else TaskEditorIntent.RetryGroups
-        store.accept(intent = intent)
-    }
-    val clearGroup = { store.accept(intent = TaskEditorIntent.GroupChanged(id = null)) }
-    val delete = { store.accept(intent = TaskEditorIntent.PrepareDelete) }
-
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
         BoxWithConstraints {
             val availableHeight = maxHeight
             if (edit == null && isEvent) {
+                val fields = state.itemEditorFields()
                 val editor = koinInject<IEventItemEditor>()
                 editor.Content(
                     name = state.name,
@@ -117,30 +103,22 @@ internal fun TaskItemEditorScreen(
                         onSave = event.onSave,
                         onBack = onBack,
                         onChooseGroup = { onChooseGroup(state.groupId) },
-                        onClearGroup = clearGroup,
+                        onClearGroup = { store.accept(intent = TaskEditorIntent.GroupChanged(id = null)) },
                         onRetry = {
-                            retry()
+                            store.accept(intent = TaskEditorIntent.RetryGroups)
                             event.onRetry()
                         },
                         schedule = event.schedule,
                     )
                 }
             } else {
-                ItemEditorContent(
-                    fields = fields,
-                    isEvent = false,
-                    isSaving = state.isSaving,
-                    canSave = state.canSave,
-                    onTypeChanged = changeType.takeIf { edit == null },
-                    onDelete = delete.takeIf { edit != null },
-                    onSave = { store.accept(intent = TaskEditorIntent.Save) },
+                TaskItemEditorContent(
+                    state = state,
+                    onIntent = store::accept,
                     onBack = onBack,
                     onChooseGroup = { onChooseGroup(state.groupId) },
-                    onClearGroup = clearGroup,
-                    onRetry = retry,
-                ) {
-                    TaskItemEditorSchedule(state = state, onIntent = store::accept)
-                }
+                    onTypeChanged = changeType.takeIf { edit == null },
+                )
                 TaskEditorDialogs(
                     state = state,
                     today = state.today,
@@ -153,8 +131,49 @@ internal fun TaskItemEditorScreen(
 }
 
 @Composable
+internal fun TaskItemEditorContent(
+    state: TaskEditorState,
+    onIntent: (TaskEditorIntent) -> Unit,
+    onBack: () -> Unit,
+    onChooseGroup: () -> Unit,
+    onTypeChanged: ((Boolean) -> Unit)? = null,
+) {
+    val delete = { onIntent(TaskEditorIntent.PrepareDelete) }
+    ItemEditorContent(
+        fields = state.itemEditorFields(),
+        isEvent = false,
+        isSaving = state.isSaving,
+        canSave = state.canSave,
+        onTypeChanged = onTypeChanged,
+        onDelete = delete.takeUnless { state.isNew },
+        onSave = { onIntent(TaskEditorIntent.Save) },
+        onBack = onBack,
+        onChooseGroup = onChooseGroup,
+        onClearGroup = { onIntent(TaskEditorIntent.GroupChanged(id = null)) },
+        onRetry = {
+            val intent = if (state.loadError != null) TaskEditorIntent.RetryLoad else TaskEditorIntent.RetryGroups
+            onIntent(intent)
+        },
+    ) {
+        TaskItemEditorSchedule(state = state, onIntent = onIntent)
+    }
+}
+
+private fun TaskEditorState.itemEditorFields(): ItemEditorFields {
+    val error = loadError ?: groupsLoadError
+    return ItemEditorFields(
+        name = name,
+        description = description,
+        group = groups.find { group -> group.id == groupId },
+        isLoading = isLoading || isLoadingGroups,
+        loadError = error,
+        enabled = !isBusy && !isFinished && dialog == null && error == null,
+    )
+}
+
+@Composable
 internal fun EventItemEditorScreen(
-    edit: EventEditorRoute.EditInItemEditor,
+    edit: EventEditorRoute,
     onBack: () -> Unit,
     groupResults: Flow<GroupSelectionResult>,
     onChooseGroup: (Int?) -> Unit,

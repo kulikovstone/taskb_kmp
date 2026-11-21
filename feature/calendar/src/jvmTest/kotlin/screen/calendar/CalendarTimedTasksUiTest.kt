@@ -26,7 +26,7 @@ class CalendarTimedTasksUiTest {
             val opened = mutableListOf<Int>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = timedCalendarPreviewState(),
                         onIntent = {},
                         onBack = {},
@@ -167,7 +167,7 @@ class CalendarTimedTasksUiTest {
             val intents = mutableListOf<CalendarIntent>()
             setContent {
                 TaskBTheme(darkTheme = false) {
-                    CalendarScreen(
+                    CalendarTestScreen(
                         state = timedCalendarPreviewState(),
                         onIntent = intents::add,
                         onBack = {},
