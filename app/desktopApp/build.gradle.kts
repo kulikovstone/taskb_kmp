@@ -54,6 +54,8 @@ abstract class InstallLinuxDesktopEntry : DefaultTask() {
     }
 }
 
+val isLinux = providers.systemProperty("os.name").get().startsWith("Linux")
+
 kotlin {
     jvmToolchain(21)
 }
@@ -78,6 +80,8 @@ compose.desktop {
             isEnabled.set(true)
             obfuscate.set(true)
             optimize.set(false)
+            // A long classpath can crash the Linux jpackage launcher in JDK 21 (JDK-8380085).
+            joinOutputJars.set(isLinux)
             configurationFiles.from(project.file("compose-desktop.pro"))
         }
 
@@ -102,7 +106,6 @@ compose.desktop {
     }
 }
 
-val isLinux = providers.systemProperty("os.name").get().startsWith("Linux")
 val linuxAppImageDir = layout.buildDirectory.dir("compose/binaries/main/app")
 
 if (isLinux) {
