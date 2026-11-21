@@ -129,11 +129,30 @@ internal fun TaskEditorForm(
 }
 
 @Composable
-internal fun TaskCalendarVisibility(
+private fun TaskCalendarVisibility(
     state: TaskEditorState,
     enabled: Boolean,
     onIntent: (TaskEditorIntent) -> Unit,
-    labelStyle: TextStyle = TaskBTheme.typography.label,
+) {
+    TaskOptionSwitch(
+        label = "Show in calendar",
+        checked = state.showInCalendar,
+        enabled = enabled,
+        labelStyle = TaskBTheme.typography.label,
+        onCheckedChange = { checked ->
+            onIntent(TaskEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
+        },
+    )
+}
+
+@Composable
+internal fun TaskOptionSwitch(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    labelStyle: TextStyle = TaskBTheme.typography.body,
+    minHeight: Dp = 48.dp,
 ) {
     val defaultAlpha = RippleDefaults.rippleAlpha(
         contentColor = LocalContentColor.current,
@@ -151,25 +170,23 @@ internal fun TaskCalendarVisibility(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp)
+                .heightIn(min = minHeight)
                 .toggleable(
-                    value = state.showInCalendar,
+                    value = checked,
                     enabled = enabled,
                     role = Role.Switch,
-                    onValueChange = { checked ->
-                        onIntent(TaskEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
-                    },
+                    onValueChange = onCheckedChange,
                 ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Show in calendar",
+                text = label,
                 style = labelStyle,
                 color = TaskBTheme.colors.text,
             )
             Switch(
-                checked = state.showInCalendar,
+                checked = checked,
                 onCheckedChange = null,
                 enabled = enabled,
                 colors = SwitchDefaults.colors(

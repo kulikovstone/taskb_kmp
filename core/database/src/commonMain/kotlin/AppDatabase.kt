@@ -43,8 +43,8 @@ import kotlinx.coroutines.Dispatchers
             HolidayEntity::class,
             HolidayMonthEntity::class,
         ],
-    version = 13,
-    autoMigrations = [AutoMigration(from = 2, to = 3)],
+    version = 14,
+    autoMigrations = [AutoMigration(from = 2, to = 3), AutoMigration(from = 13, to = 14)],
 )
 @ConstructedBy(value = AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

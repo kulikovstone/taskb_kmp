@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayContext
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayList
+import com.mkulikov.taskb.feature.calendar.component.CalendarQuickDeleteButton
+import com.mkulikov.taskb.feature.calendar.component.quickDeleteIntent
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarDragState
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarIntent
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarItem
@@ -149,6 +151,7 @@ internal fun Calendar2Sidebar(
                     onIntent = onIntent,
                     onOpenTask = onOpenItem,
                     modifier = Modifier.weight(weight = 1f).fillMaxWidth(),
+                    showQuickDelete = true,
                 )
             }
             else -> {
@@ -181,7 +184,7 @@ internal fun Calendar2Sidebar(
                                     item = item,
                                     group = groupsById[task.groupId],
                                     today = state.today,
-                                    enabled = task.id !in state.pendingCompletion && state.pendingMove == null,
+                                    enabled = task.id !in state.pendingTaskUpdates && state.pendingMove == null,
                                     drag = drag,
                                     onIntent = onIntent,
                                     onOpen = { onOpenItem(item) },
@@ -255,6 +258,7 @@ private fun Calendar2TaskRow(
 ) {
     val task = item.task
     val colors = TaskBTheme.colors
+    val quickDelete = task.quickDeleteIntent()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -300,22 +304,36 @@ private fun Calendar2TaskRow(
             modifier = Modifier.weight(weight = 1f),
             verticalArrangement = Arrangement.spacedBy(space = 2.dp),
         ) {
-            Text(
-                text = task.name,
-                color = if (task.isCompleted) colors.completedText else colors.text,
-                style = TaskBTheme.typography.body,
-                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (task.description.isNotBlank()) {
-                Text(
-                    text = task.description,
-                    color = colors.muted,
-                    style = TaskBTheme.typography.small,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.weight(weight = 1f),
+                    verticalArrangement = Arrangement.spacedBy(space = 2.dp),
+                ) {
+                    Text(
+                        text = task.name,
+                        color = if (task.isCompleted) colors.completedText else colors.text,
+                        style = TaskBTheme.typography.body,
+                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (task.description.isNotBlank()) {
+                        Text(
+                            text = task.description,
+                            color = colors.muted,
+                            style = TaskBTheme.typography.small,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (quickDelete != null) {
+                    CalendarQuickDeleteButton(
+                        taskName = task.name,
+                        enabled = enabled,
+                        onClick = { onIntent(quickDelete) },
+                    )
+                }
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,

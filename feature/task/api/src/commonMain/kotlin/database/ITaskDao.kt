@@ -41,7 +41,7 @@ interface ITaskDao {
         value = """
         UPDATE tasks
         SET name = :name, dueDate = :dueDate, groupId = :groupId, description = :description,
-            showInCalendar = :showInCalendar
+            showInCalendar = :showInCalendar, quickDeleteOverdue = :quickDelete
         WHERE id = :id
         """
     )
@@ -52,6 +52,7 @@ interface ITaskDao {
         groupId: Int?,
         description: String,
         showInCalendar: Boolean,
+        quickDelete: Boolean,
     ): Int
 
     @Query(value = "UPDATE tasks SET dueDate = :dueDate WHERE id = :id AND dueDate IS :expectedDate")

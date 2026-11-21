@@ -15,6 +15,7 @@ data class Task(
     val occurrenceId: TaskOccurrenceId? = null,
     val description: String = "",
     val showInCalendar: Boolean = true,
+    val quickDelete: Boolean = false,
 ) {
     val isCompleted: Boolean
         get() = completedAt != null
@@ -23,4 +24,7 @@ data class Task(
         get() = occurrenceId?.let { occurrenceId ->
             "$id:${occurrenceId.scheduleId}:${occurrenceId.scheduledDate}"
         } ?: id.toString()
+
+    val canQuickDelete: Boolean
+        get() = quickDelete && recurrence != null && occurrenceId != null
 }

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mkulikov.taskb.feature.calendar.component.CalendarQuickDeleteButton
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -74,6 +75,7 @@ internal fun CalendarTaskRow(
     today: LocalDate = now.toLocalDateTime(timeZone = TimeZone.currentSystemDefault()).date,
     contentPadding: PaddingValues = PaddingValues(all = 0.dp),
     compactDay: Boolean = false,
+    onQuickDelete: (() -> Unit)? = null,
 ) {
     if (task is CalendarItem.HolidayItem) {
         CalendarHolidayRow(
@@ -252,6 +254,14 @@ internal fun CalendarTaskRow(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+            }
+            if (onQuickDelete != null) {
+                CalendarQuickDeleteButton(
+                    taskName = task.name,
+                    enabled = enabled,
+                    onClick = onQuickDelete,
+                    modifier = Modifier.align(alignment = Alignment.Top),
+                )
             }
         }
     }

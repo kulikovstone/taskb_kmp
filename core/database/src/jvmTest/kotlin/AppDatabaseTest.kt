@@ -49,7 +49,7 @@ class AppDatabaseTest {
 
             AppDatabase.open(file = file).useDatabase { database ->
                 assertEquals(expected = "saved", actual = database.settingsDao().getValue(key = "example"))
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
             }
         }
     }
@@ -82,7 +82,7 @@ class AppDatabaseTest {
                     actual = database.groupDao().getById(id = 7),
                 )
                 assertEquals(expected = "true", actual = database.settingsDao().getValue(key = "welcomeCompleted"))
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
                 assertEquals(expected = 0L, actual = database.queryLong(sql = "SELECT COUNT(*) FROM tasks"))
                 assertEquals(expected = 0, actual = database.groupDao().getWithTaskCounts(id = 7)?.planned)
             }
@@ -162,7 +162,7 @@ class AppDatabaseTest {
                     actual = database.groupDao().getById(id = 7),
                 )
                 assertEquals(expected = "true", actual = database.settingsDao().getValue(key = "welcomeCompleted"))
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
             }
 
             AppDatabase.open(file = file).useDatabase { database ->
@@ -226,7 +226,7 @@ class AppDatabaseTest {
                 assertTrue(actual = existing.schedules.isEmpty())
                 assertTrue(actual = existing.occurrences.isEmpty())
                 assertNull(actual = database.taskDao().getById(id = 20)?.dueDate)
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
             }
         }
     }
@@ -305,7 +305,7 @@ class AppDatabaseTest {
                 val oneOff = assertNotNull(actual = database.taskDao().getById(id = 20))
                 assertEquals(expected = "", actual = oneOff.description)
                 assertEquals(expected = 4000L, actual = oneOff.completedAt)
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
                 database.taskDao().update(task = recurring.task.copy(description = "First line\nSecond line"))
             }
             AppDatabase.open(file = file).useDatabase { database ->
@@ -369,7 +369,7 @@ class AppDatabaseTest {
                 connection.execSQL(sql = "PRAGMA user_version = 6")
             }
             AppDatabase.open(file = file).useDatabase { database ->
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
                 val record = assertNotNull(actual = database.taskDao().getRecord(id = 10))
                 assertEquals(expected = "Existing description", actual = record.task.description)
                 assertEquals(expected = 7, actual = record.task.groupId)
@@ -489,7 +489,7 @@ class AppDatabaseTest {
             }
             AppDatabase.open(file = file).useDatabase { database ->
                 assertNull(actual = database.settingsDao().getValue(key = "welcomeCompleted"))
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
                 assertEquals(expected = 0L, actual = database.queryLong(sql = "SELECT COUNT(*) FROM `groups`"))
             }
         }
@@ -579,7 +579,7 @@ class AppDatabaseTest {
                 connection.execSQL(sql = "PRAGMA user_version = 7")
             }
             AppDatabase.open(file = file).useDatabase { database ->
-                assertEquals(expected = 13L, actual = database.queryLong(sql = "PRAGMA user_version"))
+                assertEquals(expected = 14L, actual = database.queryLong(sql = "PRAGMA user_version"))
                 assertNull(actual = database.taskDao().getRecord(id = 10))
                 val migrated = database.eventDao().observeRecords().first().single()
                 assertEquals(expected = "Meeting", actual = migrated.event.name)

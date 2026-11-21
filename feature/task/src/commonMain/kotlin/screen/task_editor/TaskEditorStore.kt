@@ -146,6 +146,8 @@ internal class TaskEditorStore(
                 when (intent) {
                     is TaskEditorIntent.CalendarVisibilityChanged -> if (current.recurrence != null)
                         reduce(message = TaskEditorMessage.CalendarVisibility(value = intent.showInCalendar))
+                    is TaskEditorIntent.QuickDeleteChanged -> if (current.recurrence != null)
+                        reduce(message = TaskEditorMessage.QuickDelete(value = intent.enabled))
                     is TaskEditorIntent.GroupChanged ->
                         if (intent.id == null || current.groups.any { group -> group.id == intent.id }) {
                             reduce(message = TaskEditorMessage.GroupSelected(value = intent.id))
@@ -191,6 +193,7 @@ internal class TaskEditorStore(
             description = current.description.text.toString(),
             dueDate = current.dueDate,
             showInCalendar = current.showInCalendar,
+            quickDelete = current.quickDelete,
             groupId = current.groupId,
             recurrence = current.editedRecurrence,
         )

@@ -74,6 +74,7 @@ internal class TaskRepository(
     override suspend fun saveOccurrence(task: Task, scope: TaskChangeScope): Boolean {
         return database.value.withWriteTransaction {
             val name = task.name.trim().also { trimmedName -> require(value = trimmedName.isNotEmpty()) }
+            val quickDelete = task.recurrence != null && task.quickDelete
             require(value = task.recurrence == null || task.dueDate != null)
             require(
                 value = task.recurrence?.endDate?.let { date ->
@@ -91,6 +92,7 @@ internal class TaskRepository(
                             recurring = task.recurrence != null,
                             description = task.description,
                             showInCalendar = task.showInCalendar,
+                            quickDeleteOverdue = quickDelete,
                         )
                     )
                     .toInt()
@@ -129,6 +131,7 @@ internal class TaskRepository(
                     groupId = task.groupId,
                     description = task.description,
                     showInCalendar = task.showInCalendar,
+                    quickDelete = quickDelete,
                 ) > 0
             if (occurrence != null && original.recurrence == task.recurrence) {
                 val date = task.dueDate ?: return@withWriteTransaction false
@@ -156,6 +159,7 @@ internal class TaskRepository(
                         groupId = task.groupId,
                         description = task.description,
                         showInCalendar = task.showInCalendar,
+                        quickDelete = quickDelete,
                     )
                 }
                 return@withWriteTransaction moved
@@ -168,6 +172,7 @@ internal class TaskRepository(
                     groupId = task.groupId,
                     description = task.description,
                     showInCalendar = task.showInCalendar,
+                    quickDelete = quickDelete,
                 ) > 0
             val oldDate = record.task.dueDate
             val lastCompleted = (record.occurrences
@@ -225,6 +230,7 @@ internal class TaskRepository(
                 groupId = task.groupId,
                 description = task.description,
                 showInCalendar = task.showInCalendar,
+                quickDelete = quickDelete,
             )
             dao.setRecurring(id = task.id, recurring = task.recurrence != null)
             dao.setCompletedAt(id = task.id, completedAt = null)
@@ -376,6 +382,7 @@ internal class TaskRepository(
             groupId = record.task.groupId,
             description = record.task.description,
             showInCalendar = record.task.showInCalendar,
+            quickDelete = record.task.quickDeleteOverdue,
         )
         dao.setRecurring(id = id, recurring = true)
         dao.setCompletedAt(id = id, completedAt = null)
@@ -395,15 +402,36 @@ internal class TaskRepository(
             if (record.occurrence(schedule = schedule, date = occurrence.scheduledDate) == null)
                 return@withWriteTransaction false
             if (scope == TaskChangeScope.ThisOccurrence) {
-                dao.saveOccurrence(
-                    occurrence = record.exception(id = occurrence).copy(skipped = true, completedAt = null)
-                )
+                skipOccurrence(record = record, occurrence = occurrence)
             } else {
                 closeFrom(record = record, boundary = occurrence.scheduledDate.toEpochDays())
             }
             refreshSeriesCompletion(id = id)
             true
         }
+    }
+
+    override suspend fun quickDeleteOccurrence(
+        id: Int,
+        occurrence: TaskOccurrenceId,
+        expectedDate: LocalDate,
+    ): Boolean {
+        return database.value.withWriteTransaction {
+            val record = dao.getRecord(id = id) ?: return@withWriteTransaction false
+            val schedule = record.schedules.find { schedule -> schedule.id == occurrence.scheduleId }
+                ?: return@withWriteTransaction false
+            val task = record.occurrence(schedule = schedule, date = occurrence.scheduledDate)
+                ?: return@withWriteTransaction false
+            if (task.dueDate != expectedDate || !task.canQuickDelete) return@withWriteTransaction false
+
+            skipOccurrence(record = record, occurrence = occurrence)
+            refreshSeriesCompletion(id = id)
+            true
+        }
+    }
+
+    private suspend fun skipOccurrence(record: TaskRecord, occurrence: TaskOccurrenceId) {
+        dao.saveOccurrence(occurrence = record.exception(id = occurrence).copy(skipped = true, completedAt = null))
     }
 
     override suspend fun delete(id: Int) = dao.deleteById(id = id)

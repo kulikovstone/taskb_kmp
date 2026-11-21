@@ -90,6 +90,9 @@ class Migration11To12Test {
                         actual = database.taskDao().observeTasks().first()
                             .associate { task -> task.id to task.showInCalendar },
                     )
+                    assertTrue(
+                        actual = database.taskDao().observeTasks().first().none { task -> task.quickDeleteOverdue },
+                    )
                     val event = assertNotNull(actual = database.eventDao().getById(id = 1))
                     assertEquals(expected = "Keep this event", actual = event.name)
                     assertEquals(expected = 540, actual = event.startTimeMinutes)
@@ -105,7 +108,7 @@ class Migration11To12Test {
                     database.useReaderConnection { connection ->
                         connection.usePrepared(sql = "PRAGMA user_version") { statement ->
                             assertTrue(actual = statement.step())
-                            assertEquals(expected = 13L, actual = statement.getLong(index = 0))
+                            assertEquals(expected = 14L, actual = statement.getLong(index = 0))
                         }
                         connection.usePrepared(sql = "PRAGMA foreign_key_check") { statement ->
                             assertFalse(actual = statement.step())

@@ -635,7 +635,7 @@ class CalendarStoreTest {
                     store.accept(intent = CalendarIntent.ToggleCompleted(id = 1))
                     runCurrent()
                     assertNotNull(actual = store.state.value.error)
-                    assertTrue(actual = store.state.value.pendingCompletion.isEmpty())
+                    assertTrue(actual = store.state.value.pendingTaskUpdates.isEmpty())
                 }
             runCurrent()
             assertEquals(expected = 0, actual = repository.subscriptions)

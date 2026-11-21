@@ -54,6 +54,7 @@ internal fun TaskRecord.task(): Task {
         recurrence = displaySchedule?.rule(),
         description = task.description,
         showInCalendar = task.showInCalendar,
+        quickDelete = task.quickDeleteOverdue,
     )
 }
 

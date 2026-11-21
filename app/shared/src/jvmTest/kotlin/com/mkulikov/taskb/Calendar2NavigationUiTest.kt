@@ -10,6 +10,8 @@ import com.mkulikov.taskb.feature.event.api.repository.IEventRepository
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
+import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import java.nio.file.Files
@@ -17,6 +19,7 @@ import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -24,8 +27,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.todayIn
+import kotlinx.datetime.yearMonth
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import org.koin.compose.KoinIsolatedContext
@@ -122,6 +127,7 @@ class Calendar2NavigationUiTest {
                 onNodeWithText(text = "Task").assertIsSelected()
                 onNodeWithText(text = "Options").assertDoesNotExist()
                 onNodeWithText(text = "Show in calendar").assertDoesNotExist()
+                onNodeWithText(text = "Quick delete").assertDoesNotExist()
                 onNodeWithText(text = "Create item").assertIsNotEnabled()
                 onRoot().saveScreenshot(name = "task-creation-empty")
                 onNodeWithContentDescription(label = "Task name").performTextInput(text = "Added from calendar")
@@ -132,6 +138,7 @@ class Calendar2NavigationUiTest {
                 onNodeWithContentDescription(label = "Choose repeat pattern").performClick()
                 onNodeWithText(text = "Options").assertIsDisplayed()
                 onNodeWithText(text = "Show in calendar").assertIsOn()
+                onNodeWithText(text = "Quick delete").assertIsOff().performClick().assertIsOn()
                 onRoot().saveScreenshot(name = "task-creation-repeat")
                 onNodeWithText(text = "Show in calendar").performClick()
                 onNodeWithText(text = "Show in calendar").assertIsOff()
@@ -143,6 +150,7 @@ class Calendar2NavigationUiTest {
                 waitForText(value = "Added from calendar")
                 val createdTask = assertNotNull(actual = runBlocking { db.taskDao().getById(id = laterTaskId + 1) })
                 assertEquals(expected = groupId, actual = createdTask.groupId)
+                assertFalse(actual = createdTask.quickDeleteOverdue)
                 assertTrue(actual = createdTask.showInCalendar)
                 onNodeWithContentDescription(label = "Settings").performClick()
                 waitForText(value = "Settings")
@@ -213,6 +221,107 @@ class Calendar2NavigationUiTest {
         }
     }
 
+    @Test
+    fun `quick delete is available for recurring occurrences regardless of date and completion`() {
+        val today = Clock.System.todayIn(timeZone = TimeZone.currentSystemDefault())
+        val yesterday = today.minus(value = 1, unit = DateTimeUnit.DAY)
+        val tomorrow = today.plus(value = 1, unit = DateTimeUnit.DAY)
+        val name = "Daily routine"
+        val quickDelete = "Quick delete"
+        val deleteDescription = "Delete occurrence of $name"
+        withAppKoin(file = directory.root.toPath().resolve("quick-delete.db")) { app ->
+            runBlocking { app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false) }
+            val repository = app.koin.get<ITaskRepository>()
+            runSkikoComposeUiTest(size = Size(width = 1900f, height = 1180f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
+                }
+                waitForText(value = "Calendar 2")
+                onNodeWithText(text = "Calendar 2").performClick()
+                if (yesterday.yearMonth != today.yearMonth) {
+                    onNodeWithContentDescription(label = "Previous month").performClick()
+                }
+                val pastDay = hasTestTag(testTag = "calendar-day-$yesterday")
+                onNode(matcher = pastDay).performClick()
+                waitUntilExactlyOneExists(matcher = pastDay and isSelected(), timeoutMillis = 5_000)
+                onNodeWithContentDescription(label = "Add item").performClick()
+                waitForText(value = "New item")
+                onNodeWithContentDescription(label = "Task name").performTextInput(text = name)
+                onNodeWithContentDescription(label = "Choose repeat pattern").performClick()
+                onNodeWithText(text = "Daily").performClick()
+                onNodeWithText(text = quickDelete).assertIsOff().performClick().assertIsOn()
+                onRoot().saveScreenshot(name = "task-creation-quick-delete")
+                onNodeWithText(text = "Create item").performClick()
+                val action = hasContentDescription(value = deleteDescription)
+                waitUntil(timeoutMillis = 5_000) { onAllNodes(matcher = action).fetchSemanticsNodes().size == 1 }
+
+                val taskRow = hasText(text = name) and
+                    hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                onNode(matcher = taskRow).performClick()
+                waitForText(value = "Edit item")
+                waitForText(value = name)
+                onNodeWithText(text = quickDelete).assertIsOn()
+                onNodeWithContentDescription(label = "Task description").performTextInput(text = "Repeat daily")
+                onNodeWithText(text = "Save changes").performClick()
+                waitUntilExactlyOneExists(matcher = taskRow, timeoutMillis = 5_000)
+
+                onNodeWithContentDescription(label = "Clear date filter").performClick()
+                onNodeWithContentDescription(label = "Search tasks").performTextInput(text = name)
+                val sidebar = onNodeWithTag(testTag = "calendar-2-sidebar")
+                val todayTask = runBlocking {
+                    repository.observeCalendar(from = today, through = today).first().single()
+                }
+                val todayAction = action and hasAnyAncestor(
+                    matcher = hasTestTag(testTag = "calendar-2-task-${todayTask.key}"),
+                )
+                waitUntilExactlyOneExists(matcher = todayAction, timeoutMillis = 5_000)
+                sidebar.saveScreenshot(name = "calendar-2-quick-delete")
+                onNode(matcher = todayAction).performClick()
+                waitForText(value = "Delete task occurrence?")
+                onNodeWithText(text = "Only the occurrence of “$name” on", substring = true).assertIsDisplayed()
+                onNodeWithTag(testTag = "taskb-dialog-panel")
+                    .saveScreenshot(name = "calendar-2-quick-delete-confirmation")
+                onNodeWithText(text = "Cancel").performClick()
+                waitUntilDoesNotExist(matcher = hasText(text = "Delete task occurrence?"), timeoutMillis = 5_000)
+                onNode(matcher = todayAction).assertIsDisplayed().performClick()
+                waitForText(value = "Delete task occurrence?")
+                onNodeWithText(text = "Delete").performClick()
+                waitUntilDoesNotExist(matcher = hasText(text = "Delete task occurrence?"), timeoutMillis = 5_000)
+                waitUntilDoesNotExist(matcher = todayAction, timeoutMillis = 5_000)
+                val remaining = runBlocking { repository.observeCalendar(from = yesterday, through = tomorrow).first() }
+                assertEquals(
+                    expected = setOf(yesterday, tomorrow),
+                    actual = remaining.mapNotNull(transform = Task::dueDate).toSet(),
+                )
+                val nextTask = remaining.single { task -> task.dueDate == tomorrow }
+                assertTrue(actual = nextTask.quickDelete)
+                val nextAction = action and hasAnyAncestor(
+                    matcher = hasTestTag(testTag = "calendar-2-task-${nextTask.key}"),
+                )
+                waitUntilExactlyOneExists(matcher = nextAction, timeoutMillis = 5_000)
+
+                onNode(matcher = pastDay).performClick()
+                val inSidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                val complete = hasContentDescription(value = "Complete $name") and inSidebar
+                waitUntilExactlyOneExists(matcher = pastDay and isSelected(), timeoutMillis = 5_000)
+                waitUntilExactlyOneExists(matcher = complete, timeoutMillis = 5_000)
+                onNode(matcher = complete).performClick()
+                waitUntilExactlyOneExists(
+                    matcher = hasContentDescription(value = "Mark $name incomplete") and inSidebar,
+                    timeoutMillis = 5_000,
+                )
+                onNode(matcher = action and inSidebar).assertIsDisplayed().performClick()
+                waitForText(value = "Delete task occurrence?")
+                onNodeWithText(text = "Delete").performClick()
+                waitUntilDoesNotExist(matcher = hasText(text = "Delete task occurrence?"), timeoutMillis = 5_000)
+                waitUntilDoesNotExist(matcher = action and inSidebar, timeoutMillis = 5_000)
+                val tasks = runBlocking { repository.observeCalendar(from = yesterday, through = tomorrow).first() }
+                assertEquals(expected = tomorrow, actual = tasks.single().dueDate)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalTestApi::class)

@@ -99,7 +99,7 @@ internal fun CalendarWorkspace(
                                 )
                                 TextButton(
                                     onClick = { onIntent(CalendarIntent.UndoMove) },
-                                    enabled = state.pendingMove == null && move.taskId !in state.pendingCompletion,
+                                    enabled = state.pendingMove == null && move.taskId !in state.pendingTaskUpdates,
                                 ) {
                                     Text(
                                         text = "Undo",

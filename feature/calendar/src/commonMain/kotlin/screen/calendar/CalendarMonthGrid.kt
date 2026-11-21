@@ -267,7 +267,7 @@ private fun CalendarDayTasks(
                 val taskWidth = (taskInsets + titleWidth).coerceAtMost(maximumValue = constraints.maxWidth)
                 val row = subcompose(slotId = task.key) {
                         val enabled = !task.isHoliday &&
-                            (task.isEvent || task.id !in state.pendingCompletion) &&
+                            (task.isEvent || task.id !in state.pendingTaskUpdates) &&
                             state.pendingMove == null
                         CalendarTaskRow(
                             task = task,

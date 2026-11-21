@@ -23,10 +23,12 @@ import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarItem
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarMonthGrid
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarState
 import com.mkulikov.taskb.feature.calendar.screen.calendar.calendarMonthLabel
+import com.mkulikov.taskb.feature.calendar.screen.calendar.calendarSidebarDateLabel
 import com.mkulikov.taskb.feature.calendar.screen.calendar.timedCalendarPreviewState
 import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
+import com.mkulikov.taskb.ui.dialog.TaskBConfirmationDialog
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.DateTimeUnit
@@ -125,6 +127,18 @@ internal fun Calendar2Screen(
                 if (selectedFilter != null) onIntent(CalendarIntent.ShowUnscheduled)
                 showFilters = false
             },
+        )
+    }
+    val task = state.quickDeleteConfirmation
+    val date = task?.dueDate
+    if (task != null && date != null) {
+        val dateLabel = calendarSidebarDateLabel.format(value = date)
+        TaskBConfirmationDialog(
+            title = "Delete task occurrence?",
+            message = "Only the occurrence of “${task.name}” on $dateLabel will be deleted.",
+            confirmText = "Delete",
+            onConfirm = { onIntent(CalendarIntent.ConfirmQuickDelete) },
+            onDismiss = { onIntent(CalendarIntent.DismissQuickDelete) },
         )
     }
 }

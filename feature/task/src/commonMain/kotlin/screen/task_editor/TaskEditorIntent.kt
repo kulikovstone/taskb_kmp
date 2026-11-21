@@ -9,6 +9,8 @@ internal sealed interface TaskEditorIntent {
 
     data class CalendarVisibilityChanged(val showInCalendar: Boolean) : TaskEditorIntent
 
+    data class QuickDeleteChanged(val enabled: Boolean) : TaskEditorIntent
+
     data class GroupChanged(val id: Int?) : TaskEditorIntent
 
     data class RecurrenceChanged(val recurrence: TaskRecurrence?) : TaskEditorIntent

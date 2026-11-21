@@ -241,7 +241,7 @@ internal class CalendarStore(
                 if (
                     task.dueDate == intent.date ||
                         state.value.pendingMove != null ||
-                        task.id in state.value.pendingCompletion
+                        task.id in state.value.pendingTaskUpdates
                 )
                     return
                 if (state.value.moveChoice != null) return
@@ -260,13 +260,13 @@ internal class CalendarStore(
             }
             CalendarIntent.UndoMove -> {
                 val move = state.value.undo ?: return
-                if (state.value.pendingMove != null || move.taskId in state.value.pendingCompletion) return
+                if (state.value.pendingMove != null || move.taskId in state.value.pendingTaskUpdates) return
                 move(move = move, undoing = true)
             }
             is CalendarIntent.ToggleCompleted -> {
                 val task = findTask(id = intent.id, occurrenceId = intent.occurrenceId) ?: return
-                if (task.id == state.value.pendingMove || task.id in state.value.pendingCompletion) return
-                reduce(message = CalendarMessage.Completing(id = task.id))
+                if (task.id == state.value.pendingMove || task.id in state.value.pendingTaskUpdates) return
+                reduce(message = CalendarMessage.UpdatingTask(id = task.id))
                 launchEffect {
                     try {
                         CalendarMessage.Completed(
@@ -283,6 +283,45 @@ internal class CalendarStore(
                     } catch (_: Exception) {
                         CalendarMessage.Completed(id = task.id, failed = true)
                     }
+                }
+            }
+            is CalendarIntent.PrepareQuickDelete -> {
+                if (!includeTaskList) return
+                val current = state.value
+                val task = findTask(id = intent.id, occurrenceId = intent.occurrenceId) ?: return
+                if (
+                    !task.canQuickDelete ||
+                        current.pendingMove != null ||
+                        current.moveChoice != null ||
+                        current.quickDeleteConfirmation != null ||
+                        task.id in current.pendingTaskUpdates
+                ) return
+                reduce(message = CalendarMessage.QuickDeleteConfirmation(task = task))
+            }
+            CalendarIntent.DismissQuickDelete -> reduce(message = CalendarMessage.QuickDeleteConfirmation(task = null))
+            CalendarIntent.ConfirmQuickDelete -> {
+                val task = state.value.quickDeleteConfirmation ?: return
+                val occurrence = task.occurrenceId ?: return
+                val date = task.dueDate ?: return
+                reduce(message = CalendarMessage.QuickDeleteConfirmation(task = null))
+                reduce(message = CalendarMessage.UpdatingTask(id = task.id))
+                launchEffect {
+                    val deleted = try {
+                        repository.quickDeleteOccurrence(
+                            id = task.id,
+                            occurrence = occurrence,
+                            expectedDate = date,
+                        )
+                    } catch (exception: CancellationException) {
+                        throw exception
+                    } catch (_: Exception) {
+                        false
+                    }
+                    CalendarMessage.QuickDeleteFinished(
+                        id = task.id,
+                        occurrenceId = occurrence,
+                        failed = !deleted,
+                    )
                 }
             }
         }

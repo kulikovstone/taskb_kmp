@@ -46,6 +46,12 @@ internal sealed interface CalendarIntent {
 
     data class ToggleCompleted(val id: Int, val occurrenceId: TaskOccurrenceId? = null) : CalendarIntent
 
+    data class PrepareQuickDelete(val id: Int, val occurrenceId: TaskOccurrenceId) : CalendarIntent
+
+    data object ConfirmQuickDelete : CalendarIntent
+
+    data object DismissQuickDelete : CalendarIntent
+
     data class ConfirmMove(val scope: TaskChangeScope) : CalendarIntent
 
     data object DismissMoveChoice : CalendarIntent

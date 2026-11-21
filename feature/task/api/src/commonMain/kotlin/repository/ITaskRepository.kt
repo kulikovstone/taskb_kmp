@@ -55,4 +55,10 @@ interface ITaskRepository {
         delete(id = id)
         return true
     }
+
+    suspend fun quickDeleteOccurrence(
+        id: Int,
+        occurrence: TaskOccurrenceId,
+        expectedDate: LocalDate,
+    ): Boolean = false
 }

@@ -4,14 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.task.screen.task_editor.TaskCalendarVisibility
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskDateSection
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorIntent
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskEditorState
+import com.mkulikov.taskb.feature.task.screen.task_editor.TaskOptionSwitch
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskRepeatEnd
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskRepeatOn
 import com.mkulikov.taskb.feature.task.screen.task_editor.TaskRepeatPattern
-import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
 internal fun TaskItemEditorSchedule(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit) {
@@ -45,11 +44,24 @@ internal fun TaskItemEditorSchedule(state: TaskEditorState, onIntent: (TaskEdito
             Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
                 Column(modifier = Modifier.weight(weight = 1f)) {
                     ItemEditorLabel(text = "Options")
-                    TaskCalendarVisibility(
-                        state = state,
+                    Spacer(modifier = Modifier.height(height = 6.dp))
+                    TaskOptionSwitch(
+                        label = "Show in calendar",
+                        checked = state.showInCalendar,
                         enabled = enabled,
-                        onIntent = onIntent,
-                        labelStyle = TaskBTheme.typography.body,
+                        minHeight = 36.dp,
+                        onCheckedChange = { checked ->
+                            onIntent(TaskEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
+                        },
+                    )
+                    TaskOptionSwitch(
+                        label = "Quick delete",
+                        checked = state.quickDelete,
+                        enabled = enabled,
+                        minHeight = 36.dp,
+                        onCheckedChange = { checked ->
+                            onIntent(TaskEditorIntent.QuickDeleteChanged(enabled = checked))
+                        },
                     )
                 }
                 Spacer(modifier = Modifier.weight(weight = 1f))

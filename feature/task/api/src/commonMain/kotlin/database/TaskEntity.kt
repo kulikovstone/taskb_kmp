@@ -33,4 +33,6 @@ data class TaskEntity(
     @ColumnInfo(defaultValue = "0") val recurring: Boolean = false,
     @ColumnInfo(defaultValue = "''") val description: String = "",
     @ColumnInfo(defaultValue = "1") val showInCalendar: Boolean = true,
+    // Keep the original column name for databases that already store this setting.
+    @ColumnInfo(defaultValue = "0") val quickDeleteOverdue: Boolean = false,
 )

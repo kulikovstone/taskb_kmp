@@ -5,6 +5,7 @@ import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
@@ -53,9 +54,17 @@ internal sealed interface CalendarMessage {
 
     data class ExpireUndo(val token: Long) : CalendarMessage
 
-    data class Completing(val id: Int) : CalendarMessage
+    data class UpdatingTask(val id: Int) : CalendarMessage
 
     data class Completed(val id: Int, val failed: Boolean) : CalendarMessage
+
+    data class QuickDeleteConfirmation(val task: Task?) : CalendarMessage
+
+    data class QuickDeleteFinished(
+        val id: Int,
+        val occurrenceId: TaskOccurrenceId,
+        val failed: Boolean,
+    ) : CalendarMessage
 }
 
 internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): CalendarState {
@@ -145,10 +154,24 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
             },
         )
         is CalendarMessage.ExpireUndo -> if (state.undo?.token == message.token) state.copy(undo = null) else state
-        is CalendarMessage.Completing -> state.copy(pendingCompletion = state.pendingCompletion + message.id)
+        is CalendarMessage.UpdatingTask -> state.copy(pendingTaskUpdates = state.pendingTaskUpdates + message.id)
         is CalendarMessage.Completed -> state.copy(
-            pendingCompletion = state.pendingCompletion - message.id,
+            pendingTaskUpdates = state.pendingTaskUpdates - message.id,
             error = if (message.failed) "Couldn't update this task. Please try again." else state.error,
         )
+        is CalendarMessage.QuickDeleteConfirmation -> state.copy(quickDeleteConfirmation = message.task)
+        is CalendarMessage.QuickDeleteFinished -> {
+            val pending = state.pendingTaskUpdates - message.id
+            if (message.failed) {
+                state.copy(pendingTaskUpdates = pending, error = "Couldn't delete this occurrence. Please try again.")
+            } else {
+                val keepTask = { task: Task -> task.id != message.id || task.occurrenceId != message.occurrenceId }
+                state.copy(
+                    pendingTaskUpdates = pending,
+                    tasks = state.tasks.filter(predicate = keepTask),
+                    taskList = state.taskList?.filter(predicate = keepTask),
+                )
+            }
+        }
     }
 }

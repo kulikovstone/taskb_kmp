@@ -79,6 +79,7 @@ internal fun CalendarDayList(
     onOpenTask: (CalendarItem) -> Unit,
     modifier: Modifier = Modifier,
     drag: CalendarDragState? = null,
+    showQuickDelete: Boolean = false,
 ) {
     val tasks = state.sidebarItems
     val date = state.selectedDate
@@ -141,6 +142,7 @@ internal fun CalendarDayList(
                         drag = drag,
                         onIntent = onIntent,
                         onOpenTask = onOpenTask,
+                        showQuickDelete = showQuickDelete,
                     )
                 if (events.isNotEmpty())
                     item(key = "events-heading") {
@@ -217,6 +219,7 @@ internal fun CalendarDayList(
                         drag = drag,
                         onIntent = onIntent,
                         onOpenTask = onOpenTask,
+                        showQuickDelete = showQuickDelete,
                     )
             }
             if (drag != null && (scroll.canScrollForward || scroll.canScrollBackward))
@@ -232,9 +235,17 @@ private fun LazyListScope.calendarDayEntries(
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
     wideEventSpacing: Boolean = false,
+    showQuickDelete: Boolean = false,
 ) {
     itemsIndexed(items = entries, key = { _, item -> item.key }) { index, item ->
-        CalendarDayEntry(item = item, state = state, drag = drag, onIntent = onIntent, onOpenTask = onOpenTask)
+        CalendarDayEntry(
+            item = item,
+            state = state,
+            drag = drag,
+            onIntent = onIntent,
+            onOpenTask = onOpenTask,
+            showQuickDelete = showQuickDelete,
+        )
         if (drag == null && index < entries.lastIndex) {
             Spacer(modifier = Modifier.height(height = 8.dp))
         } else if (drag != null && wideEventSpacing) {
@@ -250,10 +261,16 @@ private fun CalendarDayEntry(
     drag: CalendarDragState?,
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
+    showQuickDelete: Boolean,
 ) {
     val date = state.selectedDate ?: item.dueDate
+    val quickDelete = if (showQuickDelete && item is CalendarItem.TaskItem) {
+        item.task.quickDeleteIntent()
+    } else {
+        null
+    }
     val enabled = !item.isHoliday &&
-        (item.isEvent || item.id !in state.pendingCompletion) &&
+        (item.isEvent || item.id !in state.pendingTaskUpdates) &&
         state.pendingMove == null
     val tag = if (item is CalendarItem.TaskItem) "calendar-task-${item.key}" else "calendar-${item.key}"
     CalendarTaskRow(
@@ -275,6 +292,7 @@ private fun CalendarDayEntry(
         today = state.today,
         contentPadding = calendarSidebarTaskPadding,
         compactDay = drag == null,
+        onQuickDelete = quickDelete?.let { intent -> { onIntent(intent) } },
     )
 }
 
