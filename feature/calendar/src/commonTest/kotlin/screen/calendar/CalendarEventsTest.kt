@@ -55,6 +55,7 @@ class CalendarEventsTest {
             events = listOf(timed, allDay),
         )
         val overdueFirst = listOf(
+            CalendarItem.TaskItem(task = weekly),
             CalendarItem.TaskItem(task = newer),
             CalendarItem.TaskItem(task = older),
             CalendarItem.TaskItem(task = daily),

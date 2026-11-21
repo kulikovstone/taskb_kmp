@@ -86,7 +86,7 @@ internal data class CalendarState(
             .mapValues { (date, tasks) ->
                 val isPastDay = date != null && date < today
                 tasks.filter { task ->
-                    task.showInCalendar || (isPastDay && task.repeatsDaily && !task.isCompleted)
+                    task.showInCalendar || (isPastDay && !task.isCompleted)
                 }
             }
             .filterValues { tasks -> tasks.isNotEmpty() }

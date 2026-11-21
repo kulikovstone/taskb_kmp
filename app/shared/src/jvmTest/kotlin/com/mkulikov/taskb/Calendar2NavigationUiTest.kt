@@ -10,7 +10,9 @@ import com.mkulikov.taskb.feature.event.api.repository.IEventRepository
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.task.api.database.TaskEntity
+import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -26,9 +28,13 @@ import kotlin.time.Clock
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.Padding
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import kotlinx.datetime.yearMonth
 import org.junit.Rule
@@ -217,6 +223,92 @@ class Calendar2NavigationUiTest {
                 val durations = occurrences.associate { occurrence -> occurrence.dueDate to occurrence.durationMinutes }
                 assertEquals(expected = 30, actual = durations[today])
                 assertEquals(expected = 60, actual = durations[nextWeek])
+            }
+        }
+    }
+
+    @Test
+    fun `hidden weekly task appears in the month grid after moving it to yesterday`() {
+        val zone = TimeZone.currentSystemDefault()
+        val today = Clock.System.todayIn(timeZone = zone)
+        val yesterday = today.minus(value = 1, unit = DateTimeUnit.DAY)
+        val name = "Dust the shelves"
+        val yesterdayLabel = LocalDate.Format {
+            monthName(names = MonthNames.ENGLISH_FULL)
+            chars(value = " ")
+            day(padding = Padding.NONE)
+            chars(value = ", ")
+            year()
+        }.format(value = yesterday)
+        withAppKoin(file = directory.root.toPath().resolve("overdue-weekly-task.db")) { app ->
+            val tasks = app.koin.get<ITaskRepository>()
+            runBlocking {
+                app.koin.get<IAppSettings>().setShowWelcomeScreen(enabled = false)
+                assertTrue(
+                    actual = tasks.save(
+                        task = Task(
+                            name = name,
+                            dueDate = today,
+                            recurrence = TaskRecurrence(
+                                frequency = RecurrenceFrequency.Weekly,
+                                weekdays = setOf(element = today.dayOfWeek),
+                            ),
+                            showInCalendar = false,
+                        ),
+                    ),
+                )
+            }
+            runSkikoComposeUiTest(size = Size(width = 1900f, height = 1180f)) {
+                setContent {
+                    KoinIsolatedContext(context = app) {
+                        TaskBTheme(darkTheme = false) { TaskBApp(settings = app.koin.get()) }
+                    }
+                }
+                waitForText(value = "Calendar 2")
+                onNodeWithText(text = "Calendar 2").performClick()
+                val sidebar = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-2-sidebar"))
+                val sidebarTask = hasText(text = name) and sidebar
+                waitUntilExactlyOneExists(matcher = sidebarTask, timeoutMillis = 5_000)
+                val todayCell = hasAnyAncestor(matcher = hasTestTag(testTag = "calendar-day-$today"))
+                onNode(matcher = hasText(text = name) and todayCell, useUnmergedTree = true).assertDoesNotExist()
+
+                onNode(matcher = sidebarTask).performClick()
+                waitForText(value = "Edit item")
+                val dateField = hasContentDescription(value = "Choose date")
+                waitUntilExactlyOneExists(matcher = dateField, timeoutMillis = 5_000)
+                onNode(matcher = dateField).performClick()
+                if (yesterday.yearMonth != today.yearMonth) {
+                    val datePicker = hasAnyAncestor(matcher = hasTestTag(testTag = "date-picker-panel"))
+                    onNode(matcher = hasContentDescription(value = "Previous month") and datePicker).performClick()
+                }
+                onNodeWithContentDescription(label = "Choose $yesterdayLabel").performClick()
+                onNodeWithText(text = "Save changes").performClick()
+                waitForText(value = "Move repeating task")
+                onNodeWithText(text = "Only this event").performClick()
+                waitUntilExactlyOneExists(matcher = hasTestTag(testTag = "calendar-2"), timeoutMillis = 5_000)
+
+                if (yesterday.yearMonth != today.yearMonth) {
+                    onNodeWithContentDescription(label = "Previous month").performClick()
+                }
+                val yesterdayCell = hasTestTag(testTag = "calendar-day-$yesterday")
+                onNode(matcher = yesterdayCell).performClick()
+                waitUntilExactlyOneExists(matcher = sidebarTask, timeoutMillis = 5_000)
+                val inYesterday = hasAnyAncestor(matcher = yesterdayCell)
+                onNode(matcher = hasText(text = name) and inYesterday, useUnmergedTree = true).assertIsDisplayed()
+                onNode(
+                    matcher = hasContentDescription(value = "Complete $name") and inYesterday,
+                    useUnmergedTree = true,
+                ).performClick()
+                waitUntilExactlyOneExists(
+                    matcher = hasContentDescription(value = "Mark $name incomplete") and sidebar,
+                    timeoutMillis = 5_000,
+                )
+                val saved = runBlocking {
+                    tasks.observeCalendar(from = yesterday, through = yesterday).first().single()
+                }
+                val completedAt = assertNotNull(actual = saved.completedAt)
+                assertEquals(expected = yesterday, actual = completedAt.toLocalDateTime(timeZone = zone).date)
+                onNode(matcher = hasText(text = name) and inYesterday, useUnmergedTree = true).assertDoesNotExist()
             }
         }
     }
