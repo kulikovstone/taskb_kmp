@@ -233,7 +233,7 @@ private fun CalendarFiltersPreview() {
         val state = timedCalendarPreviewState()
         CalendarFiltersPanel(
             groups = state.groups,
-            groupCounts = state.tasks.groupingBy { task -> task.groupId }.eachCount(),
+            groupCounts = state.tasks.countTasksByGroup(),
             filter = null,
             groupId = state.groups.firstOrNull()?.id,
             onDismiss = {},

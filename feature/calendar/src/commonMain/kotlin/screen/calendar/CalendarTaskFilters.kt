@@ -14,6 +14,11 @@ internal fun CalendarState.directoryTasks(): List<Task> {
     }
 }
 
+internal fun List<Task>.countTasksByGroup(): Map<Int?, Int> = asSequence()
+    .distinctBy(selector = Task::id)
+    .groupingBy(keySelector = Task::groupId)
+    .eachCount()
+
 internal fun CalendarState.filteredTasks(query: String, filter: TaskFilter?, groupId: Int?): List<Task> {
     val source = if (selectedDate == null) directoryTasks() else sidebarTasks
     val search = query.trim()

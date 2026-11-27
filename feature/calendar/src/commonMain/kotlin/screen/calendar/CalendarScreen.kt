@@ -116,7 +116,7 @@ internal fun CalendarScreen(
     if (showFilters) {
         CalendarFiltersDialog(
             groups = state.groups,
-            groupCounts = state.directoryTasks().groupingBy { task -> task.groupId }.eachCount(),
+            groupCounts = state.directoryTasks().countTasksByGroup(),
             filter = filter,
             groupId = activeGroupId,
             onDismiss = { showFilters = false },

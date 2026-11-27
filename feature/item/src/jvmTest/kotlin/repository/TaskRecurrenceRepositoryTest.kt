@@ -416,6 +416,8 @@ class TaskRecurrenceRepositoryTest {
             )
             assertEquals(expected = 0, actual = db.groupDao().getWithTaskCounts(id = group)?.planned)
             assertEquals(expected = 1, actual = db.groupDao().getWithTaskCounts(id = group)?.completed)
+            val usage = db.groupDao().observeGroupsWithUsage(createdSince = 0).first().single()
+            assertEquals(expected = 1, actual = usage.recentTaskCount)
             repo.setOccurrenceCompleted(id = events[1].id, occurrence = id(task = events[1]), completed = false)
             assertEquals(expected = 1, actual = db.groupDao().getWithTaskCounts(id = group)?.planned)
             assertEquals(expected = 1, actual = repo.events().count { task -> !task.isCompleted })

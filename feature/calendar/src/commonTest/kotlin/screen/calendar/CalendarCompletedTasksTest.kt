@@ -19,6 +19,33 @@ class CalendarCompletedTasksTest {
     private val daily = ItemRecurrence(frequency = RecurrenceFrequency.Daily)
 
     @Test
+    fun `group filter counts each task once across occurrences and schedule revisions`() {
+        val later = LocalDate(year = 2026, month = 11, day = 7)
+        val routine = Task(
+            id = 1,
+            name = "Routine",
+            groupId = 7,
+            recurrence = daily,
+            dueDate = date,
+            occurrenceId = ItemOccurrenceId(scheduleId = 10, scheduledDate = date),
+            completedAt = now,
+        )
+        val next = routine.copy(
+            dueDate = later,
+            occurrenceId = ItemOccurrenceId(scheduleId = 11, scheduledDate = later),
+            completedAt = null,
+        )
+        val tasks = listOf(
+            routine,
+            next,
+            Task(id = 2, name = "Routine", groupId = 7),
+            routine.copy(id = 3, groupId = null),
+            next.copy(id = 3, groupId = null),
+        )
+        assertEquals(expected = mapOf(7 to 2, null to 1), actual = tasks.countTasksByGroup())
+    }
+
+    @Test
     fun `completed tasks leave all active sections and sort by completion instead of creation or start time`() {
         val routine = Task(id = 1, name = "Routine", dueDate = date, createdAt = now, recurrence = daily)
         val event = Task(id = 2, name = "Meeting", dueDate = date, createdAt = now)
