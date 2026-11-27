@@ -88,6 +88,7 @@ internal fun CalendarSidebar(
                     description = "Search tasks",
                     placeholder = "Search tasks",
                     search = true,
+                    onDone = onCreateItem,
                     modifier = Modifier.weight(weight = 1f),
                 )
                 IconButton(onClick = onOpenFilters, modifier = Modifier.size(size = 44.dp)) {

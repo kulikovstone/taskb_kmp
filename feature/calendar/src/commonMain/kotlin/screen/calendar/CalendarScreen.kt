@@ -64,6 +64,7 @@ internal fun CalendarScreen(
                 initialDate = date,
                 initialGroupId = group?.id,
                 useLastSelectedGroup = activeGroupId == null,
+                initialName = query.text.toString(),
             )
         )
     }
@@ -71,7 +72,7 @@ internal fun CalendarScreen(
         isLoading = state.isContentLoading,
         hasMonthGrid = state.loadError == null,
     ) { onMonthPrepared ->
-        CalendarWorkspace(state = state, onIntent = onIntent) { drag ->
+        CalendarWorkspace(state = state, onIntent = onIntent, onCreateItem = createItem) { drag ->
             CalendarLayout(
                 topBar = { besideSidebar ->
                     CalendarTopBar(

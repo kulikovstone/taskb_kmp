@@ -376,7 +376,7 @@ class ItemEditorStoreTest {
     }
 
     @Test
-    fun `standalone editor retries groups keeps its draft and releases subscriptions`(): TestResult {
+    fun `editor opens with calendar defaults and keeps the edited draft when retrying groups`(): TestResult {
         return runTest {
             val groups = groups().apply { failRead = true }
             val repo = FakeTaskRepository()
@@ -388,11 +388,13 @@ class ItemEditorStoreTest {
                     groups = groups,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
                     today = { today },
-                    route = ItemEditorRoute(type = ItemType.Task, initialDate = today, initialGroupId = 7),
+                    route = ItemEditorRoute(initialDate = today, initialGroupId = 7, initialName = "Draft from search"),
                 )
                 .use { store ->
                     runCurrent()
                     assertNotNull(actual = store.state.value.groupsLoadError)
+                    assertEquals(expected = "Draft from search", actual = store.state.value.name.text.toString())
+                    assertEquals(expected = today, actual = store.state.value.schedule.dueDate)
                     store.state.value.name.setTextAndPlaceCursorAtEnd(text = "Draft")
                     assertFalse(actual = store.state.value.canSave)
                     groups.failRead = false

@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.feature.calendar.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
@@ -9,7 +10,11 @@ import androidx.compose.material.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -17,6 +22,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarDragState
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarIntent
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarState
@@ -36,14 +43,33 @@ import kotlin.math.roundToInt
 internal fun CalendarWorkspace(
     state: CalendarState,
     onIntent: (CalendarIntent) -> Unit,
+    onCreateItem: () -> Unit,
     content: @Composable (CalendarDragState) -> Unit,
 ) {
     val drag = remember { CalendarDragState() }
     var origin by remember { mutableStateOf(value = Offset.Zero) }
+    val focusRequester = remember { FocusRequester() }
+    var hasFocus by remember { mutableStateOf(value = false) }
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
+    // A removed filter chip can leave the calendar without a focused child.
+    LaunchedEffect(key1 = hasFocus, key2 = lifecycleState) {
+        if (!hasFocus && lifecycleState == Lifecycle.State.RESUMED) focusRequester.requestFocus()
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .onPreviewKeyEvent { event ->
+                    val enter = event.key == Key.Enter || event.key == Key.NumPadEnter
+                    val modified = event.isAltPressed || event.isCtrlPressed ||
+                        event.isMetaPressed || event.isShiftPressed
+                    if (!enter || modified) return@onPreviewKeyEvent false
+                    if (event.type == KeyEventType.KeyUp) onCreateItem()
+                    true
+                }
+                .focusRequester(focusRequester = focusRequester)
+                .onFocusChanged { focus -> hasFocus = focus.hasFocus }
+                .focusable()
                 .onGloballyPositioned { coordinates -> origin = coordinates.positionInRoot() },
         ) {
             content(drag)

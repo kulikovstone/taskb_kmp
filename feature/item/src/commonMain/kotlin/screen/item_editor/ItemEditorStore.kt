@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.item.screen.item_editor
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.core.utils.time.currentDate
 import com.mkulikov.taskb.feature.group.api.model.Group
@@ -278,6 +279,7 @@ internal class ItemEditorStore(
 private fun initialEditorState(route: ItemEditorRoute, today: LocalDate): ItemEditorState = ItemEditorState(
     isNew = route.itemId == null,
     isLoading = route.itemId != null,
+    name = TextFieldState(initialText = route.initialName),
     schedule = newSchedule(type = route.type, date = route.initialDate, today = today),
     groupId = route.initialGroupId,
     today = today,
