@@ -9,7 +9,13 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -41,11 +47,26 @@ internal fun CalendarMonthGrid(
     drag: CalendarDragState,
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
+    onPrepared: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = TaskBTheme.colors
-    val tasks = state.monthItemsByDate
-    val weeks = state.days.chunked(size = 7)
+    val tasks = remember(state.month, state.today, state.tasks, state.events, state.holidayCalendar.holidays) {
+        state.monthItemsByDate
+    }
+    val weeks = remember(key1 = state.month) { state.days.chunked(size = 7) }
+    var preparedWeek by remember { mutableIntStateOf(value = -1) }
+    if (onPrepared != null) {
+        LaunchedEffect(key1 = Unit) {
+            for ((weekIndex, week) in weeks.withIndex()) {
+                if (week.any { date -> !tasks[date].isNullOrEmpty() }) {
+                    withFrameNanos { }
+                    preparedWeek = weekIndex
+                }
+            }
+            onPrepared()
+        }
+    }
     val weather = state.weatherByDate
     Column(
         modifier = modifier
@@ -72,12 +93,13 @@ internal fun CalendarMonthGrid(
             Divider(modifier = Modifier.align(alignment = Alignment.BottomCenter), color = colors.border)
         }
         weeks.forEachIndexed { weekIndex, week ->
+            val showItems = onPrepared == null || weekIndex <= preparedWeek
             Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
                 week.forEachIndexed { dayIndex, date ->
                     key(date) {
                         CalendarDayCell(
                             date = date,
-                            tasks = tasks[date].orEmpty(),
+                            tasks = if (showItems) tasks[date].orEmpty() else emptyList(),
                             state = state,
                             drag = drag,
                             onIntent = onIntent,
@@ -182,16 +204,18 @@ private fun CalendarDayCell(
                         maxLines = 1,
                     )
             }
-            CalendarDayTasks(
-                date = date,
-                tasks = tasks,
-                state = state,
-                drag = drag,
-                onIntent = onIntent,
-                onOpenTask = onOpenTask,
-                onSelectDay = { onIntent(CalendarIntent.SelectDay(date = date)) },
-                modifier = Modifier.weight(weight = 1f).fillMaxWidth().padding(horizontal = 2.dp),
-            )
+            if (tasks.isNotEmpty()) {
+                CalendarDayTasks(
+                    date = date,
+                    tasks = tasks,
+                    state = state,
+                    drag = drag,
+                    onIntent = onIntent,
+                    onOpenTask = onOpenTask,
+                    onSelectDay = { onIntent(CalendarIntent.SelectDay(date = date)) },
+                    modifier = Modifier.weight(weight = 1f).fillMaxWidth().padding(horizontal = 2.dp),
+                )
+            }
         }
         if (endBorder)
             Box(

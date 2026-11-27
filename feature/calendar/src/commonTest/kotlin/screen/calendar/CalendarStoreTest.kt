@@ -737,7 +737,7 @@ class CalendarStoreTest {
                     groups = Groups(),
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
                     today = { today },
-                    weatherRepository = repository,
+                    weatherRepository = lazyOf(value = repository),
                 )
                 .use { store ->
                     runCurrent()
@@ -816,7 +816,7 @@ class CalendarStoreTest {
                     groups = Groups(),
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
                     today = { today },
-                    holidayRepository = holidays,
+                    holidayRepository = lazyOf(value = holidays),
                 )
                 .use { store ->
                     runCurrent()
@@ -884,7 +884,7 @@ class CalendarStoreTest {
                     groups = Groups(),
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
                     today = { today },
-                    holidayRepository = holidays,
+                    holidayRepository = lazyOf(value = holidays),
                 )
                 .use { store ->
                     runCurrent()

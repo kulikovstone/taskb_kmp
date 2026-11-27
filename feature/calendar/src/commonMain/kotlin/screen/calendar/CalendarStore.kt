@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -46,8 +47,8 @@ internal class CalendarStore(
     private val today: () -> LocalDate = ::currentDate,
     private val clock: Clock = Clock.System,
     private val eventRepository: IEventRepository? = null,
-    private val weatherRepository: IWeatherRepository? = null,
-    private val holidayRepository: IHolidayRepository? = null,
+    private val weatherRepository: Lazy<IWeatherRepository>? = null,
+    private val holidayRepository: Lazy<IHolidayRepository>? = null,
 ) : CoroutineStore<CalendarIntent, CalendarState, CalendarMessage>(
     initialState = CalendarState(today = today(), now = clock.now()),
     reducer = ::reduceCalendar,
@@ -97,8 +98,7 @@ internal class CalendarStore(
                 weatherObservation?.cancel()
                 weatherObservation = weatherRepository?.let { repository ->
                     collectEffect(
-                        messages = repository
-                            .observeForecast()
+                        messages = flow { emitAll(flow = repository.value.observeForecast()) }
                             .map<WeatherForecast, CalendarMessage> { forecast ->
                                 CalendarMessage.Weather(value = forecast)
                             }
@@ -323,7 +323,7 @@ internal class CalendarStore(
     }
 
     private fun observeHolidays() {
-        val repository = holidayRepository ?: return
+        if (holidayRepository == null) return
         holidayObservation?.cancel()
         holidayObservation = collectEffect(
             messages = state
@@ -332,6 +332,7 @@ internal class CalendarStore(
                 }
                 .distinctUntilChanged()
                 .flatMapLatest { (month, selectedMonth) ->
+                    val repository = holidayRepository.value
                     val visible = repository.observeHolidays(
                         from = month.firstDay,
                         through = month.firstDay.plus(

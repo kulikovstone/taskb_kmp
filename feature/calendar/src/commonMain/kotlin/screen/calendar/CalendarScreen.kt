@@ -1,6 +1,5 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
@@ -21,7 +20,6 @@ import com.mkulikov.taskb.feature.calendar.component.CalendarWorkspace
 import com.mkulikov.taskb.feature.item.api.ItemEditorRoute
 import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
-import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.dialog.TaskBConfirmationDialog
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -41,11 +39,6 @@ internal fun CalendarScreen(
     var filter by rememberSaveable { mutableStateOf<TaskFilter?>(value = null) }
     var groupId by rememberSaveable { mutableStateOf<Int?>(value = null) }
     var showFilters by rememberSaveable { mutableStateOf(value = false) }
-    if (state.isContentLoading) {
-        TaskBLoading(modifier = Modifier.background(color = TaskBTheme.colors.surface), fastRotation = true)
-        return
-    }
-
     val group = state.groups.find { group -> group.id == groupId }
     val activeGroupId = if (groupId == noGroupFilterId) groupId else group?.id
     val calendarAction: (CalendarIntent) -> Unit = { intent ->
@@ -73,78 +66,84 @@ internal fun CalendarScreen(
             )
         )
     }
-    CalendarWorkspace(state = state, onIntent = onIntent) { drag ->
-        Column(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-screen")) {
-            CalendarTopBar(
-                state = state,
-                onIntent = calendarAction,
-                onOpenGroups = onOpenGroups,
-                onOpenSettings = onOpenSettings,
-            )
-            Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
-                CalendarSidebar(
+    CalendarLoadingLayout(
+        isLoading = state.isContentLoading,
+        hasMonthGrid = state.loadError == null,
+    ) { onMonthPrepared ->
+        CalendarWorkspace(state = state, onIntent = onIntent) { drag ->
+            Column(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-screen")) {
+                CalendarTopBar(
                     state = state,
-                    query = query,
-                    filter = filter,
-                    groupId = activeGroupId,
-                    group = group,
-                    drag = drag,
                     onIntent = calendarAction,
-                    onFilterByGroup = { id -> groupId = id },
-                    onOpenItem = onOpenItem,
-                    onOpenFilters = { showFilters = true },
-                    onClearFilter = { filter = null },
-                    onClearGroup = { groupId = null },
-                    onCreateItem = createItem,
-                    modifier = Modifier
-                        .width(width = 380.dp)
-                        .fillMaxHeight(),
+                    onOpenGroups = onOpenGroups,
+                    onOpenSettings = onOpenSettings,
                 )
-                Box(modifier = Modifier.weight(weight = 1f).fillMaxHeight()) {
-                    if (state.loadError != null) {
-                        TaskBLoadError(
-                            message = state.loadError,
-                            onRetry = { onIntent(CalendarIntent.RetryLoad) },
-                        )
-                    } else {
-                        CalendarMonthGrid(
-                            state = state,
-                            drag = drag,
-                            onIntent = calendarAction,
-                            onOpenTask = onOpenItem,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
+                    CalendarSidebar(
+                        state = state,
+                        query = query,
+                        filter = filter,
+                        groupId = activeGroupId,
+                        group = group,
+                        drag = drag,
+                        onIntent = calendarAction,
+                        onFilterByGroup = { id -> groupId = id },
+                        onOpenItem = onOpenItem,
+                        onOpenFilters = { showFilters = true },
+                        onClearFilter = { filter = null },
+                        onClearGroup = { groupId = null },
+                        onCreateItem = createItem,
+                        modifier = Modifier
+                            .width(width = 380.dp)
+                            .fillMaxHeight(),
+                    )
+                    Box(modifier = Modifier.weight(weight = 1f).fillMaxHeight()) {
+                        if (state.loadError != null) {
+                            TaskBLoadError(
+                                message = state.loadError,
+                                onRetry = { onIntent(CalendarIntent.RetryLoad) },
+                            )
+                        } else {
+                            CalendarMonthGrid(
+                                state = state,
+                                drag = drag,
+                                onIntent = calendarAction,
+                                onOpenTask = onOpenItem,
+                                onPrepared = onMonthPrepared,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-    if (showFilters) {
-        CalendarFiltersDialog(
-            groups = state.groups,
-            groupCounts = state.directoryTasks().countTasksByGroup(),
-            filter = filter,
-            groupId = activeGroupId,
-            onDismiss = { showFilters = false },
-            onApply = { selectedFilter, selectedGroup ->
-                filter = selectedFilter
-                groupId = selectedGroup
-                if (selectedFilter != null) onIntent(CalendarIntent.ShowUnscheduled)
-                showFilters = false
-            },
-        )
-    }
-    val task = state.quickDeleteConfirmation
-    val date = task?.dueDate
-    if (task != null && date != null) {
-        val dateLabel = calendarSidebarDateLabel.format(value = date)
-        TaskBConfirmationDialog(
-            title = "Delete task occurrence?",
-            message = "Only the occurrence of “${task.name}” on $dateLabel will be deleted.",
-            confirmText = "Delete",
-            onConfirm = { onIntent(CalendarIntent.ConfirmQuickDelete) },
-            onDismiss = { onIntent(CalendarIntent.DismissQuickDelete) },
-        )
+        if (showFilters) {
+            CalendarFiltersDialog(
+                groups = state.groups,
+                groupCounts = state.directoryTasks().countTasksByGroup(),
+                filter = filter,
+                groupId = activeGroupId,
+                onDismiss = { showFilters = false },
+                onApply = { selectedFilter, selectedGroup ->
+                    filter = selectedFilter
+                    groupId = selectedGroup
+                    if (selectedFilter != null) onIntent(CalendarIntent.ShowUnscheduled)
+                    showFilters = false
+                },
+            )
+        }
+        val task = state.quickDeleteConfirmation
+        val date = task?.dueDate
+        if (task != null && date != null) {
+            val dateLabel = calendarSidebarDateLabel.format(value = date)
+            TaskBConfirmationDialog(
+                title = "Delete task occurrence?",
+                message = "Only the occurrence of “${task.name}” on $dateLabel will be deleted.",
+                confirmText = "Delete",
+                onConfirm = { onIntent(CalendarIntent.ConfirmQuickDelete) },
+                onDismiss = { onIntent(CalendarIntent.DismissQuickDelete) },
+            )
+        }
     }
 }
 

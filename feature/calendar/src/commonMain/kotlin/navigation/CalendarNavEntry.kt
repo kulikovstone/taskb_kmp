@@ -53,8 +53,8 @@ private fun rememberCalendarStore(): CalendarStore {
             repository = koin.get(),
             groups = koin.get(),
             eventRepository = koin.get(),
-            weatherRepository = koin.get(),
-            holidayRepository = koin.get(),
+            weatherRepository = koin.inject(),
+            holidayRepository = koin.inject(),
         )
     }
 }
