@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
@@ -67,13 +66,18 @@ internal fun CalendarSidebar(
     val dayAgenda = date != null && query.text.isBlank() && filter == null && groupId == null
     val needsCalendar = date != null
     val error = if (needsCalendar) state.loadError else state.taskListLoadError
+    val summaryModifier = Modifier
+        .fillMaxWidth()
+        .padding(start = 24.dp, top = 12.dp, end = 24.dp, bottom = 4.dp)
+        .heightIn(min = 24.dp)
+        .padding(top = 2.dp)
+        .wrapContentHeight()
     Column(modifier = modifier.testTag(tag = "calendar-sidebar")) {
-        Divider(color = colors.border)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, top = 23.dp, end = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(space = 10.dp),
+                .padding(start = 24.dp, top = 13.dp, end = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(space = 13.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -100,32 +104,39 @@ internal fun CalendarSidebar(
                     Icon(imageVector = TaskBIcons.Add, contentDescription = "Add item", tint = colors.onAction)
                 }
             }
-            if (date != null) {
-                ActiveFilterChip(
-                    label = calendarSidebarDateLabel.format(value = date),
-                    icon = TaskBIcons.Calendar,
-                    iconTint = colors.accent,
-                    clearDescription = "Clear date filter",
-                    onClear = { onIntent(CalendarIntent.ShowUnscheduled) },
-                )
-            }
-            if (filter != null) {
-                ActiveFilterChip(
-                    label = filter.label,
-                    icon = TaskBIcons.Filter,
-                    iconTint = colors.accent,
-                    clearDescription = "Clear task filter",
-                    onClear = onClearFilter,
-                )
-            }
-            if (groupId != null) {
-                ActiveFilterChip(
-                    label = group?.name ?: "No group",
-                    icon = TaskBIcons.FolderFilled,
-                    iconTint = group?.color?.color ?: colors.muted,
-                    clearDescription = "Clear group filter",
-                    onClear = onClearGroup,
-                )
+            if (date != null || filter != null || groupId != null) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+                ) {
+                    if (date != null) {
+                        ActiveFilterChip(
+                            label = calendarSidebarDateLabel.format(value = date),
+                            icon = TaskBIcons.Calendar,
+                            iconTint = colors.accent,
+                            clearDescription = "Clear date filter",
+                            onClear = { onIntent(CalendarIntent.ShowUnscheduled) },
+                        )
+                    }
+                    if (filter != null) {
+                        ActiveFilterChip(
+                            label = filter.label,
+                            icon = TaskBIcons.Filter,
+                            iconTint = colors.accent,
+                            clearDescription = "Clear task filter",
+                            onClear = onClearFilter,
+                        )
+                    }
+                    if (groupId != null) {
+                        ActiveFilterChip(
+                            label = group?.name ?: "No group",
+                            icon = TaskBIcons.FolderFilled,
+                            iconTint = group?.color?.color ?: colors.muted,
+                            clearDescription = "Clear group filter",
+                            onClear = onClearGroup,
+                        )
+                    }
+                }
             }
         }
         when {
@@ -134,10 +145,7 @@ internal fun CalendarSidebar(
                 onRetry = { onIntent(if (needsCalendar) CalendarIntent.RetryLoad else CalendarIntent.RetryTaskList) },
             )
             dayAgenda -> {
-                CalendarDayContext(
-                    state = state,
-                    modifier = Modifier.padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-                )
+                CalendarDayContext(state = state, modifier = summaryModifier)
                 CalendarDayList(
                     state = state,
                     drag = drag,
@@ -153,7 +161,7 @@ internal fun CalendarSidebar(
                 val events = state.filteredGroupEvents(query = search, filter = filter, groupId = groupId)
                 Text(
                     text = calendarItemCount(taskCount = tasks.size, eventCount = events.size),
-                    modifier = Modifier.padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 8.dp),
+                    modifier = summaryModifier,
                     color = colors.muted,
                     style = TaskBTheme.typography.small,
                 )

@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
@@ -71,14 +72,17 @@ internal fun CalendarScreen(
         hasMonthGrid = state.loadError == null,
     ) { onMonthPrepared ->
         CalendarWorkspace(state = state, onIntent = onIntent) { drag ->
-            Column(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-screen")) {
-                CalendarTopBar(
-                    state = state,
-                    onIntent = calendarAction,
-                    onOpenGroups = onOpenGroups,
-                    onOpenSettings = onOpenSettings,
-                )
-                Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
+            CalendarLayout(
+                topBar = { besideSidebar ->
+                    CalendarTopBar(
+                        state = state,
+                        onIntent = calendarAction,
+                        onOpenGroups = onOpenGroups,
+                        onOpenSettings = onOpenSettings,
+                        besideSidebar = besideSidebar,
+                    )
+                },
+                sidebar = {
                     CalendarSidebar(
                         state = state,
                         query = query,
@@ -97,23 +101,22 @@ internal fun CalendarScreen(
                             .width(width = 380.dp)
                             .fillMaxHeight(),
                     )
-                    Box(modifier = Modifier.weight(weight = 1f).fillMaxHeight()) {
-                        if (state.loadError != null) {
-                            TaskBLoadError(
-                                message = state.loadError,
-                                onRetry = { onIntent(CalendarIntent.RetryLoad) },
-                            )
-                        } else {
-                            CalendarMonthGrid(
-                                state = state,
-                                drag = drag,
-                                onIntent = calendarAction,
-                                onOpenTask = onOpenItem,
-                                onPrepared = onMonthPrepared,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    }
+                },
+            ) {
+                if (state.loadError != null) {
+                    TaskBLoadError(
+                        message = state.loadError,
+                        onRetry = { onIntent(CalendarIntent.RetryLoad) },
+                    )
+                } else {
+                    CalendarMonthGrid(
+                        state = state,
+                        drag = drag,
+                        onIntent = calendarAction,
+                        onOpenTask = onOpenItem,
+                        onPrepared = onMonthPrepared,
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
             }
         }
@@ -148,15 +151,40 @@ internal fun CalendarScreen(
 }
 
 @Composable
+private fun CalendarLayout(
+    topBar: @Composable (besideSidebar: Boolean) -> Unit,
+    sidebar: @Composable () -> Unit,
+    month: @Composable () -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-screen")) {
+        val wide = maxWidth >= 840.dp
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (!wide) topBar(false)
+            Row(modifier = Modifier.fillMaxSize()) {
+                sidebar()
+                Column(modifier = Modifier.weight(weight = 1f).fillMaxHeight()) {
+                    if (wide) topBar(true)
+                    month()
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun CalendarTopBar(
     state: CalendarState,
     onIntent: (CalendarIntent) -> Unit,
     onOpenGroups: () -> Unit,
     onOpenSettings: () -> Unit,
+    besideSidebar: Boolean,
 ) {
     val colors = TaskBTheme.colors
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(height = 70.dp)) {
-        val startPadding = if (maxWidth >= 840.dp) 32.dp else 16.dp
+    Box(modifier = Modifier.fillMaxWidth().height(height = 70.dp)) {
+        if (besideSidebar) {
+            Spacer(modifier = Modifier.fillMaxHeight().width(width = 1.dp).background(color = colors.border))
+        }
+        val startPadding = if (besideSidebar) 32.dp else 16.dp
         Row(
             modifier = Modifier.fillMaxSize().padding(start = startPadding, end = 32.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -168,7 +196,7 @@ private fun CalendarTopBar(
             ) {
                 Text(
                     text = calendarMonthLabel.format(value = state.month),
-                    modifier = Modifier.weight(weight = 1f, fill = false),
+                    modifier = Modifier.weight(weight = 1f, fill = false).padding(bottom = 4.dp),
                     style = TaskBTheme.typography.display,
                     color = colors.heading,
                     maxLines = 1,
