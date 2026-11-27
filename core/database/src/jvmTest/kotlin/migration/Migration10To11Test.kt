@@ -6,7 +6,7 @@ import androidx.sqlite.execSQL
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
 import com.mkulikov.taskb.core.database.useDatabase
-import com.mkulikov.taskb.feature.event.api.database.EventOccurrenceEntity
+import com.mkulikov.taskb.feature.item.api.database.EventOccurrenceEntity
 import kotlin.test.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

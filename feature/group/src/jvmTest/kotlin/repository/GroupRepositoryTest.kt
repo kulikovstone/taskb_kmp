@@ -3,13 +3,13 @@ package com.mkulikov.taskb.feature.group.repository
 import androidx.compose.ui.graphics.toArgb
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
-import com.mkulikov.taskb.feature.event.api.database.EventEntity
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.group.api.model.GroupTaskSummary
 import com.mkulikov.taskb.feature.group.api.repository.GroupWriteResult
-import com.mkulikov.taskb.feature.task.api.database.TaskEntity
+import com.mkulikov.taskb.feature.item.api.database.EventEntity
+import com.mkulikov.taskb.feature.item.api.database.TaskEntity
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals

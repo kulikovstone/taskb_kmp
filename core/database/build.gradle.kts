@@ -18,8 +18,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(project(":feature:group:api"))
             implementation(project(":feature:settings:api"))
-            implementation(project(":feature:task:api"))
-            implementation(project(":feature:event:api"))
+            implementation(project(":feature:item:api"))
             implementation(project(":feature:holiday:api"))
         }
         androidMain.dependencies {

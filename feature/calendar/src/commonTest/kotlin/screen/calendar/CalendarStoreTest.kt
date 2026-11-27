@@ -7,13 +7,14 @@ import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
 import com.mkulikov.taskb.feature.holiday.api.repository.IHolidayRepository
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
-import com.mkulikov.taskb.feature.task.api.model.TaskFilter
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
-import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
-import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
+import com.mkulikov.taskb.feature.item.api.model.ItemChangeScope
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.feature.item.api.model.ItemType
+import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.item.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.TaskFilter
+import com.mkulikov.taskb.feature.item.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.weather.api.model.DailyWeather
 import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
@@ -69,13 +70,13 @@ class CalendarStoreTest {
                 name = "Daily routine",
                 dueDate = today,
                 createdAt = created,
-                recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
-                occurrenceId = TaskOccurrenceId(scheduleId = 4, scheduledDate = today),
+                recurrence = ItemRecurrence(frequency = RecurrenceFrequency.Daily),
+                occurrenceId = ItemOccurrenceId(scheduleId = 4, scheduledDate = today),
                 showInCalendar = false,
             )
             val second = first.copy(
                 dueDate = LocalDate(year = 2026, month = 10, day = 31),
-                occurrenceId = TaskOccurrenceId(
+                occurrenceId = ItemOccurrenceId(
                     scheduleId = 4,
                     scheduledDate = LocalDate(year = 2026, month = 10, day = 31),
                 ),
@@ -226,13 +227,13 @@ class CalendarStoreTest {
     @Test
     fun `browsing other months retains selected day occurrences without duplicate unscheduled tasks`(): TestResult {
         return runTest {
-            val occurrence = TaskOccurrenceId(scheduleId = 4, scheduledDate = today)
-            val later = TaskOccurrenceId(scheduleId = 4, scheduledDate = LocalDate(year = 2026, month = 11, day = 30))
+            val occurrence = ItemOccurrenceId(scheduleId = 4, scheduledDate = today)
+            val later = ItemOccurrenceId(scheduleId = 4, scheduledDate = LocalDate(year = 2026, month = 11, day = 30))
             val first = Task(
                 id = 1,
                 name = "Repeating task",
                 dueDate = today,
-                recurrence = TaskRecurrence.monthly(date = today),
+                recurrence = ItemRecurrence.monthly(date = today),
                 occurrenceId = occurrence,
             )
             val second = first.copy(dueDate = later.scheduledDate, occurrenceId = later)
@@ -399,8 +400,8 @@ class CalendarStoreTest {
     @Test
     fun `occurrence move prompts for scope and only the selected event changes or is completed`(): TestResult {
         return runTest {
-            val firstKey = TaskOccurrenceId(scheduleId = 4, scheduledDate = today)
-            val secondKey = TaskOccurrenceId(
+            val firstKey = ItemOccurrenceId(scheduleId = 4, scheduledDate = today)
+            val secondKey = ItemOccurrenceId(
                 scheduleId = 4,
                 scheduledDate = LocalDate(year = 2026, month = 11, day = 30),
             )
@@ -408,7 +409,7 @@ class CalendarStoreTest {
                 id = 1,
                 name = "Shared task",
                 dueDate = today,
-                recurrence = TaskRecurrence.monthly(date = today),
+                recurrence = ItemRecurrence.monthly(date = today),
                 occurrenceId = firstKey,
             )
             val second = first.copy(dueDate = secondKey.scheduledDate, occurrenceId = secondKey)
@@ -422,11 +423,18 @@ class CalendarStoreTest {
                 .use { store ->
                     runCurrent()
                     val target = LocalDate(year = 2026, month = 10, day = 31)
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = target, occurrenceId = firstKey))
+                    store.accept(
+                        intent = CalendarIntent.MoveItem(
+                            type = ItemType.Task,
+                            id = 1,
+                            date = target,
+                            occurrenceId = firstKey,
+                        ),
+                    )
                     runCurrent()
                     assertNotNull(actual = store.state.value.moveChoice)
                     assertEquals(expected = 0, actual = repository.writes)
-                    store.accept(intent = CalendarIntent.ConfirmMove(scope = TaskChangeScope.ThisOccurrence))
+                    store.accept(intent = CalendarIntent.ConfirmMove(scope = ItemChangeScope.ThisOccurrence))
                     runCurrent()
                     assertEquals(
                         expected = listOf(first.copy(dueDate = target), second),
@@ -476,10 +484,10 @@ class CalendarStoreTest {
                 )
                 .use { store ->
                     runCurrent()
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = today))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 1, date = today))
                     runCurrent()
                     assertEquals(expected = original.copy(dueDate = today), actual = repository.values.value.single())
-                    assertEquals(expected = 1, actual = store.state.value.undo?.taskId)
+                    assertEquals(expected = 1, actual = store.state.value.undo?.itemId)
                     repository.values.value = listOf(
                         element = repository.values.value.single().copy(
                             name = "Renamed",
@@ -518,23 +526,23 @@ class CalendarStoreTest {
                 )
                 .use { store ->
                     runCurrent()
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = today))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 1, date = today))
                     runCurrent()
                     advanceTimeBy(delayTimeMillis = 2_000)
-                    store.accept(intent = CalendarIntent.MoveTask(id = 2, date = today))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 2, date = today))
                     runCurrent()
                     advanceTimeBy(delayTimeMillis = 1_000)
                     runCurrent()
-                    assertEquals(expected = 2, actual = store.state.value.undo?.taskId)
+                    assertEquals(expected = 2, actual = store.state.value.undo?.itemId)
                     store.accept(intent = CalendarIntent.UndoMove)
                     runCurrent()
                     assertNull(actual = repository.getById(id = 2)?.dueDate)
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = previous))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 1, date = previous))
                     runCurrent()
                     store.accept(intent = CalendarIntent.UndoMove)
                     runCurrent()
                     assertEquals(expected = today, actual = repository.getById(id = 1)?.dueDate)
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = previous))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 1, date = previous))
                     runCurrent()
                     advanceTimeBy(delayTimeMillis = 2_999)
                     runCurrent()
@@ -562,16 +570,24 @@ class CalendarStoreTest {
                 )
                 .use { store ->
                     runCurrent()
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = today))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 1, date = today))
                     runCurrent()
                     assertEquals(expected = 0, actual = repository.writes)
                     val gate = CompletableDeferred<Unit>()
                     repository.beforeMove = { gate.await() }
                     store.accept(
-                        intent = CalendarIntent.MoveTask(id = 1, date = LocalDate(year = 2026, month = 11, day = 1))
+                        intent = CalendarIntent.MoveItem(
+                            type = ItemType.Task,
+                            id = 1,
+                            date = LocalDate(year = 2026, month = 11, day = 1),
+                        )
                     )
                     store.accept(
-                        intent = CalendarIntent.MoveTask(id = 1, date = LocalDate(year = 2026, month = 11, day = 2))
+                        intent = CalendarIntent.MoveItem(
+                            type = ItemType.Task,
+                            id = 1,
+                            date = LocalDate(year = 2026, month = 11, day = 2),
+                        )
                     )
                     runCurrent()
                     assertEquals(expected = 1, actual = repository.writes)
@@ -599,7 +615,7 @@ class CalendarStoreTest {
                 )
                 .use { store ->
                     runCurrent()
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = today))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 1, date = today))
                     runCurrent()
                     val newer = LocalDate(year = 2027, month = 1, day = 1)
                     repository.values.value = listOf(element = repository.values.value.single().copy(dueDate = newer))
@@ -609,7 +625,7 @@ class CalendarStoreTest {
                     assertEquals(expected = newer, actual = repository.values.value.single().dueDate)
                     assertNotNull(actual = store.state.value.error)
                     repository.beforeMove = { repository.values.value = emptyList() }
-                    store.accept(intent = CalendarIntent.MoveTask(id = 1, date = today))
+                    store.accept(intent = CalendarIntent.MoveItem(type = ItemType.Task, id = 1, date = today))
                     runCurrent()
                     assertTrue(actual = repository.values.value.isEmpty())
                     assertNull(actual = store.state.value.undo)
@@ -906,7 +922,7 @@ class CalendarStoreTest {
 
         override suspend fun setOccurrenceCompleted(
             id: Int,
-            occurrence: TaskOccurrenceId?,
+            occurrence: ItemOccurrenceId?,
             completed: Boolean,
         ): Boolean {
             if (occurrence == null) {
@@ -925,10 +941,10 @@ class CalendarStoreTest {
 
         override suspend fun moveOccurrence(
             id: Int,
-            occurrence: TaskOccurrenceId?,
+            occurrence: ItemOccurrenceId?,
             expectedDate: LocalDate?,
             date: LocalDate,
-            scope: TaskChangeScope,
+            scope: ItemChangeScope,
         ): Boolean {
             if (occurrence == null) return reschedule(id = id, expectedDate = expectedDate, date = date)
             writes++

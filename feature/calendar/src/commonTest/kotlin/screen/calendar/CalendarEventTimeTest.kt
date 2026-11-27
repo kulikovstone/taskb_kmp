@@ -3,8 +3,8 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntSize
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.Task
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

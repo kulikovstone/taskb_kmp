@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.task.api.model.TaskFilter
+import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import com.mkulikov.taskb.ui.dialog.TaskBDialog
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme

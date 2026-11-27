@@ -25,7 +25,8 @@ import com.mkulikov.taskb.feature.calendar.screen.calendar.calendarDateLabel
 import com.mkulikov.taskb.feature.calendar.screen.calendar.calendarSidebarTaskTitleGap
 import com.mkulikov.taskb.feature.calendar.screen.calendar.calendarTaskPadding
 import com.mkulikov.taskb.feature.calendar.screen.calendar.calendarTaskTitleGap
-import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.item.api.model.ItemChangeScope
+import com.mkulikov.taskb.feature.item.api.model.ItemType
 import com.mkulikov.taskb.ui.dialog.TaskBChoiceDialog
 import com.mkulikov.taskb.ui.dialog.TaskBDialogChoice
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -89,14 +90,14 @@ internal fun CalendarWorkspace(
                         ) {
                             Text(
                                 text =
-                                    ("${if (move.isEvent) "Event" else "Task"} moved to " +
+                                    ("${move.type.name} moved to " +
                                         "${calendarDateLabel.format(value = move.date)}"),
                                 color = TaskBTheme.colors.onInverseSurface,
                                 style = TaskBTheme.typography.body,
                             )
                             TextButton(
                                 onClick = { onIntent(CalendarIntent.UndoMove) },
-                                enabled = state.pendingMove == null && move.taskId !in state.pendingTaskUpdates,
+                                enabled = state.canUndo(move = move),
                             ) {
                                 Text(
                                     text = "Undo",
@@ -162,18 +163,18 @@ internal fun CalendarWorkspace(
     }
     state.moveChoice?.let { move ->
         TaskBChoiceDialog(
-            title = if (move.isEvent) "Move repeating event" else "Move repeating task",
+            title = "Move repeating ${move.type.name.lowercase()}",
             message = "Move only this event, or start the remaining schedule on ${move.date}?" +
-                if (move.isEvent) "" else " Completed events keep their dates.",
+                if (move.type == ItemType.Event) "" else " Completed events keep their dates.",
             choices = listOf(
                 TaskBDialogChoice(
                     label = "Only this event",
-                    onClick = { onIntent(CalendarIntent.ConfirmMove(scope = TaskChangeScope.ThisOccurrence)) },
+                    onClick = { onIntent(CalendarIntent.ConfirmMove(scope = ItemChangeScope.ThisOccurrence)) },
                 ),
                 TaskBDialogChoice(
                     label = "This and following events",
                     onClick = {
-                        onIntent(CalendarIntent.ConfirmMove(scope = TaskChangeScope.ThisAndFollowing))
+                        onIntent(CalendarIntent.ConfirmMove(scope = ItemChangeScope.ThisAndFollowing))
                     },
                 ),
             ),

@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.component.CalendarWorkspace
-import com.mkulikov.taskb.feature.task.api.model.TaskFilter
+import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.dialog.TaskBConfirmationDialog

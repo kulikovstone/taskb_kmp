@@ -1,7 +1,7 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskFilter
+import com.mkulikov.taskb.feature.item.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import kotlin.time.Duration.Companion.hours
 
 // Persisted group IDs are positive. Null means no group filter.

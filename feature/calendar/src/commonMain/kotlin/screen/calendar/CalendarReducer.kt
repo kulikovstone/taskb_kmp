@@ -1,11 +1,12 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemChangeScope
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemType
+import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
@@ -62,7 +63,7 @@ internal sealed interface CalendarMessage {
 
     data class QuickDeleteFinished(
         val id: Int,
-        val occurrenceId: TaskOccurrenceId,
+        val occurrenceId: ItemOccurrenceId,
         val failed: Boolean,
     ) : CalendarMessage
 }
@@ -108,7 +109,7 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
         is CalendarMessage.Moved -> state.copy(
             pendingMove = null,
             error = message.error,
-            undo = if (message.undoing || message.move.scope == TaskChangeScope.ThisAndFollowing) {
+            undo = if (message.undoing || message.move.scope == ItemChangeScope.ThisAndFollowing) {
                 null
             } else if (message.error == null) {
                 message.move
@@ -116,14 +117,14 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
                 state.undo
             },
             tasks = if (
-                message.move.isEvent ||
+                message.move.type != ItemType.Task ||
                     message.error != null ||
-                    message.move.scope == TaskChangeScope.ThisAndFollowing
+                    message.move.scope == ItemChangeScope.ThisAndFollowing
             ) {
                 state.tasks
             } else {
                 state.tasks.map { task ->
-                    if (task.id == message.move.taskId && task.occurrenceId == message.move.occurrenceId) {
+                    if (task.id == message.move.itemId && task.occurrenceId == message.move.occurrenceId) {
                         task.copy(
                             dueDate = if (message.undoing) message.move.previousDate else message.move.date
                         )
@@ -133,16 +134,16 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
                 }
             },
             events = if (
-                !message.move.isEvent ||
+                message.move.type != ItemType.Event ||
                     message.error != null ||
-                    message.move.scope == TaskChangeScope.ThisAndFollowing
+                    message.move.scope == ItemChangeScope.ThisAndFollowing
             ) {
                 state.events
             } else {
                 state.events.map { event ->
                     if (
-                        event.id == message.move.taskId &&
-                            event.occurrenceId == message.move.eventOccurrenceId
+                        event.id == message.move.itemId &&
+                            event.occurrenceId == message.move.occurrenceId
                     ) {
                         event.copy(
                             dueDate = if (message.undoing) message.move.previousDate else message.move.date

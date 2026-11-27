@@ -1,9 +1,9 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
-import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.Task
 import kotlin.test.*
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate

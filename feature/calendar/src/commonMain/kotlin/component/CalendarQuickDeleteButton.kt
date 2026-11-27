@@ -9,7 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarIntent
-import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 

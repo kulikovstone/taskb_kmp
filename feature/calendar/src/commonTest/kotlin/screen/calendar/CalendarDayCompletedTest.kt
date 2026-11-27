@@ -1,10 +1,10 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
-import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.item.api.model.Task
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -59,8 +59,8 @@ class CalendarDayCompletedTest {
             id = 2,
             name = "Daily routine",
             dueDate = date,
-            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
-            occurrenceId = TaskOccurrenceId(scheduleId = 2, scheduledDate = date),
+            recurrence = ItemRecurrence(frequency = RecurrenceFrequency.Daily),
+            occurrenceId = ItemOccurrenceId(scheduleId = 2, scheduledDate = date),
         )
         assertFalse(
             actual = state.copy(tasks = listOf(element = completed.copy(completedAt = null))).isSelectedDayCompleted
@@ -74,7 +74,7 @@ class CalendarDayCompletedTest {
                         routine.copy(completedAt = now),
                         routine.copy(
                             dueDate = tomorrow,
-                            occurrenceId = TaskOccurrenceId(scheduleId = 2, scheduledDate = tomorrow),
+                            occurrenceId = ItemOccurrenceId(scheduleId = 2, scheduledDate = tomorrow),
                         ),
                         Task(id = 3, name = "Unscheduled task"),
                     )

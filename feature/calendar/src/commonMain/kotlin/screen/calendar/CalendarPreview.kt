@@ -2,16 +2,16 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.mkulikov.taskb.feature.event.api.model.Event
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
-import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.feature.weather.api.model.DailyWeather
 import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
@@ -171,8 +171,8 @@ internal fun timedCalendarPreviewState(): CalendarState {
             dueDate = LocalDate(year = 2026, month = 11, day = 6),
             groupId = 2,
             createdAt = Instant.parse(input = "2026-11-01T08:00:00Z"),
-            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
-            occurrenceId = TaskOccurrenceId(
+            recurrence = ItemRecurrence(frequency = RecurrenceFrequency.Daily),
+            occurrenceId = ItemOccurrenceId(
                 scheduleId = 3100,
                 scheduledDate = LocalDate(year = 2026, month = 11, day = 6),
             ),
@@ -183,8 +183,8 @@ internal fun timedCalendarPreviewState(): CalendarState {
             name = "Read for 15 minutes",
             dueDate = LocalDate(year = 2026, month = 11, day = 6),
             createdAt = Instant.parse(input = "2026-11-01T07:00:00Z"),
-            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
-            occurrenceId = TaskOccurrenceId(
+            recurrence = ItemRecurrence(frequency = RecurrenceFrequency.Daily),
+            occurrenceId = ItemOccurrenceId(
                 scheduleId = 3110,
                 scheduledDate = LocalDate(year = 2026, month = 11, day = 6),
             ),

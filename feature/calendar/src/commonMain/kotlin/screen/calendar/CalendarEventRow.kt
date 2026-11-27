@@ -24,9 +24,9 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.event.api.model.startDateTime
 import com.mkulikov.taskb.feature.group.api.model.Group
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.startDateTime
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlin.time.Instant

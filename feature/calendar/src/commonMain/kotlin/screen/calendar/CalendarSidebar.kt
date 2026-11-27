@@ -32,8 +32,8 @@ import com.mkulikov.taskb.feature.calendar.component.CalendarDayList
 import com.mkulikov.taskb.feature.calendar.component.CalendarQuickDeleteButton
 import com.mkulikov.taskb.feature.calendar.component.quickDeleteIntent
 import com.mkulikov.taskb.feature.group.api.model.Group
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskFilter
+import com.mkulikov.taskb.feature.item.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTextField

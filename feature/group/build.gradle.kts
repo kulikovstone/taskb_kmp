@@ -21,8 +21,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
         }
         jvmTest.dependencies {
-            implementation(project(":feature:event:api"))
-            implementation(project(":feature:task:api"))
+            implementation(project(":feature:item:api"))
         }
     }
 }

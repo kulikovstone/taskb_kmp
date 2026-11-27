@@ -1,9 +1,11 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.feature.item.api.model.ItemType
+import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.item.api.model.Task
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -19,6 +21,48 @@ class CalendarEventsTest {
     private val now = Instant.parse(input = "2026-11-06T12:00:00Z")
 
     @Test
+    fun `moving a repeating event leaves the task with the same IDs on its original date`() {
+        val occurrence = ItemOccurrenceId(scheduleId = 1, scheduledDate = date)
+        val rule = ItemRecurrence.monthly(date = date)
+        val task = Task(id = 1, name = "Submit report", dueDate = date, recurrence = rule, occurrenceId = occurrence)
+        val event = Event(id = 1, name = "Review", dueDate = date, recurrence = rule, occurrenceId = occurrence)
+        val state = CalendarState(today = date, tasks = listOf(element = task), events = listOf(element = event))
+        val target = date.minus(value = 1, unit = DateTimeUnit.DAY)
+        val item = CalendarItem.EventItem(event = event)
+        assertTrue(actual = task.key != event.key)
+        assertEquals(
+            expected = CalendarIntent.MoveItem(
+                id = event.id,
+                type = ItemType.Event,
+                date = target,
+                occurrenceId = occurrence,
+            ),
+            actual = item.moveTo(date = target),
+        )
+        val move = CalendarMove(
+            token = 1,
+            itemId = event.id,
+            type = event.type,
+            previousDate = date,
+            date = target,
+            occurrenceId = occurrence,
+        )
+        val moved = reduceCalendar(
+            state = state,
+            message = CalendarMessage.Moved(move = move, undoing = false, error = null),
+        )
+        assertEquals(expected = listOf(element = task), actual = moved.tasks)
+        assertEquals(expected = listOf(element = event.copy(dueDate = target)), actual = moved.events)
+        assertEquals(expected = event.key, actual = moved.events.single().key)
+        val restored = reduceCalendar(
+            state = moved,
+            message = CalendarMessage.Moved(move = move, undoing = true, error = null),
+        )
+        assertEquals(expected = listOf(element = event), actual = restored.events)
+        assertEquals(expected = listOf(element = task), actual = restored.tasks)
+    }
+
+    @Test
     fun `past day cells put ordinary overdue tasks first then daily overdue tasks then events and completed tasks`() {
         val yesterday = date.minus(value = 1, unit = DateTimeUnit.DAY)
         val older = Task(id = 1, name = "Older overdue task", dueDate = yesterday, createdAt = now - 2.hours)
@@ -29,13 +73,13 @@ class CalendarEventsTest {
             name = "Daily task",
             dueDate = yesterday,
             createdAt = now,
-            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+            recurrence = ItemRecurrence(frequency = RecurrenceFrequency.Daily),
             showInCalendar = false,
         )
         val weekly = daily.copy(
             id = 5,
             name = "Weekly task",
-            recurrence = TaskRecurrence(
+            recurrence = ItemRecurrence(
                 frequency = RecurrenceFrequency.Weekly,
                 weekdays = setOf(element = yesterday.dayOfWeek),
             ),
@@ -96,7 +140,7 @@ class CalendarEventsTest {
             id = 2,
             name = "Daily task",
             dueDate = date,
-            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Daily),
+            recurrence = ItemRecurrence(frequency = RecurrenceFrequency.Daily),
             showInCalendar = false,
         )
         val completed = Task(id = 3, name = "Completed task", dueDate = date, completedAt = now)

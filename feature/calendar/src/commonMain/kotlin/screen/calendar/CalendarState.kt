@@ -1,15 +1,15 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
-import com.mkulikov.taskb.feature.event.api.model.occursOn
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemChangeScope
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemType
+import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.item.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.occursOn
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
@@ -45,6 +45,10 @@ internal data class CalendarState(
     val taskList: List<Task>? = null,
     val taskListLoadError: String? = null,
 ) {
+    fun canUndo(move: CalendarMove): Boolean {
+        return pendingMove == null && (move.type != ItemType.Task || move.itemId !in pendingTaskUpdates)
+    }
+
     val weatherByDate
         get() = weather.location
             ?.let { location ->
@@ -197,13 +201,12 @@ private val Task.repeatsDaily: Boolean
 
 internal data class CalendarMove(
     val token: Long,
-    val taskId: Int,
+    val itemId: Int,
     val previousDate: LocalDate?,
     val date: LocalDate,
-    val occurrenceId: TaskOccurrenceId? = null,
-    val scope: TaskChangeScope = TaskChangeScope.ThisOccurrence,
-    val isEvent: Boolean = false,
-    val eventOccurrenceId: EventOccurrenceId? = null,
+    val occurrenceId: ItemOccurrenceId? = null,
+    val scope: ItemChangeScope = ItemChangeScope.ThisOccurrence,
+    val type: ItemType,
 )
 
 private val calendarItemOrder = compareBy<CalendarItem> { item ->

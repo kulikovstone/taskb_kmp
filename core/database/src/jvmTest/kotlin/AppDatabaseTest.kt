@@ -591,7 +591,7 @@ class AppDatabaseTest {
                 val id = database
                     .eventDao()
                     .insert(
-                        event = com.mkulikov.taskb.feature.event.api.database.EventEntity(
+                        event = com.mkulikov.taskb.feature.item.api.database.EventEntity(
                             name = "Independent event",
                             groupId = 7,
                         )

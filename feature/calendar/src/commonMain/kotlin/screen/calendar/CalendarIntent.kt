@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.EventOccurrenceId
-import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemChangeScope
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemType
 import kotlinx.datetime.LocalDate
 
 internal sealed interface CalendarIntent {
@@ -32,27 +32,22 @@ internal sealed interface CalendarIntent {
 
     data object DismissError : CalendarIntent
 
-    data class MoveEvent(
+    data class MoveItem(
         val id: Int,
+        val type: ItemType,
         val date: LocalDate,
-        val occurrenceId: EventOccurrenceId? = null,
+        val occurrenceId: ItemOccurrenceId? = null,
     ) : CalendarIntent
 
-    data class MoveTask(
-        val id: Int,
-        val date: LocalDate,
-        val occurrenceId: TaskOccurrenceId? = null,
-    ) : CalendarIntent
+    data class ToggleCompleted(val id: Int, val occurrenceId: ItemOccurrenceId? = null) : CalendarIntent
 
-    data class ToggleCompleted(val id: Int, val occurrenceId: TaskOccurrenceId? = null) : CalendarIntent
-
-    data class PrepareQuickDelete(val id: Int, val occurrenceId: TaskOccurrenceId) : CalendarIntent
+    data class PrepareQuickDelete(val id: Int, val occurrenceId: ItemOccurrenceId) : CalendarIntent
 
     data object ConfirmQuickDelete : CalendarIntent
 
     data object DismissQuickDelete : CalendarIntent
 
-    data class ConfirmMove(val scope: TaskChangeScope) : CalendarIntent
+    data class ConfirmMove(val scope: ItemChangeScope) : CalendarIntent
 
     data object DismissMoveChoice : CalendarIntent
 }

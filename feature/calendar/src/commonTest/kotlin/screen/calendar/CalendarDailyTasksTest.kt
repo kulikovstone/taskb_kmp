@@ -1,10 +1,10 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
-import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.item.api.model.Task
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -15,7 +15,7 @@ import kotlinx.datetime.LocalTime
 
 class CalendarDailyTasksTest {
     private val date = LocalDate(year = 2026, month = 11, day = 6)
-    private val dailyRule = TaskRecurrence(frequency = RecurrenceFrequency.Daily)
+    private val dailyRule = ItemRecurrence(frequency = RecurrenceFrequency.Daily)
     private val created = Instant.parse(input = "2026-11-01T07:00:00Z")
 
     private fun daily(id: Int, date: LocalDate = this.date, completed: Boolean = false): Task {
@@ -26,7 +26,7 @@ class CalendarDailyTasksTest {
             createdAt = created,
             completedAt = created.takeIf { completed },
             recurrence = dailyRule,
-            occurrenceId = TaskOccurrenceId(scheduleId = id.toLong(), scheduledDate = date),
+            occurrenceId = ItemOccurrenceId(scheduleId = id.toLong(), scheduledDate = date),
         )
     }
 
@@ -92,7 +92,7 @@ class CalendarDailyTasksTest {
             id = 3,
             name = "Weekly review",
             dueDate = date,
-            recurrence = TaskRecurrence(
+            recurrence = ItemRecurrence(
                 frequency = RecurrenceFrequency.Weekly,
                 weekdays = setOf(element = DayOfWeek.FRIDAY),
             ),
@@ -110,12 +110,12 @@ class CalendarDailyTasksTest {
         val monthlyTask = alternate.copy(
             id = 7,
             name = "Monthly task",
-            recurrence = TaskRecurrence.monthly(date = date),
+            recurrence = ItemRecurrence.monthly(date = date),
         )
         val yearlyTask = alternate.copy(
             id = 8,
             name = "Yearly task",
-            recurrence = TaskRecurrence(frequency = RecurrenceFrequency.Yearly, dayOfMonth = 6, month = 11),
+            recurrence = ItemRecurrence(frequency = RecurrenceFrequency.Yearly, dayOfMonth = 6, month = 11),
         )
         val oneTime = Task(id = 9, name = "One-time task", dueDate = date, createdAt = created)
         val state = CalendarState(

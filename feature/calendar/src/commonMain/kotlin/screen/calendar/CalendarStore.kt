@@ -2,16 +2,16 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.core.utils.time.currentDate
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.event.api.model.EventChangeScope
-import com.mkulikov.taskb.feature.event.api.repository.IEventRepository
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.holiday.api.model.HolidayCalendar
 import com.mkulikov.taskb.feature.holiday.api.repository.IHolidayRepository
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
-import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemChangeScope
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemType
+import com.mkulikov.taskb.feature.item.api.model.Task
+import com.mkulikov.taskb.feature.item.api.repository.IEventRepository
+import com.mkulikov.taskb.feature.item.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import com.mkulikov.taskb.feature.weather.api.repository.IWeatherRepository
 import kotlin.time.Clock
@@ -202,56 +202,36 @@ internal class CalendarStore(
                         }
                 )
             }
-            is CalendarIntent.MoveEvent -> {
-                val event = state.value.events.find { event ->
-                    event.id == intent.id && event.occurrenceId == intent.occurrenceId
-                }
-                    ?: return
-                if (
-                    event.dueDate == intent.date ||
-                        state.value.pendingMove != null ||
-                        state.value.moveChoice != null
-                )
-                    return
+            is CalendarIntent.MoveItem -> {
+                val current = state.value
+                if (current.pendingMove != null || current.moveChoice != null) return
+                val item = when (intent.type) {
+                    ItemType.Task -> {
+                        if (intent.id in current.pendingTaskUpdates) return
+                        findTask(id = intent.id, occurrenceId = intent.occurrenceId)
+                    }
+                    ItemType.Event -> current.events.find { event ->
+                        event.id == intent.id && event.occurrenceId == intent.occurrenceId
+                    }
+                } ?: return
+                if (item.dueDate == intent.date) return
                 val request = CalendarMove(
                     token = ++nextMoveToken,
-                    taskId = event.id,
-                    previousDate = event.dueDate,
+                    itemId = item.id,
+                    type = item.type,
+                    previousDate = item.dueDate,
                     date = intent.date,
-                    isEvent = true,
-                    eventOccurrenceId = event.occurrenceId,
+                    occurrenceId = item.occurrenceId,
                 )
-                if (event.occurrenceId != null) {
-                    reduce(message = CalendarMessage.MoveChoice(value = request))
-                } else {
+                if (item.occurrenceId == null) {
                     move(move = request, undoing = false)
-                }
-            }
-            is CalendarIntent.MoveTask -> {
-                val task = findTask(id = intent.id, occurrenceId = intent.occurrenceId) ?: return
-                if (
-                    task.dueDate == intent.date ||
-                        state.value.pendingMove != null ||
-                        task.id in state.value.pendingTaskUpdates
-                )
-                    return
-                if (state.value.moveChoice != null) return
-                val request = CalendarMove(
-                    token = ++nextMoveToken,
-                    taskId = task.id,
-                    previousDate = task.dueDate,
-                    date = intent.date,
-                    occurrenceId = task.occurrenceId,
-                )
-                if (task.occurrenceId != null) {
-                    reduce(message = CalendarMessage.MoveChoice(value = request))
                 } else {
-                    move(move = request, undoing = false)
+                    reduce(message = CalendarMessage.MoveChoice(value = request))
                 }
             }
             CalendarIntent.UndoMove -> {
                 val move = state.value.undo ?: return
-                if (state.value.pendingMove != null || move.taskId in state.value.pendingTaskUpdates) return
+                if (!state.value.canUndo(move = move)) return
                 move(move = move, undoing = true)
             }
             is CalendarIntent.ToggleCompleted -> {
@@ -317,7 +297,7 @@ internal class CalendarStore(
         }
     }
 
-    private fun findTask(id: Int, occurrenceId: TaskOccurrenceId?): Task? {
+    private fun findTask(id: Int, occurrenceId: ItemOccurrenceId?): Task? {
         val current = state.value
         return (current.tasks.asSequence() + current.taskList.orEmpty()).firstOrNull { task ->
             task.id == id && task.occurrenceId == occurrenceId
@@ -407,53 +387,34 @@ internal class CalendarStore(
     }
 
     private fun move(move: CalendarMove, undoing: Boolean) {
-        reduce(message = CalendarMessage.Moving(id = move.taskId, undoing = undoing))
+        reduce(message = CalendarMessage.Moving(id = move.itemId, undoing = undoing))
         collectEffect(
             messages = flow {
                 val error = try {
-                    val updated = if (move.isEvent) {
-                        val events = requireNotNull(value = eventRepository)
-                        if (move.eventOccurrenceId != null) {
-                            events.moveOccurrence(
-                                id = move.taskId,
-                                occurrence = move.eventOccurrenceId,
-                                expectedDate = if (undoing) move.date else move.previousDate,
-                                date = if (undoing) requireNotNull(value = move.previousDate) else move.date,
-                                scope = if (move.scope == TaskChangeScope.ThisOccurrence) {
-                                    EventChangeScope.ThisOccurrence
-                                } else {
-                                    EventChangeScope.ThisAndFollowing
-                                },
-                            )
-                        } else {
-                            events.reschedule(
-                                id = move.taskId,
-                                expectedDate = if (undoing) move.date else move.previousDate,
-                                date = if (undoing) move.previousDate else move.date,
-                            )
-                        }
-                    } else if (move.occurrenceId != null) {
-                        repository.moveOccurrence(
-                            id = move.taskId,
+                    val items = when (move.type) {
+                        ItemType.Task -> repository
+                        ItemType.Event -> requireNotNull(value = eventRepository)
+                    }
+                    val expectedDate = if (undoing) move.date else move.previousDate
+                    val date = if (undoing) move.previousDate else move.date
+                    val updated = if (move.occurrenceId != null) {
+                        items.moveOccurrence(
+                            id = move.itemId,
                             occurrence = move.occurrenceId,
-                            expectedDate = if (undoing) move.date else move.previousDate,
-                            date = if (undoing) requireNotNull(value = move.previousDate) else move.date,
+                            expectedDate = expectedDate,
+                            date = requireNotNull(value = date),
                             scope = move.scope,
                         )
                     } else {
-                        repository.reschedule(
-                            id = move.taskId,
-                            expectedDate = if (undoing) move.date else move.previousDate,
-                            date = if (undoing) move.previousDate else move.date,
-                        )
+                        items.reschedule(id = move.itemId, expectedDate = expectedDate, date = date)
                     }
                     if (updated) {
                         null
-                    } else if (!move.isEvent && move.scope == TaskChangeScope.ThisAndFollowing) {
+                    } else if (move.type == ItemType.Task && move.scope == ItemChangeScope.ThisAndFollowing) {
                         ("This event changed, was deleted, or overlaps completed history. " +
                             "Reopen it and try again.")
                     } else {
-                        ("This ${if (move.isEvent) "event" else "task"} has changed or was " +
+                        ("This ${move.type.name.lowercase()} has changed or was " +
                             "deleted. Please try again.")
                     }
                 } catch (exception: CancellationException) {
@@ -462,7 +423,7 @@ internal class CalendarStore(
                     if (undoing) {
                         "Couldn't undo the move. Please try again."
                     } else {
-                        "Couldn't move this ${if (move.isEvent) "event" else "task"}. Please try again."
+                        "Couldn't move this ${move.type.name.lowercase()}. Please try again."
                     }
                 }
                 emit(value = CalendarMessage.Moved(move = move, undoing = undoing, error = error))

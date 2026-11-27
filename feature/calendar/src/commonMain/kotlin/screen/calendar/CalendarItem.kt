@@ -1,23 +1,25 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.event.api.model.startDateTime
 import com.mkulikov.taskb.feature.holiday.api.model.PublicHoliday
-import com.mkulikov.taskb.feature.task.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.Item
+import com.mkulikov.taskb.feature.item.api.model.Task
+import com.mkulikov.taskb.feature.item.api.model.startDateTime
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 
 internal sealed class CalendarItem {
-    data class TaskItem(val task: Task) : CalendarItem()
+    sealed class Editable(val item: Item) : CalendarItem()
 
-    data class EventItem(val event: Event) : CalendarItem()
+    data class TaskItem(val task: Task) : Editable(item = task)
+
+    data class EventItem(val event: Event) : Editable(item = event)
 
     data class HolidayItem(val holiday: PublicHoliday) : CalendarItem()
 
     val key
         get() = when (this) {
-            is TaskItem -> task.key
-            is EventItem -> "event:${event.key}"
+            is Editable -> item.key
             is HolidayItem -> "holiday:${holiday.id}"
         }
 
@@ -29,43 +31,37 @@ internal sealed class CalendarItem {
 
     val id
         get() = when (this) {
-            is TaskItem -> task.id
-            is EventItem -> event.id
+            is Editable -> item.id
             is HolidayItem -> error(message = "Public holidays have no editable item ID")
         }
 
     val name
         get() = when (this) {
-            is TaskItem -> task.name
-            is EventItem -> event.name
+            is Editable -> item.name
             is HolidayItem -> holiday.name
         }
 
     val description
         get() = when (this) {
-            is TaskItem -> task.description
-            is EventItem -> event.description
+            is Editable -> item.description
             is HolidayItem -> ""
         }
 
     val dueDate
         get() = when (this) {
-            is TaskItem -> task.dueDate
-            is EventItem -> event.dueDate
+            is Editable -> item.dueDate
             is HolidayItem -> holiday.date
         }
 
     val groupId
         get() = when (this) {
-            is TaskItem -> task.groupId
-            is EventItem -> event.groupId
+            is Editable -> item.groupId
             is HolidayItem -> null
         }
 
     val createdAt
         get() = when (this) {
-            is TaskItem -> task.createdAt
-            is EventItem -> event.createdAt
+            is Editable -> item.createdAt
             is HolidayItem -> Instant.fromEpochMilliseconds(epochMilliseconds = 0)
         }
 
@@ -86,8 +82,12 @@ internal sealed class CalendarItem {
 
     fun moveTo(date: LocalDate): CalendarIntent {
         return when (this) {
-            is TaskItem -> CalendarIntent.MoveTask(id = task.id, date = date, occurrenceId = task.occurrenceId)
-            is EventItem -> CalendarIntent.MoveEvent(id = event.id, date = date, occurrenceId = event.occurrenceId)
+            is Editable -> CalendarIntent.MoveItem(
+                id = item.id,
+                type = item.type,
+                date = date,
+                occurrenceId = item.occurrenceId,
+            )
             is HolidayItem -> error(message = "Public holidays cannot be moved")
         }
     }

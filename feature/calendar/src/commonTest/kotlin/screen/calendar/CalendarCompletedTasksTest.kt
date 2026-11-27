@@ -1,10 +1,10 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
-import com.mkulikov.taskb.feature.task.api.model.Task
-import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
-import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.ItemOccurrenceId
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
+import com.mkulikov.taskb.feature.item.api.model.Task
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -16,7 +16,7 @@ import kotlinx.datetime.LocalTime
 class CalendarCompletedTasksTest {
     private val date = LocalDate(year = 2026, month = 11, day = 6)
     private val now = Instant.parse(input = "2026-11-06T12:00:00Z")
-    private val daily = TaskRecurrence(frequency = RecurrenceFrequency.Daily)
+    private val daily = ItemRecurrence(frequency = RecurrenceFrequency.Daily)
 
     @Test
     fun `completed tasks leave all active sections and sort by completion instead of creation or start time`() {
@@ -26,7 +26,7 @@ class CalendarCompletedTasksTest {
         val completedRoutine = routine.copy(
             id = 4,
             completedAt = now - 2.hours,
-            occurrenceId = TaskOccurrenceId(scheduleId = 4, scheduledDate = date),
+            occurrenceId = ItemOccurrenceId(scheduleId = 4, scheduledDate = date),
         )
         val completedEvent = event.copy(id = 5, createdAt = now - 100.hours, completedAt = now - 1.hours)
         val completedTask = task.copy(id = 6, createdAt = now + 1.hours, completedAt = now - 48.hours)

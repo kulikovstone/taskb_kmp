@@ -8,7 +8,7 @@ import androidx.sqlite.execSQL
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
 import com.mkulikov.taskb.core.database.useDatabase
-import com.mkulikov.taskb.feature.task.api.database.TaskEntity
+import com.mkulikov.taskb.feature.item.api.database.TaskEntity
 import java.nio.file.Path
 import kotlin.test.*
 import kotlinx.coroutines.flow.first

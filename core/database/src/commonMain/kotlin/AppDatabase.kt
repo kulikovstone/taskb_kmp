@@ -15,18 +15,14 @@ import com.mkulikov.taskb.core.database.migration.Migration6To7
 import com.mkulikov.taskb.core.database.migration.Migration7To8
 import com.mkulikov.taskb.core.database.migration.Migration8To9
 import com.mkulikov.taskb.core.database.migration.Migration9To10
-import com.mkulikov.taskb.feature.event.api.database.*
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.group.api.database.IGroupDao
 import com.mkulikov.taskb.feature.holiday.api.database.HolidayEntity
 import com.mkulikov.taskb.feature.holiday.api.database.HolidayMonthEntity
 import com.mkulikov.taskb.feature.holiday.api.database.IHolidayDao
+import com.mkulikov.taskb.feature.item.api.database.*
 import com.mkulikov.taskb.feature.settings.api.database.ApplicationSetting
 import com.mkulikov.taskb.feature.settings.api.database.IAppSettingsDao
-import com.mkulikov.taskb.feature.task.api.database.ITaskDao
-import com.mkulikov.taskb.feature.task.api.database.TaskEntity
-import com.mkulikov.taskb.feature.task.api.database.TaskOccurrenceEntity
-import com.mkulikov.taskb.feature.task.api.database.TaskScheduleEntity
 import kotlinx.coroutines.Dispatchers
 
 @Database(

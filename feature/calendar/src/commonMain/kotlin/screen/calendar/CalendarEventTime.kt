@@ -1,8 +1,8 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
-import com.mkulikov.taskb.feature.event.api.model.Event
-import com.mkulikov.taskb.feature.event.api.model.endDateTime
-import com.mkulikov.taskb.feature.event.api.model.startDateTime
+import com.mkulikov.taskb.feature.item.api.model.Event
+import com.mkulikov.taskb.feature.item.api.model.endDateTime
+import com.mkulikov.taskb.feature.item.api.model.startDateTime
 import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
