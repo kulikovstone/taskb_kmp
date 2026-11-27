@@ -28,8 +28,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayContext
+import com.mkulikov.taskb.feature.calendar.component.CalendarDayEntry
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayList
 import com.mkulikov.taskb.feature.calendar.component.CalendarQuickDeleteButton
+import com.mkulikov.taskb.feature.calendar.component.calendarItemCount
 import com.mkulikov.taskb.feature.calendar.component.quickDeleteIntent
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.item.api.model.Task
@@ -55,6 +57,7 @@ internal fun CalendarSidebar(
     drag: CalendarDragState,
     onIntent: (CalendarIntent) -> Unit,
     onOpenItem: (CalendarItem) -> Unit,
+    onFilterByGroup: (Int) -> Unit,
     onOpenFilters: () -> Unit,
     onClearFilter: () -> Unit,
     onClearGroup: () -> Unit,
@@ -144,20 +147,27 @@ internal fun CalendarSidebar(
                     drag = drag,
                     onIntent = onIntent,
                     onOpenTask = onOpenItem,
+                    onFilterByGroup = onFilterByGroup,
                     modifier = Modifier.weight(weight = 1f).fillMaxWidth(),
                 )
             }
             else -> {
-                val tasks = state.filteredTasks(query = query.text.toString(), filter = filter, groupId = groupId)
+                val search = query.text.toString()
+                val tasks = state.filteredTasks(query = search, filter = filter, groupId = groupId)
+                val events = state.filteredGroupEvents(query = search, filter = filter, groupId = groupId)
                 Text(
-                    text = "${tasks.size} ${if (tasks.size == 1) "task" else "tasks"}",
+                    text = calendarItemCount(taskCount = tasks.size, eventCount = events.size),
                     modifier = Modifier.padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 8.dp),
                     color = colors.muted,
                     style = TaskBTheme.typography.small,
                 )
-                if (tasks.isEmpty()) {
+                if (tasks.isEmpty() && events.isEmpty()) {
                     Text(
-                        text = "No tasks to show.",
+                        text = if (date != null && groupId != null && filter == null) {
+                            "No tasks or events to show."
+                        } else {
+                            "No tasks to show."
+                        },
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                         color = colors.muted,
                         style = TaskBTheme.typography.body,
@@ -171,6 +181,16 @@ internal fun CalendarSidebar(
                             modifier = Modifier.fillMaxSize().testTag(tag = "calendar-task-list"),
                             contentPadding = PaddingValues(bottom = 12.dp),
                         ) {
+                            items(items = events, key = CalendarItem::key) { item ->
+                                CalendarDayEntry(
+                                    item = item,
+                                    state = state,
+                                    drag = drag,
+                                    onIntent = onIntent,
+                                    onOpenTask = onOpenItem,
+                                    onFilterByGroup = onFilterByGroup,
+                                )
+                            }
                             items(items = tasks, key = Task::key) { task ->
                                 val item = CalendarItem.TaskItem(task = task)
                                 CalendarTaskRow(
@@ -180,6 +200,7 @@ internal fun CalendarSidebar(
                                     enabled = task.id !in state.pendingTaskUpdates && state.pendingMove == null,
                                     drag = drag,
                                     onIntent = onIntent,
+                                    onFilterByGroup = onFilterByGroup,
                                     onOpen = { onOpenItem(item) },
                                 )
                             }
@@ -248,6 +269,7 @@ private fun CalendarTaskRow(
     drag: CalendarDragState,
     onIntent: (CalendarIntent) -> Unit,
     onOpen: () -> Unit,
+    onFilterByGroup: (Int) -> Unit,
 ) {
     val task = item.task
     val colors = TaskBTheme.colors
@@ -332,25 +354,9 @@ private fun CalendarTaskRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
             ) {
-                Row(
-                    modifier = Modifier.weight(weight = 1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
-                ) {
+                Box(modifier = Modifier.weight(weight = 1f)) {
                     if (group != null) {
-                        Icon(
-                            imageVector = TaskBIcons.FolderFilled,
-                            contentDescription = null,
-                            tint = group.color.color,
-                            modifier = Modifier.size(size = 14.dp),
-                        )
-                        Text(
-                            text = group.name,
-                            color = colors.muted,
-                            style = TaskBTheme.typography.small,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        CalendarGroupLabel(group = group, enabled = enabled, onFilterByGroup = onFilterByGroup)
                     }
                 }
                 if (!task.isCompleted) {
@@ -358,6 +364,9 @@ private fun CalendarTaskRow(
                         Text(
                             text = if (date.year == today.year) taskDateLabel.format(value = date) else {
                                 calendarSidebarDateLabel.format(value = date)
+                            },
+                            modifier = Modifier.quickFilterClick(enabled = enabled, onClickLabel = "Filter by date") {
+                                onIntent(CalendarIntent.FilterByDate(date = date))
                             },
                             color = if (date < today) colors.danger else colors.muted,
                             style = TaskBTheme.typography.small,

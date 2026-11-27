@@ -8,6 +8,7 @@ import com.mkulikov.taskb.feature.item.api.model.Task
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
@@ -100,34 +101,72 @@ class CalendarEventTimeTest {
     }
 
     @Test
+    fun `group and date filters keep ongoing events from the selected group`() {
+        val date = LocalDate(year = 2026, month = 11, day = 7)
+        val event = trip.copy(groupId = 7)
+        val state = CalendarState(
+            today = start,
+            selectedDate = date,
+            events = listOf(
+                event,
+                event.copy(id = 2, groupId = 8),
+                event.copy(id = 3, name = "Lunch"),
+                event.copy(id = 4, dueDate = date, durationMinutes = 30),
+                event.copy(id = 5, durationMinutes = 30),
+            ),
+        )
+        val result = state.filteredGroupEvents(query = " TRIP ", filter = null, groupId = 7)
+        assertEquals(expected = listOf(1, 4), actual = result.map(transform = CalendarItem::id))
+        val directory = state.copy(selectedDate = null)
+        assertTrue(actual = directory.filteredGroupEvents(query = "", filter = null, groupId = 7).isEmpty())
+    }
+
+    @Test
     fun `time ranges include duration and dates only when needed`() {
         assertEquals(
             expected = "6 Nov, 18:00–9 Nov, 10:00 (2 days 16 hr)",
-            actual = calendarEventTimeRange(task = trip),
+            actual = calendarEventTimeRange(task = trip).text,
         )
         assertEquals(
             expected = "12:00–13:00 (1 hour)",
             actual = calendarEventTimeRange(
                 task = trip.copy(startTime = LocalTime(hour = 12, minute = 0), durationMinutes = 60)
-            ),
+            ).text,
         )
         assertEquals(
             expected = "15:00–15:30 (30 min)",
             actual = calendarEventTimeRange(
                 task = trip.copy(startTime = LocalTime(hour = 15, minute = 0), durationMinutes = 30)
-            ),
+            ).text,
         )
         assertEquals(
             expected = "18:00–19:00 (1 hour)",
-            actual = calendarEventTimeRange(task = trip.copy(durationMinutes = null)),
+            actual = calendarEventTimeRange(task = trip.copy(durationMinutes = null)).text,
         )
         assertEquals(
             expected = "31 Dec 2026, 18:00–1 Jan 2027, 18:00 (1 day)",
             actual = calendarEventTimeRange(
                 task = trip.copy(dueDate = LocalDate(year = 2026, month = 12, day = 31), durationMinutes = 1440)
-            ),
+            ).text,
         )
         assertEquals(expected = "2 hr 5 min", actual = calendarEventDuration(minutes = 125))
+    }
+
+    @Test
+    fun `each date in an event range selects its own day across years`() {
+        val departure = LocalDate(year = 2026, month = 12, day = 31)
+        val arrival = LocalDate(year = 2027, month = 1, day = 1)
+        val selected = mutableListOf<LocalDate>()
+        val range = calendarEventTimeRange(
+            task = trip.copy(dueDate = departure, durationMinutes = 1440),
+            onFilterByDate = selected::add,
+        )
+        for (date in listOf("31 Dec 2026", "1 Jan 2027")) {
+            val offset = range.text.indexOf(string = date)
+            val link = range.getLinkAnnotations(start = offset, end = offset + date.length).single().item
+            assertNotNull(actual = link.linkInteractionListener).onClick(link = link)
+        }
+        assertEquals(expected = listOf(departure, arrival), actual = selected)
     }
 
     @Test

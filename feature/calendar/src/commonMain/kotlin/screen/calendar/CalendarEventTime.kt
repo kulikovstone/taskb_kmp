@@ -1,5 +1,11 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import com.mkulikov.taskb.feature.item.api.model.Event
 import com.mkulikov.taskb.feature.item.api.model.endDateTime
 import com.mkulikov.taskb.feature.item.api.model.startDateTime
@@ -69,23 +75,38 @@ internal fun calendarMonthEventText(task: Event, date: LocalDate?, endTimeFirst:
     return task.name
 }
 
-internal fun calendarEventTimeRange(task: Event): String {
-    val start = task.startDateTime ?: return ""
+internal fun calendarEventTimeRange(
+    task: Event,
+    timeColor: Color = Color.Unspecified,
+    onFilterByDate: ((LocalDate) -> Unit)? = null,
+): AnnotatedString = buildAnnotatedString {
+    val start = task.startDateTime ?: return@buildAnnotatedString
     val end = task.endDateTime
-    val range = when {
-        end == null -> start.time.calendarTimeLabel()
-        start.date == end.date -> "${start.time.calendarTimeLabel()}–${end.time.calendarTimeLabel()}"
-        else -> {
-            fun dateLabel(date: LocalDate): String {
-                return eventDateLabel.format(value = date) +
-                    if (start.year != end.year) " ${date.year}" else ""
-            }
-            ("${dateLabel(date = start.date)}, " +
-                "${start.time.calendarTimeLabel()}–${dateLabel(date = end.date)}, " +
-                end.time.calendarTimeLabel())
+    val showDates = end != null && start.date != end.date
+
+    fun appendDate(date: LocalDate) {
+        val from = length
+        append(text = eventDateLabel.format(value = date))
+        if (end != null && start.year != end.year) append(text = " ${date.year}")
+        if (onFilterByDate != null) {
+            addLink(
+                clickable = LinkAnnotation.Clickable(tag = date.toString()) { _ -> onFilterByDate(date) },
+                start = from,
+                end = length,
+            )
         }
+        append(text = ", ")
     }
-    return "$range (${calendarEventDuration(minutes = task.durationMinutes ?: 60)})"
+
+    val clockStyle = SpanStyle(color = timeColor)
+    if (showDates) appendDate(date = start.date)
+    withStyle(style = clockStyle) { append(text = start.time.calendarTimeLabel()) }
+    if (end != null) {
+        append(text = "–")
+        if (showDates) appendDate(date = end.date)
+        withStyle(style = clockStyle) { append(text = end.time.calendarTimeLabel()) }
+    }
+    append(text = " (${calendarEventDuration(minutes = task.durationMinutes ?: 60)})")
 }
 
 internal fun calendarEventDuration(minutes: Int): String {

@@ -75,6 +75,8 @@ internal fun CalendarTaskRow(
     today: LocalDate = now.toLocalDateTime(timeZone = TimeZone.currentSystemDefault()).date,
     contentPadding: PaddingValues = PaddingValues(all = 0.dp),
     onQuickDelete: (() -> Unit)? = null,
+    onFilterByGroup: ((Int) -> Unit)? = null,
+    onFilterByDate: ((LocalDate) -> Unit)? = null,
 ) {
     if (task is CalendarItem.HolidayItem) {
         CalendarHolidayRow(
@@ -91,6 +93,8 @@ internal fun CalendarTaskRow(
             event = task.event,
             group = group,
             onOpenEvent = onOpenTask,
+            onFilterByGroup = onFilterByGroup,
+            onFilterByDate = onFilterByDate,
             modifier = modifier,
             dense = dense,
             enabled = enabled,
@@ -224,25 +228,14 @@ internal fun CalendarTaskRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                if (!dense && group != null)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
-                    ) {
-                        Icon(
-                            imageVector = TaskBIcons.FolderFilled,
-                            contentDescription = null,
-                            tint = group.color.color,
-                            modifier = Modifier.size(size = 14.dp),
-                        )
-                        Text(
-                            text = group.name,
-                            color = colors.muted,
-                            style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                if (!dense && group != null) {
+                    CalendarGroupLabel(
+                        group = group,
+                        enabled = enabled,
+                        onFilterByGroup = onFilterByGroup,
+                        style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
+                    )
+                }
             }
             if (onQuickDelete != null) {
                 CalendarQuickDeleteButton(

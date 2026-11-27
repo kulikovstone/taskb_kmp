@@ -190,6 +190,31 @@ class CalendarStoreTest {
     }
 
     @Test
+    fun `filtering by an item date selects its day and opens its month across years`(): TestResult {
+        return runTest {
+            val date = LocalDate(year = 2027, month = 1, day = 4)
+            val task = Task(id = 1, name = "Appointment", dueDate = date, groupId = 7)
+            CalendarStore(
+                repository = Tasks(tasks = listOf(element = task)),
+                groups = Groups(),
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                today = { today },
+            ).use { store ->
+                store.accept(intent = CalendarIntent.ShowUnscheduled)
+                store.accept(intent = CalendarIntent.FilterByDate(date = date))
+                runCurrent()
+                val state = store.state.value
+                assertEquals(expected = date, actual = state.selectedDate)
+                assertEquals(expected = YearMonth(year = 2027, month = 1), actual = state.month)
+                assertEquals(
+                    expected = listOf(element = task),
+                    actual = state.filteredTasks(query = "appoint", filter = null, groupId = 7),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `day selection exits unscheduled and today restores the date and month without timer resets`(): TestResult {
         return runTest {
             var date = today

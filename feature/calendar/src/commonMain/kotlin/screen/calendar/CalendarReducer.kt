@@ -45,7 +45,7 @@ internal sealed interface CalendarMessage {
 
     data class Month(val value: YearMonth) : CalendarMessage
 
-    data class SelectedDate(val value: LocalDate?) : CalendarMessage
+    data class SelectedDate(val value: LocalDate?, val showMonth: Boolean = false) : CalendarMessage
 
     data class Today(val value: LocalDate, val now: Instant) : CalendarMessage
 
@@ -100,7 +100,10 @@ internal fun reduceCalendar(state: CalendarState, message: CalendarMessage): Cal
             loadError = null,
         )
         is CalendarMessage.Month -> state.copy(month = message.value)
-        is CalendarMessage.SelectedDate -> state.copy(selectedDate = message.value)
+        is CalendarMessage.SelectedDate -> state.copy(
+            selectedDate = message.value,
+            month = if (message.showMonth && message.value != null) message.value.yearMonth else state.month,
+        )
         is CalendarMessage.Today -> state.copy(today = message.value, now = message.now)
         is CalendarMessage.Moving -> state.copy(
             pendingMove = message.id,

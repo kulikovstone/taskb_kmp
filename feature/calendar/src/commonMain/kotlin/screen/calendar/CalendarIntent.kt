@@ -24,6 +24,8 @@ internal sealed interface CalendarIntent {
 
     data class SelectDay(val date: LocalDate) : CalendarIntent
 
+    data class FilterByDate(val date: LocalDate) : CalendarIntent
+
     data object ShowUnscheduled : CalendarIntent
 
     data object RetryLoad : CalendarIntent

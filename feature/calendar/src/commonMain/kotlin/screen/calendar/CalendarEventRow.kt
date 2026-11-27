@@ -8,11 +8,9 @@ import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
@@ -27,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.item.api.model.Event
 import com.mkulikov.taskb.feature.item.api.model.startDateTime
-import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
@@ -39,6 +36,8 @@ internal fun CalendarEventRow(
     event: Event,
     group: Group?,
     onOpenEvent: (Int) -> Unit,
+    onFilterByGroup: ((Int) -> Unit)?,
+    onFilterByDate: ((LocalDate) -> Unit)?,
     modifier: Modifier,
     dense: Boolean,
     enabled: Boolean,
@@ -115,19 +114,12 @@ internal fun CalendarEventRow(
                 verticalArrangement = Arrangement.spacedBy(space = 2.dp),
             ) {
                 if (hasTime) {
-                    val range = calendarEventTimeRange(task = event)
-                    val text = buildAnnotatedString {
-                        append(text = range)
-                        for (clock in Regex(pattern = "\\b\\d{1,2}:\\d{2}\\b").findAll(input = range)) {
-                            addStyle(
-                                style = SpanStyle(color = timeColor),
-                                start = clock.range.first,
-                                end = clock.range.last + 1,
-                            )
-                        }
-                    }
                     Text(
-                        text = text,
+                        text = calendarEventTimeRange(
+                            task = event,
+                            timeColor = timeColor,
+                            onFilterByDate = if (enabled) onFilterByDate else null,
+                        ),
                         modifier = Modifier.fillMaxWidth().testTag(tag = "calendar-event-time-${event.key}"),
                         color = secondaryColor,
                         style = TaskBTheme.typography.label.copy(lineHeightStyle = lineHeight),
@@ -150,25 +142,14 @@ internal fun CalendarEventRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                if (group != null)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
-                    ) {
-                        Icon(
-                            imageVector = TaskBIcons.FolderFilled,
-                            contentDescription = null,
-                            tint = group.color.color,
-                            modifier = Modifier.size(size = 14.dp),
-                        )
-                        Text(
-                            text = group.name,
-                            color = colors.muted,
-                            style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeight),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                if (group != null) {
+                    CalendarGroupLabel(
+                        group = group,
+                        enabled = enabled,
+                        onFilterByGroup = onFilterByGroup,
+                        style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeight),
+                    )
+                }
             }
         }
     }

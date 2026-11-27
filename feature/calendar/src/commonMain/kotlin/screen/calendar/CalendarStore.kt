@@ -126,10 +126,12 @@ internal class CalendarStore(
             CalendarIntent.Today -> {
                 val date = today()
                 reduce(message = CalendarMessage.Today(value = date, now = clock.now()))
-                reduce(message = CalendarMessage.Month(value = date.yearMonth))
-                reduce(message = CalendarMessage.SelectedDate(value = date))
+                reduce(message = CalendarMessage.SelectedDate(value = date, showMonth = true))
             }
             is CalendarIntent.SelectDay -> reduce(message = CalendarMessage.SelectedDate(value = intent.date))
+            is CalendarIntent.FilterByDate -> reduce(
+                message = CalendarMessage.SelectedDate(value = intent.date, showMonth = true)
+            )
             CalendarIntent.ShowUnscheduled -> reduce(message = CalendarMessage.SelectedDate(value = null))
             CalendarIntent.DismissError -> reduce(message = CalendarMessage.DismissError)
             CalendarIntent.DismissMoveChoice -> reduce(message = CalendarMessage.MoveChoice(value = null))

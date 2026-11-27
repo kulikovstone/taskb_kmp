@@ -35,6 +35,13 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 internal val calendarSidebarTaskPadding = PaddingValues(horizontal = 24.dp)
 
+internal fun calendarItemCount(taskCount: Int, eventCount: Int, holidayCount: Int = 0): String = buildList {
+    if (taskCount > 0 || eventCount == 0 && holidayCount == 0)
+        add(element = "$taskCount ${if (taskCount == 1) "task" else "tasks"}")
+    if (eventCount > 0) add(element = "$eventCount ${if (eventCount == 1) "event" else "events"}")
+    if (holidayCount > 0) add(element = "$holidayCount ${if (holidayCount == 1) "holiday" else "holidays"}")
+}.joinToString(separator = " · ")
+
 @Composable
 internal fun CalendarDayContext(state: CalendarState, modifier: Modifier = Modifier) {
     val tasks = state.sidebarItems
@@ -42,13 +49,7 @@ internal fun CalendarDayContext(state: CalendarState, modifier: Modifier = Modif
     val taskCount = tasks.count { item -> item is CalendarItem.TaskItem }
     val eventCount = tasks.count(predicate = CalendarItem::isEvent)
     val holidayCount = tasks.count(predicate = CalendarItem::isHoliday)
-    val count = buildList {
-        if (taskCount > 0 || eventCount == 0 && holidayCount == 0)
-            add(element = "$taskCount ${if (taskCount == 1) "task" else "tasks"}")
-        if (eventCount > 0) add(element = "$eventCount ${if (eventCount == 1) "event" else "events"}")
-        if (holidayCount > 0) add(element = "$holidayCount ${if (holidayCount == 1) "holiday" else "holidays"}")
-    }
-        .joinToString(separator = " · ")
+    val count = calendarItemCount(taskCount = taskCount, eventCount = eventCount, holidayCount = holidayCount)
     val context = if (date == null) {
         count
     } else {
@@ -77,6 +78,7 @@ internal fun CalendarDayList(
     state: CalendarState,
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
+    onFilterByGroup: (Int) -> Unit,
     modifier: Modifier = Modifier,
     drag: CalendarDragState,
 ) {
@@ -87,6 +89,16 @@ internal fun CalendarDayList(
     val mainTasks = state.sidebarMainTaskItems
     val completed = state.sidebarCompletedItems
     val isDayCompleted = state.isSelectedDayCompleted
+    val entry: @Composable (CalendarItem) -> Unit = { item ->
+        CalendarDayEntry(
+            item = item,
+            state = state,
+            drag = drag,
+            onIntent = onIntent,
+            onOpenTask = onOpenTask,
+            onFilterByGroup = onFilterByGroup,
+        )
+    }
     val sectionGap = 16.dp
     var recurringExpanded by remember(key1 = date) { mutableStateOf(value = true) }
     var eventsExpanded by remember(key1 = date) { mutableStateOf(value = true) }
@@ -133,13 +145,7 @@ internal fun CalendarDayList(
                         if (recurringExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
                     }
                 if (recurringExpanded)
-                    calendarDayEntries(
-                        entries = recurring,
-                        state = state,
-                        drag = drag,
-                        onIntent = onIntent,
-                        onOpenTask = onOpenTask,
-                    )
+                    calendarDayEntries(entries = recurring, entry = entry)
                 if (events.isNotEmpty())
                     item(key = "events-heading") {
                         if (recurring.isNotEmpty()) Spacer(modifier = Modifier.height(height = sectionGap))
@@ -154,14 +160,7 @@ internal fun CalendarDayList(
                         if (eventsExpanded) Spacer(modifier = Modifier.height(height = 4.dp))
                     }
                 if (eventsExpanded)
-                    calendarDayEntries(
-                        entries = events,
-                        state = state,
-                        drag = drag,
-                        onIntent = onIntent,
-                        onOpenTask = onOpenTask,
-                        eventSpacing = true,
-                    )
+                    calendarDayEntries(entries = events, entry = entry, eventSpacing = true)
                 if (mainTasks.isNotEmpty())
                     item(key = "tasks-heading") {
                         if (events.isNotEmpty()) {
@@ -181,13 +180,7 @@ internal fun CalendarDayList(
                         if (tasksExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
                     }
                 if (tasksExpanded)
-                    calendarDayEntries(
-                        entries = mainTasks,
-                        state = state,
-                        drag = drag,
-                        onIntent = onIntent,
-                        onOpenTask = onOpenTask,
-                    )
+                    calendarDayEntries(entries = mainTasks, entry = entry)
                 if (completed.isNotEmpty())
                     item(key = "completed-heading") {
                         if (mainTasks.isNotEmpty()) {
@@ -209,13 +202,7 @@ internal fun CalendarDayList(
                         if (completedExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
                     }
                 if (completedExpanded)
-                    calendarDayEntries(
-                        entries = completed,
-                        state = state,
-                        drag = drag,
-                        onIntent = onIntent,
-                        onOpenTask = onOpenTask,
-                    )
+                    calendarDayEntries(entries = completed, entry = entry)
             }
             if (scroll.canScrollForward || scroll.canScrollBackward)
                 TaskBVerticalScrollbar(state = scroll, modifier = Modifier.fillMaxHeight())
@@ -225,20 +212,11 @@ internal fun CalendarDayList(
 
 private fun LazyListScope.calendarDayEntries(
     entries: List<CalendarItem>,
-    state: CalendarState,
-    drag: CalendarDragState,
-    onIntent: (CalendarIntent) -> Unit,
-    onOpenTask: (CalendarItem) -> Unit,
+    entry: @Composable (CalendarItem) -> Unit,
     eventSpacing: Boolean = false,
 ) {
     items(items = entries, key = CalendarItem::key) { item ->
-        CalendarDayEntry(
-            item = item,
-            state = state,
-            drag = drag,
-            onIntent = onIntent,
-            onOpenTask = onOpenTask,
-        )
+        entry(item)
         if (eventSpacing) {
             Spacer(modifier = Modifier.height(height = 4.dp))
         }
@@ -246,12 +224,13 @@ private fun LazyListScope.calendarDayEntries(
 }
 
 @Composable
-private fun CalendarDayEntry(
+internal fun CalendarDayEntry(
     item: CalendarItem,
     state: CalendarState,
     drag: CalendarDragState,
     onIntent: (CalendarIntent) -> Unit,
     onOpenTask: (CalendarItem) -> Unit,
+    onFilterByGroup: (Int) -> Unit,
 ) {
     val date = state.selectedDate ?: item.dueDate
     val quickDelete = (item as? CalendarItem.TaskItem)?.task?.quickDeleteIntent()
@@ -263,6 +242,8 @@ private fun CalendarDayEntry(
         task = item,
         group = state.groups.find { group -> group.id == item.groupId },
         onOpenTask = { onOpenTask(item) },
+        onFilterByGroup = onFilterByGroup,
+        onFilterByDate = { selected -> onIntent(CalendarIntent.FilterByDate(date = selected)) },
         onToggle = { taskId ->
             onIntent(CalendarIntent.ToggleCompleted(id = taskId, occurrenceId = item.occurrenceId))
         },

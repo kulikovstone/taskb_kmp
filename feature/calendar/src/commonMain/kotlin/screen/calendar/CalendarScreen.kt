@@ -48,7 +48,7 @@ internal fun CalendarScreen(
                 filter = null
                 groupId = null
             }
-            CalendarIntent.Today -> filter = null
+            CalendarIntent.Today, is CalendarIntent.FilterByDate -> filter = null
             else -> Unit
         }
         onIntent(intent)
@@ -83,7 +83,8 @@ internal fun CalendarScreen(
                     groupId = activeGroupId,
                     group = group,
                     drag = drag,
-                    onIntent = onIntent,
+                    onIntent = calendarAction,
+                    onFilterByGroup = { id -> groupId = id },
                     onOpenItem = onOpenItem,
                     onOpenFilters = { showFilters = true },
                     onClearFilter = { filter = null },

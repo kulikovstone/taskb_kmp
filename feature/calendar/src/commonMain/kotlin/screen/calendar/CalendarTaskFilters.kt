@@ -29,3 +29,15 @@ internal fun CalendarState.filteredTasks(query: String, filter: TaskFilter?, gro
             .thenByDescending(selector = Task::id),
     )
 }
+
+internal fun CalendarState.filteredGroupEvents(
+    query: String,
+    filter: TaskFilter?,
+    groupId: Int?,
+): List<CalendarItem.EventItem> {
+    if (selectedDate == null || groupId == null || filter != null) return emptyList()
+    val search = query.trim()
+    return sidebarEventItems.filterIsInstance<CalendarItem.EventItem>().filter { item ->
+        (item.groupId ?: noGroupFilterId) == groupId && item.name.contains(other = search, ignoreCase = true)
+    }
+}
