@@ -20,7 +20,6 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 @Composable
 internal fun HomeScreen(
     appVersion: String,
-    onTasksClick: () -> Unit,
     onGroupsClick: () -> Unit,
     onCalendarClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
@@ -32,7 +31,6 @@ internal fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TaskBButton(label = "Groups", onClick = onGroupsClick)
-            TaskBButton(label = "Tasks", onClick = onTasksClick)
             TaskBButton(label = "Calendar", onClick = onCalendarClick)
             TaskBButton(label = "Settings", onClick = onSettingsClick)
         }
@@ -53,7 +51,6 @@ private fun HomeScreenPreview() {
         Surface(color = TaskBTheme.colors.surface) {
             HomeScreen(
                 appVersion = "Preview",
-                onTasksClick = {},
                 onGroupsClick = {},
                 onCalendarClick = {},
             )

@@ -12,7 +12,6 @@ kotlin {
             implementation(project(":feature:calendar:api"))
             implementation(project(":feature:group:api"))
             implementation(project(":feature:home:api"))
-            implementation(project(":feature:item:api"))
             implementation(project(":feature:settings:api"))
             implementation(project(":ui"))
         }
