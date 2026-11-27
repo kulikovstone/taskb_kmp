@@ -117,7 +117,7 @@ private fun TaskBTextFieldContainer(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (search) {
+                if (search && !focused) {
                     Icon(
                         imageVector = TaskBIcons.Search,
                         contentDescription = null,
@@ -133,7 +133,7 @@ private fun TaskBTextFieldContainer(
                 }
             }
         }
-        if (showClear && focused && value.isNotEmpty()) {
+        if (showClear && value.isNotEmpty() && (search || focused)) {
             Spacer(modifier = Modifier.width(width = 8.dp))
             Box(
                 modifier = Modifier
