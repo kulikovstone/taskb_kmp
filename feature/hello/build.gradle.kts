@@ -11,7 +11,7 @@ kotlin {
 
             implementation(project(":core:navigation"))
             implementation(project(":feature:hello:api"))
-            implementation(project(":feature:home:api"))
+            implementation(project(":feature:calendar:api"))
             implementation(project(":ui"))
         }
     }

@@ -31,7 +31,7 @@ import kotlinx.datetime.plus
 internal fun CalendarScreen(
     state: CalendarState,
     onIntent: (CalendarIntent) -> Unit,
-    onBack: () -> Unit,
+    onOpenGroups: () -> Unit,
     onOpenSettings: () -> Unit,
     onCreateItem: (LocalDate?, Int?) -> Unit,
     onOpenItem: (CalendarItem) -> Unit,
@@ -66,7 +66,7 @@ internal fun CalendarScreen(
             CalendarTopBar(
                 state = state,
                 onIntent = calendarAction,
-                onBack = onBack,
+                onOpenGroups = onOpenGroups,
                 onOpenSettings = onOpenSettings,
             )
             Row(modifier = Modifier.weight(weight = 1f).fillMaxWidth()) {
@@ -139,7 +139,7 @@ internal fun CalendarScreen(
 private fun CalendarTopBar(
     state: CalendarState,
     onIntent: (CalendarIntent) -> Unit,
-    onBack: () -> Unit,
+    onOpenGroups: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val colors = TaskBTheme.colors
@@ -150,11 +150,8 @@ private fun CalendarTopBar(
             .padding(start = 16.dp, end = 32.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(size = 48.dp)) {
-            Icon(imageVector = TaskBIcons.Back, contentDescription = "Back", tint = colors.heading)
-        }
         Row(
-            modifier = Modifier.weight(weight = 1f).padding(start = 8.dp),
+            modifier = Modifier.weight(weight = 1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
         ) {
@@ -167,6 +164,9 @@ private fun CalendarTopBar(
                 overflow = TextOverflow.Ellipsis,
             )
             CalendarDateNavigation(onIntent = onIntent)
+        }
+        IconButton(onClick = onOpenGroups, modifier = Modifier.size(size = 48.dp)) {
+            Icon(imageVector = TaskBIcons.Folder, contentDescription = "Groups", tint = colors.accent)
         }
         IconButton(onClick = onOpenSettings, modifier = Modifier.size(size = 48.dp)) {
             Icon(imageVector = TaskBIcons.Settings, contentDescription = "Settings", tint = colors.accent)
@@ -182,7 +182,7 @@ private fun CalendarScreenPreview() {
         CalendarScreen(
             state = state.copy(taskList = state.tasks),
             onIntent = {},
-            onBack = {},
+            onOpenGroups = {},
             onOpenSettings = {},
             onCreateItem = { _, _ -> },
             onOpenItem = {},

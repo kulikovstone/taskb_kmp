@@ -18,7 +18,7 @@ internal class HomeNavEntry(private val appVersion: String) : INavEntry {
                 appVersion = appVersion,
                 onTasksClick = { navigator.navigate(key = TaskRoute) },
                 onGroupsClick = { navigator.navigate(key = GroupsRoute) },
-                onCalendarClick = { navigator.navigate(key = CalendarRoute) },
+                onCalendarClick = { navigator.replaceAll(key = CalendarRoute) },
                 onSettingsClick = { navigator.navigate(key = SettingsRoute) },
             )
         }

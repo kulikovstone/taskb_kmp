@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import com.mkulikov.taskb.core.navigation.AppRoot
 import com.mkulikov.taskb.feature.hello.api.HelloRoute
-import com.mkulikov.taskb.feature.home.api.HomeRoute
+import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.CancellationException
@@ -35,7 +35,7 @@ internal fun TaskBApp(settings: IAppSettings) {
             initialError = "Couldn't read settings."
             true
         }
-        startDestination = if (showWelcomeScreen) HelloRoute(initialError = initialError) else HomeRoute
+        startDestination = if (showWelcomeScreen) HelloRoute(initialError = initialError) else CalendarRoute
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {

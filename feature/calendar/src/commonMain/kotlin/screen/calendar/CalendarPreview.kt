@@ -304,7 +304,7 @@ private fun CalendarCompletedDayPreview() {
         CalendarScreen(
             state = state,
             onIntent = {},
-            onBack = {},
+            onOpenGroups = {},
             onOpenItem = {},
             onCreateItem = { _, _ -> },
             onOpenSettings = {},

@@ -13,6 +13,7 @@ import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarItem
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarScreen
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarStore
 import com.mkulikov.taskb.feature.event.api.EventEditorRoute
+import com.mkulikov.taskb.feature.group.api.GroupsRoute
 import com.mkulikov.taskb.feature.settings.api.SettingsRoute
 import com.mkulikov.taskb.feature.task.api.TaskCreationRoute
 import com.mkulikov.taskb.feature.task.api.TaskEditorRoute
@@ -26,7 +27,7 @@ internal class CalendarNavEntry : INavEntry {
             CalendarScreen(
                 state = state,
                 onIntent = store::accept,
-                onBack = navigator::back,
+                onOpenGroups = { navigator.navigate(key = GroupsRoute) },
                 onOpenSettings = { navigator.navigate(key = SettingsRoute) },
                 onCreateItem = { date, groupId ->
                     navigator.navigate(key = TaskCreationRoute(initialDate = date, initialGroupId = groupId))
