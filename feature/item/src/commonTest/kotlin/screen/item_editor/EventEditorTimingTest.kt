@@ -36,6 +36,7 @@ class EventEditorTimingTest {
         return runTest {
             val repo = FakeEventRepository()
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = repo,
                     groups = FakeGroupRepository(),
@@ -63,6 +64,7 @@ class EventEditorTimingTest {
         return runTest {
             val repo = FakeEventRepository()
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = repo,
                     groups = FakeGroupRepository(),
@@ -91,6 +93,7 @@ class EventEditorTimingTest {
     fun `quick intervals set the actual endpoint and changing start time preserves the interval`(): TestResult {
         return runTest {
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
@@ -118,6 +121,7 @@ class EventEditorTimingTest {
         return runTest {
             val repo = FakeEventRepository()
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = repo,
                     groups = FakeGroupRepository(),
@@ -147,6 +151,7 @@ class EventEditorTimingTest {
     fun `changing the start date moves the inclusive date range and clearing time keeps it`(): TestResult {
         return runTest {
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
@@ -189,6 +194,7 @@ class EventEditorTimingTest {
     fun `endpoints before or equal to the start block saving until corrected`(): TestResult {
         return runTest {
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
@@ -238,6 +244,7 @@ class EventEditorTimingTest {
                 )) {
                 val repo = FakeEventRepository().apply { values.value = listOf(element = original) }
                 ItemEditorStore(
+                        lastSelectedGroupId = { null },
                         tasks = FakeTaskRepository(),
                         events = repo,
                         groups = FakeGroupRepository(),
@@ -264,6 +271,7 @@ class EventEditorTimingTest {
                 values.value = listOf(element = Event(id = 7, name = "Unscheduled"))
             }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = repo,
                     groups = FakeGroupRepository(),
@@ -293,6 +301,7 @@ class EventEditorTimingTest {
             )
             val repo = FakeEventRepository().apply { values.value = listOf(element = original) }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = FakeTaskRepository(),
                     events = repo,
                     groups = FakeGroupRepository(),

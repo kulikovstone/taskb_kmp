@@ -368,6 +368,10 @@ class AppLocationEnrichmentTest {
 
         override suspend fun getValue(key: String) = values[key]
 
+        override suspend fun deleteValue(key: String) {
+            values.remove(key = key)
+        }
+
         override suspend fun upsert(setting: ApplicationSetting) {
             values[setting.key] = setting.value
         }

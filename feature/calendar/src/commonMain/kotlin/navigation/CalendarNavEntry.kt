@@ -27,9 +27,7 @@ internal class CalendarNavEntry : INavEntry {
                 onIntent = store::accept,
                 onOpenGroups = { navigator.navigate(key = GroupsRoute) },
                 onOpenSettings = { navigator.navigate(key = SettingsRoute) },
-                onCreateItem = { date, groupId ->
-                    navigator.navigate(key = ItemEditorRoute(initialDate = date, initialGroupId = groupId))
-                },
+                onCreateItem = navigator::navigate,
                 onOpenItem = { item ->
                     when (item) {
                         is CalendarItem.Editable -> navigator.navigate(

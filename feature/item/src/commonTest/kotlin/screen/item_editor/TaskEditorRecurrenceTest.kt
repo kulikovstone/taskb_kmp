@@ -21,6 +21,7 @@ class TaskEditorRecurrenceTest {
         return runTest {
             val repo = FakeTaskRepository()
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
@@ -85,6 +86,7 @@ class TaskEditorRecurrenceTest {
                 )
             }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
@@ -107,6 +109,7 @@ class TaskEditorRecurrenceTest {
                     assertTrue(actual = store.state.value.isFinished)
                 }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
@@ -145,6 +148,7 @@ class TaskEditorRecurrenceTest {
                 )
             }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = FakeGroupRepository(),

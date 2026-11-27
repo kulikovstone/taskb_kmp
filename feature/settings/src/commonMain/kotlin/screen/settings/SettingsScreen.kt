@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
+import com.mkulikov.taskb.ui.component.TaskBOptionSwitch
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -149,6 +150,34 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
                         color = colors.muted,
                     )
                     Spacer(modifier = Modifier.height(height = 8.dp))
+                    Text(text = "Miscellaneous", style = TaskBTheme.typography.section, color = colors.heading)
+                    if (state.rememberLastGroup != null) {
+                        TaskBOptionSwitch(
+                            label = "Remember last selected group",
+                            checked = state.rememberLastGroup,
+                            enabled = !state.isUpdatingGroupSetting,
+                            minHeight = if (wide) 36.dp else 48.dp,
+                            onCheckedChange = { enabled ->
+                                onIntent(SettingsIntent.SetRememberLastGroup(enabled = enabled))
+                            },
+                        )
+                    } else if (!state.groupSettingError) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = colors.accent)
+                    }
+                    if (state.groupSettingError) {
+                        val message = if (state.rememberLastGroup == null) {
+                            "Couldn't load this setting."
+                        } else {
+                            "Couldn't save this setting. Please try again."
+                        }
+                        Text(text = message, color = colors.danger, style = TaskBTheme.typography.body)
+                        if (state.rememberLastGroup == null) {
+                            TextButton(onClick = { onIntent(SettingsIntent.LoadGroupSetting) }) {
+                                Text(text = "Try again", color = colors.accent)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(height = 8.dp))
                     Text(text = "Data sources", style = TaskBTheme.typography.section, color = colors.heading)
                     Column(verticalArrangement = Arrangement.spacedBy(space = 6.dp)) {
                         Text(
@@ -189,7 +218,11 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
 @Composable
 private fun SettingsPreview() {
     TaskBTheme(darkTheme = false) {
-        SettingsScreen(state = SettingsState(isLoading = false), onIntent = {}, onBack = {})
+        SettingsScreen(
+            state = SettingsState(isLoading = false, rememberLastGroup = true),
+            onIntent = {},
+            onBack = {},
+        )
     }
 }
 
@@ -223,6 +256,7 @@ private fun SettingsSearchResultsPreview() {
         ),
         isLoading = false,
         hasSearched = true,
+        rememberLastGroup = true,
     )
     TaskBTheme(darkTheme = false) {
         SettingsScreen(state = state, onIntent = {}, onBack = {})

@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.datetime.LocalDate
 
 internal class ItemEditorStore(
@@ -27,6 +28,7 @@ internal class ItemEditorStore(
     private val events: IEventRepository,
     private val groups: IGroupRepository,
     private val route: ItemEditorRoute,
+    private val lastSelectedGroupId: suspend () -> Int?,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     today: () -> LocalDate = ::currentDate,
 ) : CoroutineStore<ItemEditorIntent, ItemEditorState, ItemEditorMessage>(
@@ -34,6 +36,7 @@ internal class ItemEditorStore(
     reducer = ::reduceItemEditor,
     context = dispatcher,
 ) {
+    private var restoreGroup = route.itemId == null && route.initialGroupId == null && route.useLastSelectedGroup
     private var groupObservation: Job? = null
     private var loadRequested = false
     private val existingItems = when (route.type) {
@@ -190,6 +193,12 @@ internal class ItemEditorStore(
         groupObservation = collectEffect(
             messages = groups.groups
                 .map<List<Group>, ItemEditorMessage>(transform = ItemEditorMessage::GroupsLoaded)
+                .onStart {
+                    if (restoreGroup) {
+                        emit(value = ItemEditorMessage.GroupSelected(value = lastSelectedGroupId()))
+                        restoreGroup = false
+                    }
+                }
                 .catch { exception ->
                     if (exception is CancellationException) throw exception
                     emit(value = ItemEditorMessage.GroupsLoadFailed)

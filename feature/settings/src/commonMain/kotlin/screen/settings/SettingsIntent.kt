@@ -9,5 +9,9 @@ internal sealed interface SettingsIntent {
 
     data object ClearLocation : SettingsIntent
 
+    data object LoadGroupSetting : SettingsIntent
+
+    data class SetRememberLastGroup(val enabled: Boolean) : SettingsIntent
+
     data object RetryLoad : SettingsIntent
 }

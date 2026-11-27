@@ -21,6 +21,7 @@ kotlin {
             implementation(project(":core:utils"))
             implementation(project(":feature:item:api"))
             implementation(project(":feature:group:api"))
+            implementation(project(":feature:settings:api"))
             implementation(project(":ui"))
         }
     }

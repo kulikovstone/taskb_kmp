@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
+import com.mkulikov.taskb.feature.settings.api.IItemGroupSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import kotlin.test.*
@@ -23,6 +24,7 @@ class SettingsStoreTest {
             val repository = Locations(city = city)
             SettingsStore(
                 locations = repository,
+                groupSettings = GroupSettings(),
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             ).use { store ->
                 runCurrent()
@@ -60,6 +62,7 @@ class SettingsStoreTest {
             }
             SettingsStore(
                 locations = repository,
+                groupSettings = GroupSettings(),
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             ).use { store ->
                 runCurrent()
@@ -100,6 +103,7 @@ class SettingsStoreTest {
             val repository = Locations(city = city).apply { pending = true }
             val store = SettingsStore(
                 locations = repository,
+                groupSettings = GroupSettings(),
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             )
             store.accept(intent = SettingsIntent.Search(query = "Paris"))
@@ -109,6 +113,46 @@ class SettingsStoreTest {
             runCurrent()
             assertTrue(actual = repository.cancelled)
         }
+    }
+
+    @Test
+    fun `switch loads the saved value and a failed change can be retried`(): TestResult {
+        return runTest {
+            val settings = GroupSettings().apply { enabled = false }
+            SettingsStore(
+                locations = Locations(city = city),
+                groupSettings = settings,
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+            ).use { store ->
+                runCurrent()
+                assertEquals(expected = false, actual = store.state.value.rememberLastGroup)
+                settings.failWrite = true
+                store.accept(intent = SettingsIntent.SetRememberLastGroup(enabled = true))
+                runCurrent()
+                assertTrue(actual = store.state.value.groupSettingError)
+                assertEquals(expected = false, actual = store.state.value.rememberLastGroup)
+                settings.failWrite = false
+                store.accept(intent = SettingsIntent.SetRememberLastGroup(enabled = true))
+                runCurrent()
+                assertTrue(actual = settings.enabled)
+                assertEquals(expected = true, actual = store.state.value.rememberLastGroup)
+                assertFalse(actual = store.state.value.groupSettingError)
+            }
+        }
+    }
+
+    private class GroupSettings : IItemGroupSettings {
+        var enabled = true
+        var failWrite = false
+
+        override suspend fun rememberLastGroupEnabled(): Boolean = enabled
+
+        override suspend fun setRememberLastGroup(enabled: Boolean) {
+            if (failWrite) error(message = "Storage unavailable")
+            this.enabled = enabled
+        }
+
+        override suspend fun lastSelectedGroupId(): Int? = null
     }
 
     private class Locations(private val city: AppLocation) : IAppLocationRepository {

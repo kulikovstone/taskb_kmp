@@ -19,6 +19,12 @@ internal sealed interface SettingsMessage {
 
     data class Saved(val failed: Boolean) : SettingsMessage
 
+    data object UpdatingGroupSetting : SettingsMessage
+
+    data class GroupSetting(val enabled: Boolean) : SettingsMessage
+
+    data object GroupSettingFailed : SettingsMessage
+
     data object LoadFailed : SettingsMessage
 }
 
@@ -44,6 +50,12 @@ internal fun reduceSettings(state: SettingsState, message: SettingsMessage): Set
                 error = if (message.failed) "Couldn't search cities. Check your connection and try again." else null,
             )
         }
+        SettingsMessage.UpdatingGroupSetting -> state.copy(isUpdatingGroupSetting = true, groupSettingError = false)
+        is SettingsMessage.GroupSetting -> state.copy(
+            rememberLastGroup = message.enabled,
+            isUpdatingGroupSetting = false,
+        )
+        SettingsMessage.GroupSettingFailed -> state.copy(isUpdatingGroupSetting = false, groupSettingError = true)
         SettingsMessage.Saving -> state.copy(isSaving = true, error = null)
         is SettingsMessage.Saved -> if (message.failed) {
             state.copy(isSaving = false, error = "Couldn't save the city. Please try again.")

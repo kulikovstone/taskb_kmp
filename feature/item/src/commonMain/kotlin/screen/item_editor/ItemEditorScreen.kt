@@ -22,6 +22,7 @@ import com.mkulikov.taskb.feature.item.api.ItemEditorRoute
 import com.mkulikov.taskb.feature.item.api.model.ItemType
 import com.mkulikov.taskb.feature.item.api.repository.IEventRepository
 import com.mkulikov.taskb.feature.item.api.repository.ITaskRepository
+import com.mkulikov.taskb.feature.settings.api.IItemGroupSettings
 import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBEditorTopAppBar
@@ -44,8 +45,15 @@ internal fun ItemEditorScreen(
     val tasks = koinInject<ITaskRepository>()
     val events = koinInject<IEventRepository>()
     val groups = koinInject<IGroupRepository>()
+    val groupSettings = koinInject<IItemGroupSettings>()
     val store = rememberNavEntryResource(key = ItemEditorStore::class) {
-        ItemEditorStore(tasks = tasks, events = events, groups = groups, route = route)
+        ItemEditorStore(
+            tasks = tasks,
+            events = events,
+            groups = groups,
+            route = route,
+            lastSelectedGroupId = groupSettings::lastSelectedGroupId,
+        )
     }
     val state by store.state.collectAsState()
     LaunchedEffect(key1 = store, key2 = state.isFinished) {

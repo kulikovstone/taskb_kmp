@@ -13,6 +13,7 @@ import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.feature.item.api.recurrence.nextRecurrenceDates
 import com.mkulikov.taskb.feature.item.api.recurrence.recurrenceOrdinal
 import com.mkulikov.taskb.feature.item.api.repository.ITaskRepository
+import com.mkulikov.taskb.feature.settings.api.database.rememberCreatedItemGroup
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.flow.Flow
@@ -110,6 +111,7 @@ internal class TaskRepository(
                     )
                     dao.setCompletedAt(id = id, completedAt = null)
                 }
+                if (id > 0) database.value.settingsDao().rememberCreatedItemGroup(groupId = task.groupId)
                 return@withWriteTransaction id > 0
             }
             val record = dao.getRecord(id = task.id) ?: return@withWriteTransaction false

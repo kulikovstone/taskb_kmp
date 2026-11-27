@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.ui.component.TaskBOptionSwitch
 
 @Composable
 internal fun TaskItemEditorSchedule(
@@ -47,7 +48,7 @@ internal fun TaskItemEditorSchedule(
                 Column(modifier = Modifier.weight(weight = 1f)) {
                     ItemEditorLabel(text = "Options")
                     Spacer(modifier = Modifier.height(height = 6.dp))
-                    TaskOptionSwitch(
+                    TaskBOptionSwitch(
                         label = "Show in calendar",
                         checked = details.showInCalendar,
                         enabled = enabled,
@@ -56,7 +57,7 @@ internal fun TaskItemEditorSchedule(
                             onIntent(ItemEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
                         },
                     )
-                    TaskOptionSwitch(
+                    TaskBOptionSwitch(
                         label = "Quick delete",
                         checked = details.quickDelete,
                         enabled = enabled,

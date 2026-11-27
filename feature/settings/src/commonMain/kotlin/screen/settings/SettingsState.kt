@@ -5,6 +5,9 @@ import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 internal data class SettingsState(
     val location: AppLocation? = null,
     val isLoading: Boolean = true,
+    val rememberLastGroup: Boolean? = null,
+    val isUpdatingGroupSetting: Boolean = false,
+    val groupSettingError: Boolean = false,
     val query: String = "",
     val results: List<AppLocation> = emptyList(),
     val isSearching: Boolean = false,

@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
 import com.mkulikov.taskb.core.mvi.CoroutineStore
+import com.mkulikov.taskb.feature.settings.api.IItemGroupSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import kotlinx.coroutines.CancellationException
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.map
 
 internal class SettingsStore(
     private val locations: IAppLocationRepository,
+    private val groupSettings: IItemGroupSettings,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : CoroutineStore<SettingsIntent, SettingsState, SettingsMessage>(
     initialState = SettingsState(),
@@ -23,6 +25,7 @@ internal class SettingsStore(
     private var observation: Job? = null
 
     init {
+        accept(intent = SettingsIntent.LoadGroupSetting)
         accept(intent = SettingsIntent.RetryLoad)
     }
 
@@ -66,7 +69,26 @@ internal class SettingsStore(
             }
             is SettingsIntent.SelectLocation ->
                 if (intent.location in state.value.results) save(location = intent.location)
+            SettingsIntent.LoadGroupSetting -> updateGroupSetting(enabled = null)
+            is SettingsIntent.SetRememberLastGroup -> if (state.value.rememberLastGroup != null) {
+                updateGroupSetting(enabled = intent.enabled)
+            }
             SettingsIntent.ClearLocation -> save(location = null)
+        }
+    }
+
+    private fun updateGroupSetting(enabled: Boolean?) {
+        if (state.value.isUpdatingGroupSetting) return
+        reduce(message = SettingsMessage.UpdatingGroupSetting)
+        launchEffect {
+            try {
+                if (enabled != null) groupSettings.setRememberLastGroup(enabled = enabled)
+                SettingsMessage.GroupSetting(enabled = enabled ?: groupSettings.rememberLastGroupEnabled())
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                SettingsMessage.GroupSettingFailed
+            }
         }
     }
 

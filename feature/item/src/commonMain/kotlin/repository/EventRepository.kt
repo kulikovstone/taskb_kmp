@@ -13,6 +13,7 @@ import com.mkulikov.taskb.feature.item.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.item.api.recurrence.nextRecurrenceDates
 import com.mkulikov.taskb.feature.item.api.recurrence.recurrenceOrdinal
 import com.mkulikov.taskb.feature.item.api.repository.IEventRepository
+import com.mkulikov.taskb.feature.settings.api.database.rememberCreatedItemGroup
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -126,6 +127,7 @@ internal class EventRepository(
                         )
                     )
                 }
+                if (id > 0) database.value.settingsDao().rememberCreatedItemGroup(groupId = event.groupId)
                 return@withWriteTransaction id > 0
             }
             val record = dao.getRecord(id = event.id) ?: return@withWriteTransaction false

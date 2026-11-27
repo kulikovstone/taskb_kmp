@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.component.CalendarWorkspace
+import com.mkulikov.taskb.feature.item.api.ItemEditorRoute
 import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.component.TaskBLoading
@@ -24,7 +25,6 @@ import com.mkulikov.taskb.ui.dialog.TaskBConfirmationDialog
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 @Composable
@@ -33,7 +33,7 @@ internal fun CalendarScreen(
     onIntent: (CalendarIntent) -> Unit,
     onOpenGroups: () -> Unit,
     onOpenSettings: () -> Unit,
-    onCreateItem: (LocalDate?, Int?) -> Unit,
+    onCreateItem: (ItemEditorRoute) -> Unit,
     onOpenItem: (CalendarItem) -> Unit,
 ) {
     val query = rememberTextFieldState()
@@ -59,7 +59,13 @@ internal fun CalendarScreen(
             TaskFilter.Tomorrow -> state.today.plus(value = 1, unit = DateTimeUnit.DAY)
             else -> null
         }
-        onCreateItem(date, group?.id)
+        onCreateItem(
+            ItemEditorRoute(
+                initialDate = date,
+                initialGroupId = group?.id,
+                useLastSelectedGroup = activeGroupId == null,
+            )
+        )
     }
     CalendarWorkspace(state = state, onIntent = onIntent) { drag ->
         Column(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-screen")) {
@@ -184,7 +190,7 @@ private fun CalendarScreenPreview() {
             onIntent = {},
             onOpenGroups = {},
             onOpenSettings = {},
-            onCreateItem = { _, _ -> },
+            onCreateItem = {},
             onOpenItem = {},
         )
     }

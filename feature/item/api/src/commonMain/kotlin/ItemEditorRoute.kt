@@ -11,4 +11,5 @@ data class ItemEditorRoute(
     val occurrenceId: ItemOccurrenceId? = null,
     val initialDate: LocalDate? = null,
     val initialGroupId: Int? = null,
+    val useLastSelectedGroup: Boolean = true,
 ) : NavKey

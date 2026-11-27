@@ -41,6 +41,7 @@ class ItemEditorStoreTest {
             val time = LocalTime(hour = 16, minute = 30)
             val rule = ItemRecurrence.monthly(date = date)
             val store = ItemEditorStore(
+                lastSelectedGroupId = { 7 },
                 tasks = tasks,
                 events = events,
                 groups = groups,
@@ -49,6 +50,7 @@ class ItemEditorStoreTest {
             )
             store.use { editor ->
                 runCurrent()
+                assertEquals(expected = 7, actual = editor.state.value.groupId)
                 val title = editor.state.value.name
                 title.setTextAndPlaceCursorAtEnd(text = "Planning")
                 editor.accept(intent = ItemEditorIntent.DateChanged(date = date))
@@ -94,6 +96,7 @@ class ItemEditorStoreTest {
             val event = Event(id = 7, name = "Meeting", dueDate = date)
             val events = FakeEventRepository().apply { values.value = listOf(element = event) }
             val store = ItemEditorStore(
+                lastSelectedGroupId = { error(message = "Editing must keep the item's own group") },
                 tasks = tasks,
                 events = events,
                 groups = groups(),
@@ -121,6 +124,7 @@ class ItemEditorStoreTest {
             val gate = CompletableDeferred<Unit>()
             val repo = FakeTaskRepository().apply { onWrite = { gate.await() } }
             ItemEditorStore(
+                    lastSelectedGroupId = { error(message = "The calendar supplied a group") },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = groups(),
@@ -155,11 +159,45 @@ class ItemEditorStoreTest {
     }
 
     @Test
+    fun `remembered group must exist and the no group filter overrides it`(): TestResult {
+        return runTest {
+            val repository = groups()
+            fun open(route: ItemEditorRoute, lastGroup: Int) = ItemEditorStore(
+                tasks = FakeTaskRepository(),
+                events = FakeEventRepository(),
+                groups = repository,
+                route = route,
+                lastSelectedGroupId = { lastGroup },
+                dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+            )
+
+            open(route = ItemEditorRoute(type = ItemType.Event), lastGroup = 7).use { editor ->
+                runCurrent()
+                assertEquals(expected = 7, actual = editor.state.value.groupId)
+                editor.accept(intent = ItemEditorIntent.GroupChanged(id = null))
+                runCurrent()
+                repository.values.value = repository.values.value.map { group -> group.copy(name = "Renamed") }
+                runCurrent()
+                assertNull(actual = editor.state.value.groupId)
+            }
+            open(route = ItemEditorRoute(useLastSelectedGroup = false), lastGroup = 7).use { editor ->
+                runCurrent()
+                assertNull(actual = editor.state.value.groupId)
+            }
+            open(route = ItemEditorRoute(), lastGroup = 99).use { editor ->
+                runCurrent()
+                assertNull(actual = editor.state.value.groupId)
+            }
+        }
+    }
+
+    @Test
     fun `creation validates trims dates and group while preventing duplicate writes`(): TestResult {
         return runTest {
             val gate = CompletableDeferred<Unit>()
             val repo = FakeTaskRepository().apply { onWrite = { gate.await() } }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = groups(),
@@ -208,6 +246,7 @@ class ItemEditorStoreTest {
                 )
             }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = groups(),
@@ -251,6 +290,7 @@ class ItemEditorStoreTest {
                 values.value = listOf(element = Task(id = 7, name = "Original", description = originalDescription))
             }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = groups(),
@@ -289,6 +329,7 @@ class ItemEditorStoreTest {
                 values.value = listOf(element = Task(id = 7, name = "Original", description = "Old description"))
             }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = groups(),
@@ -313,6 +354,7 @@ class ItemEditorStoreTest {
         return runTest {
             val repo = FakeTaskRepository().apply { fail = true }
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = groups(),
@@ -340,6 +382,7 @@ class ItemEditorStoreTest {
             val repo = FakeTaskRepository()
             var today = LocalDate(year = 2026, month = 10, day = 28)
             ItemEditorStore(
+                    lastSelectedGroupId = { null },
                     tasks = repo,
                     events = FakeEventRepository(),
                     groups = groups,

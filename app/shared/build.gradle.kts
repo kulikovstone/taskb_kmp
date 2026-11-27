@@ -95,6 +95,7 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         jvmTest.dependencies {
+            implementation(project(":feature:item:api"))
             implementation(project(":feature:group:api"))
         }
     }
