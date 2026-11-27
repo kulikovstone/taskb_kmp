@@ -23,6 +23,7 @@ internal fun GroupEditorWideScreen(
             title = if (state.isNew) "New group" else "Edit group",
             onBack = onBack,
             backEnabled = !state.isSaving && !state.isDeleting,
+            height = 70.dp,
         ) {
             if (!state.isNew)
                 TaskBEditorButton(
@@ -48,7 +49,7 @@ internal fun GroupEditorWideScreen(
             GroupEditorForm(
                 state = state,
                 onIntent = onIntent,
-                modifier = Modifier.widthIn(max = 720.dp).fillMaxSize(),
+                modifier = Modifier.widthIn(max = 724.dp).fillMaxSize(),
                 autoFocusName = true,
                 contentPadding = PaddingValues(vertical = 32.dp),
             )

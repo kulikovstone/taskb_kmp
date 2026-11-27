@@ -34,18 +34,37 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
             .collect { text -> if (text != currentQuery) onIntent(SettingsIntent.Search(query = text)) }
     }
     Surface(modifier = Modifier.fillMaxSize(), color = colors.surface) {
-        Column {
-            TaskBTopAppBar(title = "Settings", onBack = onBack)
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val wide = maxWidth >= 840.dp
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(space = if (wide) 32.dp else 0.dp),
+            ) {
+                if (wide) {
+                    TaskBTopAppBar(
+                        title = "Settings",
+                        onBack = onBack,
+                        modifier = Modifier.height(height = 70.dp),
+                        titleSpacing = 8.dp,
+                        contentPadding = PaddingValues(start = 16.dp, end = 32.dp),
+                    )
+                } else {
+                    TaskBTopAppBar(title = "Settings", onBack = onBack)
+                }
                 Column(
                     modifier = Modifier
-                        .widthIn(max = 640.dp)
+                        .widthIn(max = if (wide) 724.dp else 640.dp)
                         .fillMaxWidth()
                         .verticalScroll(state = rememberScrollState())
-                        .padding(all = 24.dp),
+                        .padding(all = if (wide) 0.dp else 24.dp),
                     verticalArrangement = Arrangement.spacedBy(space = 16.dp),
                 ) {
-                    Text(text = "Location", style = TaskBTheme.typography.title, color = colors.heading)
+                    Text(
+                        text = "Location",
+                        style = if (wide) TaskBTheme.typography.section else TaskBTheme.typography.title,
+                        color = colors.heading,
+                    )
                     Text(
                         text = "Weather and public holidays in the calendar use this application location.",
                         style = TaskBTheme.typography.body,
@@ -166,7 +185,7 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
     }
 }
 
-@Preview(name = "Settings", widthDp = 800, heightDp = 700)
+@Preview(name = "Settings – desktop", widthDp = 1900, heightDp = 1180)
 @Composable
 private fun SettingsPreview() {
     TaskBTheme(darkTheme = false) {

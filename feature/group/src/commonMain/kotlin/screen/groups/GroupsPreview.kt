@@ -7,7 +7,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.mkulikov.taskb.feature.group.preview.previewGroups
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
-@Preview(name = "Groups – wide", widthDp = 1280, heightDp = 720)
+@Preview(name = "Groups – wide", widthDp = 1900, heightDp = 1180)
 @Composable
 private fun GroupsWidePreview() = GroupsPreview(wide = true)
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
@@ -30,9 +31,16 @@ internal fun GroupsWideScreen(
     onCreateGroup: () -> Unit,
     onEditGroup: (Int) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(space = 32.dp),
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(height = 96.dp).padding(start = 16.dp, end = 32.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height = 70.dp)
+                .padding(start = 16.dp, end = 32.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
@@ -50,7 +58,12 @@ internal fun GroupsWideScreen(
             Spacer(modifier = Modifier.weight(weight = 1f))
             TaskBEditorButton(label = "New group", icon = TaskBIcons.Add, onClick = onCreateGroup)
         }
-        Column(modifier = Modifier.weight(weight = 1f).padding(top = 8.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(weight = 1f)
+                .widthIn(max = 724.dp)
+                .fillMaxWidth(),
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
