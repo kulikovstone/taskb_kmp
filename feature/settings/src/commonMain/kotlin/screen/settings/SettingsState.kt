@@ -1,10 +1,14 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
+import com.mkulikov.taskb.feature.settings.api.model.ThemeMode
 
 internal data class SettingsState(
     val location: AppLocation? = null,
     val isLoading: Boolean = true,
+    val themeMode: ThemeMode = ThemeMode.System,
+    val isSavingTheme: Boolean = false,
+    val themeSaveFailed: Boolean = false,
     val rememberLastGroup: Boolean? = null,
     val isUpdatingGroupSetting: Boolean = false,
     val groupSettingError: Boolean = false,

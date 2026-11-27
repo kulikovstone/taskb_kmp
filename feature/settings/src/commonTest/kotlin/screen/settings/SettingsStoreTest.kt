@@ -1,7 +1,9 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
 import com.mkulikov.taskb.feature.settings.api.IItemGroupSettings
+import com.mkulikov.taskb.feature.settings.api.IThemeSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
+import com.mkulikov.taskb.feature.settings.api.model.ThemeMode
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import kotlin.test.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -11,6 +13,7 @@ import kotlinx.coroutines.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsStoreTest {
+    private val themeSettings = TestThemeSettings()
     private val city = AppLocation(
         name = "Paris, France",
         latitude = 48.85,
@@ -25,6 +28,7 @@ class SettingsStoreTest {
             SettingsStore(
                 locations = repository,
                 groupSettings = GroupSettings(),
+                themeSettings = themeSettings,
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             ).use { store ->
                 runCurrent()
@@ -63,6 +67,7 @@ class SettingsStoreTest {
             SettingsStore(
                 locations = repository,
                 groupSettings = GroupSettings(),
+                themeSettings = themeSettings,
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             ).use { store ->
                 runCurrent()
@@ -104,6 +109,7 @@ class SettingsStoreTest {
             val store = SettingsStore(
                 locations = repository,
                 groupSettings = GroupSettings(),
+                themeSettings = themeSettings,
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             )
             store.accept(intent = SettingsIntent.Search(query = "Paris"))
@@ -122,6 +128,7 @@ class SettingsStoreTest {
             SettingsStore(
                 locations = Locations(city = city),
                 groupSettings = settings,
+                themeSettings = themeSettings,
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             ).use { store ->
                 runCurrent()
@@ -138,6 +145,40 @@ class SettingsStoreTest {
                 assertEquals(expected = true, actual = store.state.value.rememberLastGroup)
                 assertFalse(actual = store.state.value.groupSettingError)
             }
+        }
+    }
+
+    @Test
+    fun `theme changes only after a successful save and failed changes can be retried`(): TestResult = runTest {
+        SettingsStore(
+            locations = Locations(city = city),
+            groupSettings = GroupSettings(),
+            themeSettings = themeSettings,
+            dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+        ).use { store ->
+            themeSettings.failWrite = true
+            store.accept(intent = SettingsIntent.SetThemeMode(mode = ThemeMode.Dark))
+            runCurrent()
+            assertEquals(expected = ThemeMode.System, actual = store.state.value.themeMode)
+            assertTrue(actual = store.state.value.themeSaveFailed)
+            themeSettings.failWrite = false
+            store.accept(intent = SettingsIntent.SetThemeMode(mode = ThemeMode.Dark))
+            runCurrent()
+            assertEquals(expected = ThemeMode.Dark, actual = store.state.value.themeMode)
+            assertFalse(actual = store.state.value.themeSaveFailed)
+            assertFalse(actual = store.state.value.isSavingTheme)
+        }
+    }
+
+    private class TestThemeSettings : IThemeSettings {
+        override val themeMode = MutableStateFlow(value = ThemeMode.System)
+        var failWrite = false
+
+        override suspend fun loadThemeMode() = Unit
+
+        override suspend fun setThemeMode(mode: ThemeMode) {
+            if (failWrite) error(message = "Storage unavailable")
+            themeMode.value = mode
         }
     }
 

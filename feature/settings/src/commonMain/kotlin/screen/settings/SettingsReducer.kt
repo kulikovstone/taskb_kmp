@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
+import com.mkulikov.taskb.feature.settings.api.model.ThemeMode
 
 internal sealed interface SettingsMessage {
     data class Location(val value: AppLocation?) : SettingsMessage
@@ -19,6 +20,12 @@ internal sealed interface SettingsMessage {
 
     data class Saved(val failed: Boolean) : SettingsMessage
 
+    data class ThemeChanged(val mode: ThemeMode) : SettingsMessage
+
+    data object SavingTheme : SettingsMessage
+
+    data class ThemeSaveFinished(val failed: Boolean) : SettingsMessage
+
     data object UpdatingGroupSetting : SettingsMessage
 
     data class GroupSetting(val enabled: Boolean) : SettingsMessage
@@ -32,6 +39,9 @@ internal fun reduceSettings(state: SettingsState, message: SettingsMessage): Set
     return when (message) {
         is SettingsMessage.Location -> state.copy(location = message.value, isLoading = false, error = null)
         SettingsMessage.Loading -> state.copy(isLoading = true, error = null)
+        is SettingsMessage.ThemeChanged -> state.copy(themeMode = message.mode)
+        SettingsMessage.SavingTheme -> state.copy(isSavingTheme = true, themeSaveFailed = false)
+        is SettingsMessage.ThemeSaveFinished -> state.copy(isSavingTheme = false, themeSaveFailed = message.failed)
         SettingsMessage.LoadFailed -> state.copy(isLoading = false, error = "Couldn't load settings. Please try again.")
         is SettingsMessage.Query -> state.copy(
             query = message.value,

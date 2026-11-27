@@ -3,6 +3,7 @@ package com.mkulikov.taskb.feature.settings.screen.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
@@ -16,6 +17,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
+import com.mkulikov.taskb.feature.settings.api.model.ThemeMode
+import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.component.TaskBOptionSwitch
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
@@ -150,6 +153,29 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
                         color = colors.muted,
                     )
                     Spacer(modifier = Modifier.height(height = 8.dp))
+                    Text(text = "Theme", style = TaskBTheme.typography.section, color = colors.heading)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().selectableGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+                    ) {
+                        ThemeMode.entries.forEach { mode ->
+                            TaskBSelectionButton(
+                                label = mode.label,
+                                selected = state.themeMode == mode,
+                                onClick = { onIntent(SettingsIntent.SetThemeMode(mode = mode)) },
+                                modifier = Modifier.weight(weight = 1f),
+                                enabled = !state.isSavingTheme,
+                            )
+                        }
+                    }
+                    if (state.themeSaveFailed) {
+                        Text(
+                            text = "Couldn't save the theme. Please try again.",
+                            color = colors.danger,
+                            style = TaskBTheme.typography.body,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(height = 8.dp))
                     Text(text = "Miscellaneous", style = TaskBTheme.typography.section, color = colors.heading)
                     if (state.rememberLastGroup != null) {
                         TaskBOptionSwitch(
@@ -226,7 +252,7 @@ private fun SettingsPreview() {
     }
 }
 
-@Preview(name = "Settings – city search results", widthDp = 400, heightDp = 820)
+@Preview(name = "Settings – city search results, dark", widthDp = 400, heightDp = 820)
 @Composable
 private fun SettingsSearchResultsPreview() {
     val state = SettingsState(
@@ -257,8 +283,9 @@ private fun SettingsSearchResultsPreview() {
         isLoading = false,
         hasSearched = true,
         rememberLastGroup = true,
+        themeMode = ThemeMode.Dark,
     )
-    TaskBTheme(darkTheme = false) {
+    TaskBTheme(darkTheme = true) {
         SettingsScreen(state = state, onIntent = {}, onBack = {})
     }
 }

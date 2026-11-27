@@ -16,17 +16,19 @@ import com.mkulikov.taskb.core.navigation.AppRoot
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
 import com.mkulikov.taskb.feature.hello.api.HelloRoute
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
+import com.mkulikov.taskb.feature.settings.api.IThemeSettings
 import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.CancellationException
 
 @Composable
-internal fun TaskBApp(settings: IAppSettings, appVersion: String = AppVersion.value) {
+internal fun TaskBApp(settings: IAppSettings, themeSettings: IThemeSettings, appVersion: String = AppVersion.value) {
     var startDestination by remember(key1 = settings, key2 = appVersion) { mutableStateOf<NavKey?>(value = null) }
 
-    LaunchedEffect(key1 = settings, key2 = appVersion) {
+    LaunchedEffect(key1 = settings, key2 = themeSettings, key3 = appVersion) {
         var initialError: String? = null
         val showWelcomeScreen = try {
+            themeSettings.loadThemeMode()
             settings.shouldShowWelcomeScreen(version = appVersion)
         } catch (exception: CancellationException) {
             throw exception

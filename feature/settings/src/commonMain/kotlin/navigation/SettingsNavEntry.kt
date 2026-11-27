@@ -17,7 +17,7 @@ internal class SettingsNavEntry : INavEntry {
         scope.entry<SettingsRoute> {
             val koin = getKoin()
             val store = rememberNavEntryResource(key = SettingsStore::class) {
-                SettingsStore(locations = koin.get(), groupSettings = koin.get())
+                SettingsStore(locations = koin.get(), groupSettings = koin.get(), themeSettings = koin.get())
             }
             val state by store.state.collectAsState()
             SettingsScreen(state = state, onIntent = store::accept, onBack = navigator::back)

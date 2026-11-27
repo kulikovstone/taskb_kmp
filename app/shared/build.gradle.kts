@@ -94,6 +94,9 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
+        }
         jvmTest.dependencies {
             implementation(project(":feature:item:api"))
             implementation(project(":feature:group:api"))

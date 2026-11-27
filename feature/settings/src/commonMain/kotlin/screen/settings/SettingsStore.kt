@@ -2,7 +2,9 @@ package com.mkulikov.taskb.feature.settings.screen.settings
 
 import com.mkulikov.taskb.core.mvi.CoroutineStore
 import com.mkulikov.taskb.feature.settings.api.IItemGroupSettings
+import com.mkulikov.taskb.feature.settings.api.IThemeSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
+import com.mkulikov.taskb.feature.settings.api.model.ThemeMode
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -15,9 +17,10 @@ import kotlinx.coroutines.flow.map
 internal class SettingsStore(
     private val locations: IAppLocationRepository,
     private val groupSettings: IItemGroupSettings,
+    private val themeSettings: IThemeSettings,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : CoroutineStore<SettingsIntent, SettingsState, SettingsMessage>(
-    initialState = SettingsState(),
+    initialState = SettingsState(themeMode = themeSettings.themeMode.value),
     reducer = ::reduceSettings,
     context = dispatcher,
 ) {
@@ -25,6 +28,7 @@ internal class SettingsStore(
     private var observation: Job? = null
 
     init {
+        collectEffect(messages = themeSettings.themeMode.map(transform = SettingsMessage::ThemeChanged))
         accept(intent = SettingsIntent.LoadGroupSetting)
         accept(intent = SettingsIntent.RetryLoad)
     }
@@ -74,6 +78,22 @@ internal class SettingsStore(
                 updateGroupSetting(enabled = intent.enabled)
             }
             SettingsIntent.ClearLocation -> save(location = null)
+            is SettingsIntent.SetThemeMode -> setThemeMode(mode = intent.mode)
+        }
+    }
+
+    private fun setThemeMode(mode: ThemeMode) {
+        if (state.value.isSavingTheme || themeSettings.themeMode.value == mode) return
+        reduce(message = SettingsMessage.SavingTheme)
+        launchEffect {
+            try {
+                themeSettings.setThemeMode(mode = mode)
+                SettingsMessage.ThemeSaveFinished(failed = false)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                SettingsMessage.ThemeSaveFinished(failed = true)
+            }
         }
     }
 

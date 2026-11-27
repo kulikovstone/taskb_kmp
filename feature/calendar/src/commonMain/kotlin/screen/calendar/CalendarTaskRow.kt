@@ -61,6 +61,22 @@ internal fun calendarTaskTitleStyle(dense: Boolean): TextStyle {
 }
 
 @Composable
+internal fun CalendarTaskTitle(text: String, isCompleted: Boolean, style: TextStyle, modifier: Modifier = Modifier) {
+    val colors = TaskBTheme.colors
+    Text(
+        text = text,
+        modifier = modifier,
+        // Desktop paints the strikethrough with the foreground color from the text style.
+        style = style.copy(
+            color = if (isCompleted) colors.completedText else colors.text,
+            textDecoration = if (isCompleted) TextDecoration.LineThrough else null,
+        ),
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
 internal fun CalendarTaskRow(
     task: CalendarItem,
     group: Group?,
@@ -192,8 +208,10 @@ internal fun CalendarTaskRow(
                     },
                 ),
             ) {
-                Text(
+                CalendarTaskTitle(
                     text = task.name,
+                    isCompleted = task.isCompleted,
+                    style = titleStyle,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(
@@ -204,11 +222,6 @@ internal fun CalendarTaskRow(
                         ) {
                             onOpenTask(task.id)
                         },
-                    color = if (task.isCompleted) colors.completedText else colors.text,
-                    style = titleStyle,
-                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 if (!dense && task.description.isNotBlank())
                     Text(

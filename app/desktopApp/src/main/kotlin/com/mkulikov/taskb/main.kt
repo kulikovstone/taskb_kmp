@@ -1,8 +1,11 @@
 package com.mkulikov.taskb
 
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.pollSystemTheme
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -10,7 +13,10 @@ import androidx.compose.ui.window.rememberWindowState
 import java.io.InputStream
 import org.jetbrains.skia.Image
 
+@OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    // Compose Desktop disables live system theme updates on Linux by default.
+    ComposeUiFlags.pollSystemTheme = true
     application {
         val appIcon = remember {
             val bytes = checkNotNull(

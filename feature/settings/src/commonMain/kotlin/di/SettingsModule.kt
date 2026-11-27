@@ -5,8 +5,10 @@ import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.feature.settings.AppLocationRepository
 import com.mkulikov.taskb.feature.settings.AppSettings
 import com.mkulikov.taskb.feature.settings.ItemGroupSettings
+import com.mkulikov.taskb.feature.settings.ThemeSettings
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.settings.api.IItemGroupSettings
+import com.mkulikov.taskb.feature.settings.api.IThemeSettings
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import com.mkulikov.taskb.feature.settings.navigation.SettingsNavEntry
 import com.mkulikov.taskb.feature.settings.network.LocationClient
@@ -21,6 +23,7 @@ fun settingsModule(): Module = module {
     single { get<AppDatabase>().settingsDao() }
     single<IItemGroupSettings> { ItemGroupSettings(database = inject()) }
     single<IAppSettings> { AppSettings(database = inject()) }
+    single<IThemeSettings> { ThemeSettings(settings = inject()) }
     single { LocationClient() } onClose { client -> client?.close() }
     single { OpenMeteoGeocodingApi(client = get<LocationClient>().client) }
     single<IAppLocationRepository> { AppLocationRepository(api = get(), settings = inject()) }

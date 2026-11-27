@@ -5,7 +5,9 @@ import com.mkulikov.taskb.core.database.open
 import com.mkulikov.taskb.core.navigation.IAppNavigator
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
+import com.mkulikov.taskb.feature.settings.api.IThemeSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
+import com.mkulikov.taskb.feature.settings.api.model.ThemeMode
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import java.nio.file.Files
 import kotlin.test.Test
@@ -34,6 +36,7 @@ class AppModuleTest {
                     lateinit var database: AppDatabase
                     try {
                         val settings = application.koin.get<IAppSettings>()
+                        val themes = application.koin.get<IThemeSettings>()
                         val navigator = application.koin.get<IAppNavigator>()
                         assertSame(expected = navigator, actual = application.koin.get<IAppNavigator>())
                         val locations = application.koin.get<IAppLocationRepository>()
@@ -48,10 +51,14 @@ class AppModuleTest {
                         val groups = application.koin.get<IGroupRepository>()
                         assertSame(expected = groups, actual = application.koin.get<IGroupRepository>())
                         assertEquals(expected = launch, actual = opens)
+                        themes.loadThemeMode()
                         if (launch == 0) {
+                            assertEquals(expected = ThemeMode.System, actual = themes.themeMode.value)
+                            themes.setThemeMode(mode = ThemeMode.Dark)
                             assertTrue(actual = settings.markWelcomeShownIfNewer(version = "1.9"))
                             locations.setLocation(location = city)
                         } else {
+                            assertEquals(expected = ThemeMode.Dark, actual = themes.themeMode.value)
                             assertFalse(actual = settings.markWelcomeShownIfNewer(version = "1.9"))
                             assertEquals(expected = city, actual = locations.observeLocation().first())
                         }

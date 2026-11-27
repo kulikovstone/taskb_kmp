@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayContext
@@ -321,13 +320,10 @@ private fun CalendarTaskRow(
                     modifier = Modifier.weight(weight = 1f),
                     verticalArrangement = Arrangement.spacedBy(space = 2.dp),
                 ) {
-                    Text(
+                    CalendarTaskTitle(
                         text = task.name,
-                        color = if (task.isCompleted) colors.completedText else colors.text,
+                        isCompleted = task.isCompleted,
                         style = TaskBTheme.typography.body,
-                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                     if (task.description.isNotBlank()) {
                         Text(
