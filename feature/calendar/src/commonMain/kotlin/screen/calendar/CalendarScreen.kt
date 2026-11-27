@@ -149,33 +149,33 @@ private fun CalendarTopBar(
     onOpenSettings: () -> Unit,
 ) {
     val colors = TaskBTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = 70.dp)
-            .padding(start = 16.dp, end = 32.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(height = 70.dp)) {
+        val startPadding = if (maxWidth >= 840.dp) 32.dp else 16.dp
         Row(
-            modifier = Modifier.weight(weight = 1f),
+            modifier = Modifier.fillMaxSize().padding(start = startPadding, end = 32.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
         ) {
-            Text(
-                text = calendarMonthLabel.format(value = state.month),
-                modifier = Modifier.weight(weight = 1f, fill = false),
-                style = TaskBTheme.typography.display,
-                color = colors.heading,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            CalendarDateNavigation(onIntent = onIntent)
-        }
-        IconButton(onClick = onOpenGroups, modifier = Modifier.size(size = 48.dp)) {
-            Icon(imageVector = TaskBIcons.Folder, contentDescription = "Groups", tint = colors.accent)
-        }
-        IconButton(onClick = onOpenSettings, modifier = Modifier.size(size = 48.dp)) {
-            Icon(imageVector = TaskBIcons.Settings, contentDescription = "Settings", tint = colors.accent)
+            Row(
+                modifier = Modifier.weight(weight = 1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(space = 24.dp),
+            ) {
+                Text(
+                    text = calendarMonthLabel.format(value = state.month),
+                    modifier = Modifier.weight(weight = 1f, fill = false),
+                    style = TaskBTheme.typography.display,
+                    color = colors.heading,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                CalendarDateNavigation(onIntent = onIntent)
+            }
+            IconButton(onClick = onOpenGroups, modifier = Modifier.size(size = 48.dp)) {
+                Icon(imageVector = TaskBIcons.Folder, contentDescription = "Groups", tint = colors.accent)
+            }
+            IconButton(onClick = onOpenSettings, modifier = Modifier.size(size = 48.dp)) {
+                Icon(imageVector = TaskBIcons.Settings, contentDescription = "Settings", tint = colors.accent)
+            }
         }
     }
 }
