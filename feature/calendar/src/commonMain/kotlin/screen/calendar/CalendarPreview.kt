@@ -302,7 +302,7 @@ private fun CalendarCompletedDayPreview() {
     )
     TaskBTheme(darkTheme = false) {
         CalendarScreen(
-            state = state,
+            state = state.copy(taskList = state.tasks),
             onIntent = {},
             onOpenGroups = {},
             onOpenItem = {},

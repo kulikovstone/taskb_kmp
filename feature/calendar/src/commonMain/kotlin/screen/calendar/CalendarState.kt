@@ -45,6 +45,9 @@ internal data class CalendarState(
     val taskList: List<Task>? = null,
     val taskListLoadError: String? = null,
 ) {
+    val isContentLoading: Boolean
+        get() = isLoading || (taskList == null && taskListLoadError == null)
+
     fun canUndo(move: CalendarMove): Boolean {
         return pendingMove == null && (move.type != ItemType.Task || move.itemId !in pendingTaskUpdates)
     }

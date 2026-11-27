@@ -37,7 +37,6 @@ import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
-import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
@@ -68,7 +67,6 @@ internal fun CalendarSidebar(
     val date = state.selectedDate
     val dayAgenda = date != null && query.text.isBlank() && filter == null && groupId == null
     val needsCalendar = date != null
-    val isLoading = if (needsCalendar) state.isLoading else state.taskList == null
     val error = if (needsCalendar) state.loadError else state.taskListLoadError
     Column(modifier = modifier.testTag(tag = "calendar-sidebar")) {
         Divider(color = colors.border)
@@ -136,7 +134,6 @@ internal fun CalendarSidebar(
                 message = error,
                 onRetry = { onIntent(if (needsCalendar) CalendarIntent.RetryLoad else CalendarIntent.RetryTaskList) },
             )
-            isLoading -> TaskBLoading(modifier = Modifier.weight(weight = 1f))
             dayAgenda -> {
                 CalendarDayContext(
                     state = state,

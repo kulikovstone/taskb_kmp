@@ -1,5 +1,6 @@
 package com.mkulikov.taskb.feature.calendar.screen.calendar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
@@ -40,6 +41,11 @@ internal fun CalendarScreen(
     var filter by rememberSaveable { mutableStateOf<TaskFilter?>(value = null) }
     var groupId by rememberSaveable { mutableStateOf<Int?>(value = null) }
     var showFilters by rememberSaveable { mutableStateOf(value = false) }
+    if (state.isContentLoading) {
+        TaskBLoading(modifier = Modifier.background(color = TaskBTheme.colors.surface))
+        return
+    }
+
     val group = state.groups.find { group -> group.id == groupId }
     val activeGroupId = if (groupId == noGroupFilterId) groupId else group?.id
     val calendarAction: (CalendarIntent) -> Unit = { intent ->
@@ -95,13 +101,13 @@ internal fun CalendarScreen(
                         .fillMaxHeight(),
                 )
                 Box(modifier = Modifier.weight(weight = 1f).fillMaxHeight()) {
-                    when {
-                        state.isLoading -> TaskBLoading()
-                        state.loadError != null -> TaskBLoadError(
+                    if (state.loadError != null) {
+                        TaskBLoadError(
                             message = state.loadError,
                             onRetry = { onIntent(CalendarIntent.RetryLoad) },
                         )
-                        else -> CalendarMonthGrid(
+                    } else {
+                        CalendarMonthGrid(
                             state = state,
                             drag = drag,
                             onIntent = calendarAction,
