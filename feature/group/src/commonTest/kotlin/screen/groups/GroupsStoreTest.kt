@@ -26,7 +26,7 @@ class GroupsStoreTest {
         ),
         Group(id = 2, name = "Ideas", color = GroupColor.Amber, tasks = GroupTaskSummary(completed = 4)),
         Group(id = 3, name = "Health", color = GroupColor.Teal, tasks = GroupTaskSummary(planned = 6)),
-        Group(id = 4, name = "Reading", color = GroupColor.Indigo),
+        Group(id = 4, name = "Reading", color = GroupColor.Indigo, eventCount = 2),
     )
 
     @Test
@@ -67,6 +67,12 @@ class GroupsStoreTest {
                 advanceUntilIdle()
                 assertEquals(
                     expected = listOf("Reading", "Ideas", "Health", "Work"),
+                    actual = store.state.value.visibleGroups.map(transform = Group::name),
+                )
+                store.accept(intent = GroupsIntent.Sort(sort = GroupSort.Events))
+                advanceUntilIdle()
+                assertEquals(
+                    expected = listOf("Reading", "Health", "Ideas", "Work"),
                     actual = store.state.value.visibleGroups.map(transform = Group::name),
                 )
             }

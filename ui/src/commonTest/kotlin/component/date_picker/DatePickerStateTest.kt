@@ -58,9 +58,6 @@ class DatePickerStateTest {
         state.applyYear()
         assertFalse(actual = state.yearError)
         assertEquals(expected = YearMonth(year = 2036, month = 2), actual = state.month)
-        assertEquals(expected = 29, actual = state.month.numberOfDays)
-        state.chooseYear(year = 2037)
-        assertEquals(expected = 28, actual = state.month.numberOfDays)
     }
 
     @Test

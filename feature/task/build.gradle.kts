@@ -7,10 +7,6 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlinx.coroutines.test)
         }
-        jvmTest.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.compose.ui.test)
-        }
         commonMain.dependencies {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)

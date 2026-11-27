@@ -10,6 +10,7 @@ import com.mkulikov.taskb.feature.holiday.api.repository.IHolidayRepository
 import com.mkulikov.taskb.feature.task.api.model.RecurrenceFrequency
 import com.mkulikov.taskb.feature.task.api.model.Task
 import com.mkulikov.taskb.feature.task.api.model.TaskChangeScope
+import com.mkulikov.taskb.feature.task.api.model.TaskFilter
 import com.mkulikov.taskb.feature.task.api.model.TaskOccurrenceId
 import com.mkulikov.taskb.feature.task.api.model.TaskRecurrence
 import com.mkulikov.taskb.feature.task.api.repository.ITaskRepository
@@ -113,6 +114,28 @@ class CalendarStoreTest {
                     assertTrue(actual = store.state.value.sidebarCompletedTasks.isEmpty())
                 }
         }
+    }
+
+    @Test
+    fun `clearing the selected day searches all tasks and combines date group and name filters`() {
+        val later = LocalDate(year = 2027, month = 1, day = 3)
+        val invoice = Task(id = 1, name = "Send invoice", dueDate = later, groupId = 7)
+        val dueToday = invoice.copy(id = 3, dueDate = today)
+        val directory = listOf(
+            invoice,
+            invoice.copy(id = 2, groupId = null),
+            dueToday,
+            invoice.copy(id = 4, name = "Pay rent"),
+        )
+        val state = CalendarState(today = today, tasks = listOf(element = dueToday), taskList = directory)
+        fun matching(state: CalendarState) = state.filteredTasks(
+            query = " INVOICE ",
+            filter = TaskFilter.OtherDates,
+            groupId = 7,
+        )
+
+        assertTrue(actual = matching(state = state).isEmpty())
+        assertEquals(expected = listOf(element = invoice), actual = matching(state = state.copy(selectedDate = null)))
     }
 
     @Test

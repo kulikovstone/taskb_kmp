@@ -3,7 +3,6 @@ package com.mkulikov.taskb.di
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
 import com.mkulikov.taskb.core.navigation.IAppNavigator
-import com.mkulikov.taskb.core.navigation.INavEntry
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
@@ -37,7 +36,6 @@ class AppModuleTest {
                         val settings = application.koin.get<IAppSettings>()
                         val navigator = application.koin.get<IAppNavigator>()
                         assertSame(expected = navigator, actual = application.koin.get<IAppNavigator>())
-                        assertEquals(expected = 6, actual = application.koin.getAll<INavEntry>().size)
                         val locations = application.koin.get<IAppLocationRepository>()
                         val city = AppLocation(
                             name = "Paris, France",

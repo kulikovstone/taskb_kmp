@@ -424,26 +424,16 @@ configuration cache и наследование версии модулями:
 
 Используйте кнопку запуска рядом с кодом теста в редакторе IDE или задачи Gradle:
 
-- Общие тесты фич на JVM Android: `./gradlew :feature:hello:testAndroidHostTest :feature:group:testAndroidHostTest :feature:task:testAndroidHostTest`
-- Тесты настольного приложения: `./gradlew :app:shared:jvmTest`
+- Общие тесты фич на JVM Android: `./gradlew :feature:group:testAndroidHostTest :feature:task:testAndroidHostTest`
+- Интеграционный тест DI-контейнера и базы приложения: `./gradlew :app:shared:jvmTest`
 
-Проверки перенесённой инфраструктуры и фич на JVM:
+Все JVM-тесты инфраструктуры и фич, а также тесты вычисления версии:
 
 ```bash
-./gradlew :core:mvi:jvmTest :core:navigation:jvmTest :core:database:jvmTest \
-  :feature:settings:jvmTest :feature:hello:jvmTest :feature:group:jvmTest \
-  :feature:task:jvmTest :app:shared:jvmTest
+./gradlew jvmTest :build-logic:test
 ```
 
 Тесты проверяют обработку и отмену MVI-эффектов, навигационный стек, освобождение ресурсов,
 миграции базы, внешние ключи, транзакции и сохранение настроек между запусками DI-контейнера.
-Тесты фич проверяют фильтры, редактирование, обработку ошибок и повторные запросы;
-UI-тесты Desktop проходят сценарии навигации и CRUD, выбор дат, диалоги, изменение размера
-окна и освобождение ресурсов экранов. Снимки интерфейса сохраняются в
-`app/shared/build/reports/screenshots`.
-
-Общие тесты Store также можно выполнить на JVM Android:
-
-```bash
-./gradlew :feature:hello:testAndroidHostTest :feature:group:testAndroidHostTest :feature:task:testAndroidHostTest
-```
+Тесты фич проверяют фильтрацию, редактирование задач и событий, правила повторения,
+обработку ошибок и повторные запросы.

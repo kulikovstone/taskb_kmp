@@ -4,10 +4,6 @@ plugins {
 
 kotlin {
     sourceSets {
-        jvmTest.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.compose.ui.test)
-        }
         commonMain.dependencies {
             api(libs.kotlinx.datetime)
             api(libs.compose.runtime)

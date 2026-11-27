@@ -246,7 +246,8 @@ iOS и Web пока остаются каркасом на будущее. Со�
 
 - Тесты изменённого общего модуля: `./gradlew :feature:task:jvmTest`
   (подставьте путь нужного модуля).
-- Интеграция приложения, навигация и UI Desktop: `./gradlew :app:shared:jvmTest`.
+- Навигационный стек: `./gradlew :core:navigation:jvmTest`.
+- Интеграция DI-контейнера и базы приложения: `./gradlew :app:shared:jvmTest`.
 - Компиляция Desktop: `./gradlew :app:desktopApp:compileKotlin`.
 - Сборка Android при изменении общего кода, Android-кода или конфигурации его сборки:
   `./gradlew :app:androidApp:assembleDebug`.
@@ -254,3 +255,5 @@ iOS и Web пока остаются каркасом на будущее. Со�
 
 Для обычных задач Desktop и Android не требуется полная сборка всех targets,
 включая iOS и Web. Изменения только документации не требуют запуска Gradle.
+
+Автотесты пишите для логики приложения и работы с данными.

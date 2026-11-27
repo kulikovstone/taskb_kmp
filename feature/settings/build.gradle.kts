@@ -24,9 +24,5 @@ kotlin {
         }
         jvmMain.dependencies { implementation(libs.ktor.client.cio) }
         androidMain.dependencies { implementation(libs.ktor.client.cio) }
-        jvmTest.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.compose.ui.test)
-        }
     }
 }

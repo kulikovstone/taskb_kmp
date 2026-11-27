@@ -3,6 +3,7 @@ package com.mkulikov.taskb.feature.group.repository
 import androidx.compose.ui.graphics.toArgb
 import com.mkulikov.taskb.core.database.AppDatabase
 import com.mkulikov.taskb.core.database.open
+import com.mkulikov.taskb.feature.event.api.database.EventEntity
 import com.mkulikov.taskb.feature.group.api.database.GroupEntity
 import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.group.api.model.GroupColor
@@ -74,7 +75,7 @@ class GroupRepositoryTest {
     }
 
     @Test
-    fun `task changes update group summaries and deleting a group preserves its tasks`() {
+    fun `task and event counts update independently and deleting a group preserves its tasks`() {
         runBlocking {
             val database = AppDatabase.open(file = directory.resolve("group-tasks.db"))
             try {
@@ -100,6 +101,10 @@ class GroupRepositoryTest {
                         expected = GroupTaskSummary(planned = 0, completed = 1),
                         actual = repository.getById(id = group.id)?.tasks,
                     )
+                    database.eventDao().insert(event = EventEntity(name = "Meeting", groupId = group.id))
+                    val withEvent = withTimeout(timeMillis = 5_000) { updates.receive() }.single()
+                    assertEquals(expected = 1, actual = withEvent.eventCount)
+                    assertEquals(expected = GroupTaskSummary(planned = 0, completed = 1), actual = withEvent.tasks)
 
                     repository.delete(id = group.id)
                     assertEquals(expected = emptyList(), actual = withTimeout(timeMillis = 5_000) { updates.receive() })

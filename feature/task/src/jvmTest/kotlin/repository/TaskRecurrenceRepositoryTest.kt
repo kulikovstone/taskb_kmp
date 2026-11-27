@@ -48,6 +48,37 @@ class TaskRecurrenceRepositoryTest {
     }
 
     @Test
+    fun `quick delete skips only the selected pending occurrence and protects completed occurrences`() {
+        withRepository { repo, _ ->
+            repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly, quickDelete = true))
+            val original = repo.events()
+            val completed = event(events = original, day = 3)
+            val pending = event(events = original, day = 5)
+            repo.setOccurrenceCompleted(id = completed.id, occurrence = id(task = completed), completed = true)
+            assertFalse(
+                actual = repo.quickDeleteOccurrence(
+                    id = completed.id,
+                    occurrence = id(task = completed),
+                    expectedDate = date(day = 3),
+                )
+            )
+            assertTrue(
+                actual = repo.quickDeleteOccurrence(
+                    id = pending.id,
+                    occurrence = id(task = pending),
+                    expectedDate = date(day = 5),
+                )
+            )
+            val remaining = repo.events()
+            assertEquals(
+                expected = original.filter { task -> task.key != pending.key }.map(transform = Task::key),
+                actual = remaining.map(transform = Task::key),
+            )
+            assertTrue(actual = event(events = remaining, day = 3).isCompleted)
+        }
+    }
+
+    @Test
     fun `one task owns all events and renaming an event updates every occurrence`() {
         withRepository { repo, db ->
             assertTrue(actual = repo.save(task = Task(name = "Workout", dueDate = date(day = 3), recurrence = weekly)))

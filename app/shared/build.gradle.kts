@@ -96,13 +96,7 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         jvmTest.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.compose.ui.test)
-            implementation(project(":feature:event:api"))
-            implementation(project(":feature:holiday:api"))
-            implementation(project(":feature:calendar:api"))
             implementation(project(":feature:group:api"))
-            implementation(project(":feature:task:api"))
         }
     }
 }
