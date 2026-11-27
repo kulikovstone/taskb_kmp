@@ -42,7 +42,7 @@ internal fun CalendarScreen(
     var groupId by rememberSaveable { mutableStateOf<Int?>(value = null) }
     var showFilters by rememberSaveable { mutableStateOf(value = false) }
     if (state.isContentLoading) {
-        TaskBLoading(modifier = Modifier.background(color = TaskBTheme.colors.surface))
+        TaskBLoading(modifier = Modifier.background(color = TaskBTheme.colors.surface), fastRotation = true)
         return
     }
 

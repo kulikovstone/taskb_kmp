@@ -1,5 +1,10 @@
 package com.mkulikov.taskb.ui.component
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,9 +25,14 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.theme.Palette
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -65,9 +75,26 @@ fun TaskBEditorButton(
 }
 
 @Composable
-fun TaskBLoading(modifier: Modifier = Modifier) {
+fun TaskBLoading(modifier: Modifier = Modifier, fastRotation: Boolean = false) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(modifier = Modifier.size(size = 28.dp))
+        val indicator = Modifier.size(size = 28.dp)
+        if (fastRotation) {
+            val transition = rememberInfiniteTransition(label = "Loading")
+            val rotation by transition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(animation = tween(durationMillis = 400, easing = LinearEasing)),
+                label = "Spinner rotation",
+            )
+            CircularProgressIndicator(
+                progress = 0.75f,
+                modifier = indicator
+                    .graphicsLayer { rotationZ = rotation }
+                    .clearAndSetSemantics { progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate },
+            )
+        } else {
+            CircularProgressIndicator(modifier = indicator)
+        }
     }
 }
 
