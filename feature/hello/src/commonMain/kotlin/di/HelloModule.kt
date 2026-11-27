@@ -7,5 +7,5 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 fun helloModule(): Module = module {
-    single<INavEntry>(qualifier = named<HelloNavEntry>()) { HelloNavEntry() }
+    single<INavEntry>(qualifier = named<HelloNavEntry>()) { HelloNavEntry(settings = get()) }
 }

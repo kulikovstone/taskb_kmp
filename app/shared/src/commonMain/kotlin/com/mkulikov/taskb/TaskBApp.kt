@@ -15,27 +15,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import com.mkulikov.taskb.core.navigation.AppRoot
-import com.mkulikov.taskb.feature.hello.api.HelloRoute
 import com.mkulikov.taskb.feature.calendar.api.CalendarRoute
+import com.mkulikov.taskb.feature.hello.api.HelloRoute
 import com.mkulikov.taskb.feature.settings.api.IAppSettings
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.CancellationException
 
 @Composable
-internal fun TaskBApp(settings: IAppSettings) {
-    var startDestination by remember(key1 = settings) { mutableStateOf<NavKey?>(value = null) }
+internal fun TaskBApp(settings: IAppSettings, appVersion: String = AppVersion.value) {
+    var startDestination by remember(key1 = settings, key2 = appVersion) { mutableStateOf<NavKey?>(value = null) }
 
-    LaunchedEffect(key1 = settings) {
+    LaunchedEffect(key1 = settings, key2 = appVersion) {
         var initialError: String? = null
         val showWelcomeScreen = try {
-            settings.shouldShowWelcomeScreen()
+            settings.shouldShowWelcomeScreen(version = appVersion)
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Exception) {
             initialError = "Couldn't read settings."
             true
         }
-        startDestination = if (showWelcomeScreen) HelloRoute(initialError = initialError) else CalendarRoute
+        startDestination = if (showWelcomeScreen) {
+            HelloRoute(version = appVersion, initialError = initialError)
+        } else {
+            CalendarRoute
+        }
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = TaskBTheme.colors.surface) {

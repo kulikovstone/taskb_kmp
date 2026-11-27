@@ -17,7 +17,7 @@ import org.koin.dsl.onClose
 fun settingsModule(): Module = module {
     single<INavEntry>(qualifier = named<SettingsNavEntry>()) { SettingsNavEntry() }
     single { get<AppDatabase>().settingsDao() }
-    single<IAppSettings> { AppSettings(settingsDao = inject()) }
+    single<IAppSettings> { AppSettings(database = inject()) }
     single { LocationClient() } onClose { client -> client?.close() }
     single { OpenMeteoGeocodingApi(client = get<LocationClient>().client) }
     single<IAppLocationRepository> { AppLocationRepository(api = get(), settings = inject()) }

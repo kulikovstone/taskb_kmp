@@ -1,7 +1,8 @@
 package com.mkulikov.taskb.feature.settings.api
 
 interface IAppSettings {
-    suspend fun shouldShowWelcomeScreen(): Boolean
+    suspend fun shouldShowWelcomeScreen(version: String): Boolean
 
-    suspend fun setShowWelcomeScreen(enabled: Boolean)
+    /** Records a Get started confirmation and returns true if it advances the confirmed version. */
+    suspend fun markWelcomeShownIfNewer(version: String): Boolean
 }

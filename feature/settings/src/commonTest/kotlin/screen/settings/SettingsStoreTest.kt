@@ -1,6 +1,5 @@
 package com.mkulikov.taskb.feature.settings.screen.settings
 
-import com.mkulikov.taskb.feature.settings.TestAppSettings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 import com.mkulikov.taskb.feature.settings.api.repository.IAppLocationRepository
 import kotlin.test.*
@@ -24,7 +23,6 @@ class SettingsStoreTest {
             val repository = Locations(city = city)
             SettingsStore(
                 locations = repository,
-                settings = TestAppSettings(),
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             ).use { store ->
                 runCurrent()
@@ -62,7 +60,6 @@ class SettingsStoreTest {
             }
             SettingsStore(
                 locations = repository,
-                settings = TestAppSettings(),
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             ).use { store ->
                 runCurrent()
@@ -103,7 +100,6 @@ class SettingsStoreTest {
             val repository = Locations(city = city).apply { pending = true }
             val store = SettingsStore(
                 locations = repository,
-                settings = TestAppSettings(),
                 dispatcher = StandardTestDispatcher(scheduler = testScheduler),
             )
             store.accept(intent = SettingsIntent.Search(query = "Paris"))

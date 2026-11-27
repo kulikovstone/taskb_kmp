@@ -3,12 +3,6 @@ package com.mkulikov.taskb.feature.settings.screen.settings
 import com.mkulikov.taskb.feature.settings.api.model.AppLocation
 
 internal sealed interface SettingsMessage {
-    data object UpdatingWelcomeScreen : SettingsMessage
-
-    data class WelcomeScreenUpdated(val enabled: Boolean) : SettingsMessage
-
-    data class WelcomeScreenUpdateFailed(val error: String) : SettingsMessage
-
     data class Location(val value: AppLocation?) : SettingsMessage
 
     data object Loading : SettingsMessage
@@ -30,16 +24,6 @@ internal sealed interface SettingsMessage {
 
 internal fun reduceSettings(state: SettingsState, message: SettingsMessage): SettingsState {
     return when (message) {
-        SettingsMessage.UpdatingWelcomeScreen -> state.copy(isUpdatingWelcomeScreen = true, welcomeScreenError = null)
-        is SettingsMessage.WelcomeScreenUpdated -> state.copy(
-            showWelcomeScreen = message.enabled,
-            isUpdatingWelcomeScreen = false,
-            welcomeScreenError = null,
-        )
-        is SettingsMessage.WelcomeScreenUpdateFailed -> state.copy(
-            isUpdatingWelcomeScreen = false,
-            welcomeScreenError = message.error,
-        )
         is SettingsMessage.Location -> state.copy(location = message.value, isLoading = false, error = null)
         SettingsMessage.Loading -> state.copy(isLoading = true, error = null)
         SettingsMessage.LoadFailed -> state.copy(isLoading = false, error = "Couldn't load settings. Please try again.")

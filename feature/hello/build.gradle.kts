@@ -6,12 +6,14 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.koin.core)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.compose.material)
             implementation(libs.compose.resources)
 
             implementation(project(":core:navigation"))
-            implementation(project(":feature:hello:api"))
             implementation(project(":feature:calendar:api"))
+            implementation(project(":feature:hello:api"))
+            implementation(project(":feature:settings:api"))
             implementation(project(":ui"))
         }
     }
