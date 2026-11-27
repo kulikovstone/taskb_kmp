@@ -5,30 +5,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
-import com.mkulikov.taskb.feature.item.screen.task_editor.TaskDateSection
-import com.mkulikov.taskb.feature.item.screen.task_editor.TaskEditorIntent
-import com.mkulikov.taskb.feature.item.screen.task_editor.TaskEditorState
-import com.mkulikov.taskb.feature.item.screen.task_editor.TaskOptionSwitch
 
 @Composable
-internal fun TaskItemEditorSchedule(state: TaskEditorState, onIntent: (TaskEditorIntent) -> Unit) {
+internal fun TaskItemEditorSchedule(
+    state: ItemEditorState,
+    details: TaskSchedule,
+    onIntent: (ItemEditorIntent) -> Unit,
+) {
     val changeRecurrence: (ItemRecurrence?) -> Unit = { rule ->
-        onIntent(TaskEditorIntent.RecurrenceChanged(recurrence = rule))
+        onIntent(ItemEditorIntent.RecurrenceChanged(recurrence = rule))
     }
-    val enabled = !state.isBusy && !state.isFinished && state.dialog == null
+    val enabled = state.enabled
     Column(verticalArrangement = Arrangement.spacedBy(space = 24.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
             Column(modifier = Modifier.weight(weight = 1f)) {
-                TaskDateSection(state = state, today = state.today, onIntent = onIntent)
+                TaskDateSection(state = details, today = state.today, enabled = enabled, onIntent = onIntent)
             }
             Box(modifier = Modifier.weight(weight = 1f)) {
-                ItemRepeatPattern(state = state, onChange = changeRecurrence, enabled = enabled)
+                ItemRepeatPattern(state = state.schedule, onChange = changeRecurrence, enabled = enabled)
             }
         }
-        if (state.recurrence != null) {
+        if (state.schedule.recurrence != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(space = 24.dp)) {
                 ItemRepeatOn(
-                    state = state,
+                    state = state.schedule,
                     onChange = changeRecurrence,
                     enabled = enabled,
                     wide = true,
@@ -36,9 +36,9 @@ internal fun TaskItemEditorSchedule(state: TaskEditorState, onIntent: (TaskEdito
                     modifier = Modifier.weight(weight = 1f),
                 )
                 ItemRepeatEnd(
-                    state = state,
+                    state = state.schedule,
                     onChange = changeRecurrence,
-                    onChooseEndDate = { onIntent(TaskEditorIntent.ChooseRepeatEndDate) },
+                    onChooseEndDate = { onIntent(ItemEditorIntent.ChooseRepeatEndDate) },
                     enabled = enabled,
                     modifier = Modifier.weight(weight = 1f),
                 )
@@ -49,20 +49,20 @@ internal fun TaskItemEditorSchedule(state: TaskEditorState, onIntent: (TaskEdito
                     Spacer(modifier = Modifier.height(height = 6.dp))
                     TaskOptionSwitch(
                         label = "Show in calendar",
-                        checked = state.showInCalendar,
+                        checked = details.showInCalendar,
                         enabled = enabled,
                         minHeight = 36.dp,
                         onCheckedChange = { checked ->
-                            onIntent(TaskEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
+                            onIntent(ItemEditorIntent.CalendarVisibilityChanged(showInCalendar = checked))
                         },
                     )
                     TaskOptionSwitch(
                         label = "Quick delete",
-                        checked = state.quickDelete,
+                        checked = details.quickDelete,
                         enabled = enabled,
                         minHeight = 36.dp,
                         onCheckedChange = { checked ->
-                            onIntent(TaskEditorIntent.QuickDeleteChanged(enabled = checked))
+                            onIntent(ItemEditorIntent.QuickDeleteChanged(enabled = checked))
                         },
                     )
                 }

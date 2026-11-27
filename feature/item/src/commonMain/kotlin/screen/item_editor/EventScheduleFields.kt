@@ -1,4 +1,4 @@
-package com.mkulikov.taskb.feature.item.screen.event_editor
+package com.mkulikov.taskb.feature.item.screen.item_editor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.utils.time.dateLabel
-import com.mkulikov.taskb.feature.item.screen.item_editor.ItemSelectionField
 import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -16,12 +15,12 @@ import kotlinx.datetime.plus
 
 @Composable
 internal fun EventDateSection(
-    state: EventEditorState,
+    state: EventSchedule,
     today: LocalDate,
-    onIntent: (EventEditorIntent) -> Unit,
+    onIntent: (ItemEditorIntent) -> Unit,
     end: Boolean,
+    enabled: Boolean,
 ) {
-    val enabled = !state.isBusy && state.dialog == null
     val date = if (end) state.endDate else state.dueDate
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -38,7 +37,7 @@ internal fun EventDateSection(
             placeholder = false,
             description = if (end) "Choose event end date" else "Choose date",
             enabled = enabled,
-            onClick = { onIntent(if (end) EventEditorIntent.ChooseEventEndDate else EventEditorIntent.ChooseDate) },
+            onClick = { onIntent(if (end) ItemEditorIntent.ChooseEventEndDate else ItemEditorIntent.ChooseDate) },
             onClear = null,
             clearDescription = "",
         )
@@ -48,7 +47,7 @@ internal fun EventDateSection(
                 TaskBSelectionButton(
                     label = "Today",
                     selected = state.dueDate == today,
-                    onClick = { onIntent(EventEditorIntent.DateChanged(date = today)) },
+                    onClick = { onIntent(ItemEditorIntent.DateChanged(date = today)) },
                     modifier = Modifier.weight(weight = 1f),
                     enabled = enabled,
                 )
@@ -57,7 +56,7 @@ internal fun EventDateSection(
                     selected = state.dueDate == today.plus(value = 1, unit = DateTimeUnit.DAY),
                     onClick = {
                         onIntent(
-                            EventEditorIntent.DateChanged(date = today.plus(value = 1, unit = DateTimeUnit.DAY))
+                            ItemEditorIntent.DateChanged(date = today.plus(value = 1, unit = DateTimeUnit.DAY))
                         )
                     },
                     modifier = Modifier.weight(weight = 1f),

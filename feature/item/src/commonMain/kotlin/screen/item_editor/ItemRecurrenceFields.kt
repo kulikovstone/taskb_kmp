@@ -73,7 +73,7 @@ private fun ItemRecurrence.description(): String {
 
 @Composable
 internal fun ItemRepeatPattern(
-    state: IRecurrenceEditorState,
+    state: ScheduleDraft,
     onChange: (ItemRecurrence?) -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier,
@@ -161,7 +161,7 @@ internal fun ItemRepeatPattern(
 
 @Composable
 internal fun ItemRepeatOn(
-    state: IRecurrenceEditorState,
+    state: ScheduleDraft,
     onChange: (ItemRecurrence?) -> Unit,
     enabled: Boolean,
     wide: Boolean,
@@ -282,7 +282,7 @@ internal fun ItemRepeatOn(
 
 @Composable
 internal fun ItemRepeatEnd(
-    state: IRecurrenceEditorState,
+    state: ScheduleDraft,
     onChange: (ItemRecurrence?) -> Unit,
     onChooseEndDate: () -> Unit,
     enabled: Boolean,

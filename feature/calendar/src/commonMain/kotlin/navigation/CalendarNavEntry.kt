@@ -13,9 +13,7 @@ import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarItem
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarScreen
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarStore
 import com.mkulikov.taskb.feature.group.api.GroupsRoute
-import com.mkulikov.taskb.feature.item.api.EventEditorRoute
-import com.mkulikov.taskb.feature.item.api.ItemCreationRoute
-import com.mkulikov.taskb.feature.item.api.TaskEditorRoute
+import com.mkulikov.taskb.feature.item.api.ItemEditorRoute
 import com.mkulikov.taskb.feature.settings.api.SettingsRoute
 import org.koin.compose.getKoin
 
@@ -30,20 +28,15 @@ internal class CalendarNavEntry : INavEntry {
                 onOpenGroups = { navigator.navigate(key = GroupsRoute) },
                 onOpenSettings = { navigator.navigate(key = SettingsRoute) },
                 onCreateItem = { date, groupId ->
-                    navigator.navigate(key = ItemCreationRoute(initialDate = date, initialGroupId = groupId))
+                    navigator.navigate(key = ItemEditorRoute(initialDate = date, initialGroupId = groupId))
                 },
                 onOpenItem = { item ->
                     when (item) {
-                        is CalendarItem.TaskItem -> navigator.navigate(
-                            key = TaskEditorRoute(
-                                taskId = item.task.id,
-                                occurrenceId = item.task.occurrenceId,
-                            ),
-                        )
-                        is CalendarItem.EventItem -> navigator.navigate(
-                            key = EventEditorRoute(
-                                eventId = item.event.id,
-                                occurrenceId = item.event.occurrenceId,
+                        is CalendarItem.Editable -> navigator.navigate(
+                            key = ItemEditorRoute(
+                                type = item.item.type,
+                                itemId = item.item.id,
+                                occurrenceId = item.item.occurrenceId,
                             ),
                         )
                         is CalendarItem.HolidayItem -> Unit

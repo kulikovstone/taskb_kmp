@@ -1,4 +1,4 @@
-package com.mkulikov.taskb.feature.item.screen.task_editor
+package com.mkulikov.taskb.feature.item.screen.item_editor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
@@ -19,9 +19,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.group.api.model.Group
 import com.mkulikov.taskb.feature.item.component.taskDateLabel
-import com.mkulikov.taskb.feature.item.screen.item_editor.ItemSelectionField
 import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
@@ -85,8 +83,12 @@ internal fun TaskOptionSwitch(
 }
 
 @Composable
-internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent: (TaskEditorIntent) -> Unit) {
-    val enabled = !state.isBusy && state.dialog == null
+internal fun TaskDateSection(
+    state: TaskSchedule,
+    today: LocalDate,
+    enabled: Boolean,
+    onIntent: (ItemEditorIntent) -> Unit,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Date",
@@ -106,8 +108,8 @@ internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent:
             placeholder = state.dueDate == null,
             description = "Choose date",
             enabled = enabled,
-            onClick = { onIntent(TaskEditorIntent.ChooseDate) },
-            onClear = state.dueDate?.let { { onIntent(TaskEditorIntent.DateChanged(date = null)) } },
+            onClick = { onIntent(ItemEditorIntent.ChooseDate) },
+            onClear = state.dueDate?.let { { onIntent(ItemEditorIntent.DateChanged(date = null)) } },
             clearDescription = "Clear date",
         )
         Spacer(modifier = Modifier.height(height = 8.dp))
@@ -115,7 +117,7 @@ internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent:
             TaskBSelectionButton(
                 label = "Today",
                 selected = state.dueDate == today,
-                onClick = { onIntent(TaskEditorIntent.DateChanged(date = today)) },
+                onClick = { onIntent(ItemEditorIntent.DateChanged(date = today)) },
                 modifier = Modifier.weight(weight = 1f),
                 enabled = enabled,
             )
@@ -123,44 +125,11 @@ internal fun TaskDateSection(state: TaskEditorState, today: LocalDate, onIntent:
                 label = "Tomorrow",
                 selected = state.dueDate == today.plus(value = 1, unit = DateTimeUnit.DAY),
                 onClick = {
-                    onIntent(TaskEditorIntent.DateChanged(date = today.plus(value = 1, unit = DateTimeUnit.DAY)))
+                    onIntent(ItemEditorIntent.DateChanged(date = today.plus(value = 1, unit = DateTimeUnit.DAY)))
                 },
                 modifier = Modifier.weight(weight = 1f),
                 enabled = enabled,
             )
         }
-    }
-}
-
-@Composable
-internal fun TaskGroupSection(
-    group: Group?,
-    enabled: Boolean,
-    onChooseGroup: () -> Unit,
-    onClearGroup: (() -> Unit)?,
-    description: String,
-    clearDescription: String,
-) {
-    val groupIcon = if (group == null) TaskBIcons.Folder else TaskBIcons.FolderFilled
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Group",
-            style = TaskBTheme.typography.label,
-            color = TaskBTheme.colors.text,
-            modifier = Modifier.height(height = 18.dp),
-        )
-        Spacer(modifier = Modifier.height(height = 8.dp))
-        ItemSelectionField(
-            label = group?.name ?: "No group",
-            icon = groupIcon,
-            tint = group?.color?.color ?: TaskBTheme.colors.muted,
-            placeholder = group == null,
-            description = description,
-            enabled = enabled,
-            onClick = onChooseGroup,
-            onClear = onClearGroup,
-            clearDescription = clearDescription,
-            height = 44.dp,
-        )
     }
 }

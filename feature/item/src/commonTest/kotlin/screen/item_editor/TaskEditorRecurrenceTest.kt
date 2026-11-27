@@ -1,7 +1,10 @@
-package com.mkulikov.taskb.feature.item.screen.task_editor
+package com.mkulikov.taskb.feature.item.screen.item_editor
 
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import com.mkulikov.taskb.feature.item.api.ItemEditorRoute
 import com.mkulikov.taskb.feature.item.api.model.*
+import com.mkulikov.taskb.feature.item.api.model.ItemType
+import com.mkulikov.taskb.feature.item.testing.FakeEventRepository
 import com.mkulikov.taskb.feature.item.testing.FakeGroupRepository
 import com.mkulikov.taskb.feature.item.testing.FakeTaskRepository
 import kotlin.test.*
@@ -17,48 +20,49 @@ class TaskEditorRecurrenceTest {
     fun `repeat input validates blanks and end dates and clearing the task date clears recurrence`(): TestResult {
         return runTest {
             val repo = FakeTaskRepository()
-            TaskEditorStore(
-                    repository = repo,
+            ItemEditorStore(
+                    tasks = repo,
+                    events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
-                    initialDate = date,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
+                    route = ItemEditorRoute(type = ItemType.Task, initialDate = date),
                 )
                 .use { store ->
                     runCurrent()
                     store.state.value.name.setTextAndPlaceCursorAtEnd(text = "Hosting")
                     store.accept(
-                        intent = TaskEditorIntent.RecurrenceChanged(recurrence = ItemRecurrence.monthly(date = date))
+                        intent = ItemEditorIntent.RecurrenceChanged(recurrence = ItemRecurrence.monthly(date = date))
                     )
                     runCurrent()
-                    store.state.value.repeatInterval.setTextAndPlaceCursorAtEnd(text = "6")
+                    store.state.value.schedule.repeatInterval.setTextAndPlaceCursorAtEnd(text = "6")
                     assertEquals(
                         expected = listOf(
                             date,
                             LocalDate(year = 2027, month = 5, day = 20),
                             LocalDate(year = 2027, month = 11, day = 20),
                         ),
-                        actual = store.state.value.upcomingDates,
+                        actual = store.state.value.schedule.upcomingDates,
                     )
-                    store.state.value.repeatInterval.setTextAndPlaceCursorAtEnd(text = "")
-                    store.accept(intent = TaskEditorIntent.Save)
+                    store.state.value.schedule.repeatInterval.setTextAndPlaceCursorAtEnd(text = "")
+                    store.accept(intent = ItemEditorIntent.Save)
                     runCurrent()
                     assertFalse(actual = store.state.value.canSave)
-                    assertNotNull(actual = store.state.value.recurrenceError)
+                    assertNotNull(actual = store.state.value.schedule.recurrenceError)
                     assertEquals(expected = 0, actual = repo.writes)
-                    store.state.value.repeatInterval.setTextAndPlaceCursorAtEnd(text = "1")
+                    store.state.value.schedule.repeatInterval.setTextAndPlaceCursorAtEnd(text = "1")
                     store.accept(
-                        intent = TaskEditorIntent.RecurrenceChanged(
+                        intent = ItemEditorIntent.RecurrenceChanged(
                             recurrence = ItemRecurrence.monthly(date = date)
                                 .copy(endDate = LocalDate(year = 2026, month = 11, day = 19))
                         )
                     )
                     runCurrent()
                     assertFalse(actual = store.state.value.canSave)
-                    store.accept(intent = TaskEditorIntent.DateChanged(date = null))
+                    store.accept(intent = ItemEditorIntent.DateChanged(date = null))
                     runCurrent()
-                    assertNull(actual = store.state.value.recurrence)
+                    assertNull(actual = store.state.value.schedule.recurrence)
                     assertTrue(actual = store.state.value.canSave)
-                    store.accept(intent = TaskEditorIntent.Save)
+                    store.accept(intent = ItemEditorIntent.Save)
                     runCurrent()
                     assertNull(actual = repo.lastWrite?.recurrence)
                 }
@@ -80,42 +84,42 @@ class TaskEditorRecurrenceTest {
                     )
                 )
             }
-            TaskEditorStore(
-                    repository = repo,
+            ItemEditorStore(
+                    tasks = repo,
+                    events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
-                    taskId = 7,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
-                    occurrenceId = key,
+                    route = ItemEditorRoute(type = ItemType.Task, itemId = 7, occurrenceId = key),
                 )
                 .use { store ->
                     runCurrent()
                     store.accept(
-                        intent = TaskEditorIntent.DateChanged(date = LocalDate(year = 2026, month = 11, day = 21))
+                        intent = ItemEditorIntent.DateChanged(date = LocalDate(year = 2026, month = 11, day = 21))
                     )
-                    store.accept(intent = TaskEditorIntent.Save)
+                    store.accept(intent = ItemEditorIntent.Save)
                     runCurrent()
-                    assertEquals(expected = TaskEditorDialog.MoveOccurrence, actual = store.state.value.dialog)
+                    assertEquals(expected = ItemEditorDialog.MoveOccurrence, actual = store.state.value.dialog)
                     assertEquals(expected = 0, actual = repo.writes)
-                    store.accept(intent = TaskEditorIntent.SaveOccurrence(scope = ItemChangeScope.ThisOccurrence))
+                    store.accept(intent = ItemEditorIntent.SaveOccurrence(scope = ItemChangeScope.ThisOccurrence))
                     runCurrent()
                     assertEquals(expected = ItemChangeScope.ThisOccurrence, actual = repo.lastScope)
                     assertEquals(expected = key, actual = repo.lastWrite?.occurrenceId)
                     assertTrue(actual = store.state.value.isFinished)
                 }
-            TaskEditorStore(
-                    repository = repo,
+            ItemEditorStore(
+                    tasks = repo,
+                    events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
-                    taskId = 7,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
-                    occurrenceId = key,
+                    route = ItemEditorRoute(type = ItemType.Task, itemId = 7, occurrenceId = key),
                 )
                 .use { store ->
                     runCurrent()
-                    store.accept(intent = TaskEditorIntent.PrepareDelete)
+                    store.accept(intent = ItemEditorIntent.PrepareDelete)
                     runCurrent()
-                    assertEquals(expected = TaskEditorDialog.DeleteOccurrence, actual = store.state.value.dialog)
+                    assertEquals(expected = ItemEditorDialog.DeleteOccurrence, actual = store.state.value.dialog)
                     assertEquals(expected = 0, actual = repo.deletions)
-                    store.accept(intent = TaskEditorIntent.DeleteOccurrence(scope = ItemChangeScope.ThisAndFollowing))
+                    store.accept(intent = ItemEditorIntent.DeleteOccurrence(scope = ItemChangeScope.ThisAndFollowing))
                     runCurrent()
                     assertEquals(expected = ItemChangeScope.ThisAndFollowing, actual = repo.lastScope)
                     assertEquals(expected = 1, actual = repo.deletions)
@@ -140,12 +144,12 @@ class TaskEditorRecurrenceTest {
                     )
                 )
             }
-            TaskEditorStore(
-                    repository = repo,
+            ItemEditorStore(
+                    tasks = repo,
+                    events = FakeEventRepository(),
                     groups = FakeGroupRepository(),
-                    taskId = 7,
                     dispatcher = StandardTestDispatcher(scheduler = testScheduler),
-                    occurrenceId = key,
+                    route = ItemEditorRoute(type = ItemType.Task, itemId = 7, occurrenceId = key),
                 )
                 .use { store ->
                     runCurrent()
@@ -156,7 +160,7 @@ class TaskEditorRecurrenceTest {
                     val description = "Payment details\nAccount: 123\n"
                     store.state.value.description.setTextAndPlaceCursorAtEnd(text = description)
                     assertTrue(actual = store.state.value.canSave)
-                    store.accept(intent = TaskEditorIntent.Save)
+                    store.accept(intent = ItemEditorIntent.Save)
                     runCurrent()
                     val saved = assertNotNull(actual = repo.lastWrite)
                     assertEquals(expected = 7, actual = saved.id)

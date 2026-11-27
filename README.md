@@ -55,9 +55,9 @@
 эти реализации через `:app:shared`. Интерфейс TaskB поддерживает светлую и тёмную темы,
 компактную и широкую компоновки с отдельными экранами создания и редактирования.
 Черновики и открытые селекторы сохраняются при изменении ширины окна и переходах
-к другим экранам поверх редактора. Публичные `ItemCreationRoute(initialDate, initialGroupId, initialType)`,
-`TaskEditorRoute(taskId, occurrenceId)`, `EventEditorRoute(eventId, occurrenceId)` из `:feature:item:api`,
-а также `GroupEditorRoute.Create`
+к другим экранам поверх редактора. Публичный маршрут `ItemEditorRoute` из `:feature:item:api` открывает общий редактор.
+Тип и ID выбирают существующий элемент, при создании можно передать начальные дату и группу.
+Маршруты `GroupEditorRoute.Create`
 и `GroupEditorRoute.Edit(groupId)` из `:feature:group:api` можно открывать через
 `IAppNavigator.navigate` из любой фичи. Маршрут списка `GroupsRoute` также находится
 в `:feature:group:api`.

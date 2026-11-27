@@ -1,4 +1,4 @@
-package com.mkulikov.taskb.feature.item.screen.event_editor
+package com.mkulikov.taskb.feature.item.screen.item_editor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,7 +27,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.mkulikov.taskb.feature.item.screen.item_editor.ItemSelectionField
 import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.dialog.TaskBDialog
 import com.mkulikov.taskb.ui.icon.TaskBIcons
@@ -36,8 +35,8 @@ import kotlinx.datetime.LocalTime
 
 @Composable
 internal fun EventStartTimeField(
-    state: EventEditorState,
-    onIntent: (EventEditorIntent) -> Unit,
+    state: EventSchedule,
+    onIntent: (ItemEditorIntent) -> Unit,
     enabled: Boolean,
 ) {
     Text(text = "Start time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
@@ -49,8 +48,8 @@ internal fun EventStartTimeField(
         placeholder = state.startTime == null,
         description = "Choose start time",
         enabled = enabled,
-        onClick = { onIntent(EventEditorIntent.ChooseStartTime) },
-        onClear = state.startTime?.let { { onIntent(EventEditorIntent.StartTimeChanged(time = null)) } },
+        onClick = { onIntent(ItemEditorIntent.ChooseStartTime) },
+        onClear = state.startTime?.let { { onIntent(ItemEditorIntent.StartTimeChanged(time = null)) } },
         clearDescription = "Clear start time",
     )
     if (state.startTime != null && state.endDate == state.dueDate) {
@@ -60,7 +59,7 @@ internal fun EventStartTimeField(
                 TaskBSelectionButton(
                     label = label,
                     selected = state.editedDurationMinutes == minutes,
-                    onClick = { onIntent(EventEditorIntent.DurationChanged(minutes = minutes)) },
+                    onClick = { onIntent(ItemEditorIntent.DurationChanged(minutes = minutes)) },
                     modifier = Modifier.weight(weight = 1f),
                     enabled = enabled,
                 )
@@ -70,7 +69,7 @@ internal fun EventStartTimeField(
 }
 
 @Composable
-internal fun EventEndTimeField(state: EventEditorState, onIntent: (EventEditorIntent) -> Unit, enabled: Boolean) {
+internal fun EventEndTimeField(state: EventSchedule, onIntent: (ItemEditorIntent) -> Unit, enabled: Boolean) {
     Text(text = "End time", style = TaskBTheme.typography.label, color = TaskBTheme.colors.text)
     Spacer(modifier = Modifier.height(height = 8.dp))
     ItemSelectionField(
@@ -80,7 +79,7 @@ internal fun EventEndTimeField(state: EventEditorState, onIntent: (EventEditorIn
         placeholder = state.endTime == null,
         description = "Choose end time",
         enabled = enabled,
-        onClick = { onIntent(EventEditorIntent.ChooseEndTime) },
+        onClick = { onIntent(ItemEditorIntent.ChooseEndTime) },
         onClear = null,
         clearDescription = "",
     )
