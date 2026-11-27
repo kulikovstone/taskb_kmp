@@ -183,7 +183,8 @@ private fun ItemEditorContent(
                         Column(modifier = Modifier.weight(weight = 1f)) {
                             ItemEditorLabel(text = "Type")
                             Row(horizontalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-                                ItemType.entries.forEach { option ->
+                                val visibleTypes = if (editing) listOf(element = type) else ItemType.entries
+                                visibleTypes.forEach { option ->
                                     TaskBSelectionButton(
                                         label = option.name,
                                         selected = type == option,
