@@ -3,6 +3,8 @@ package com.mkulikov.taskb.feature.item.screen.item_editor
 import androidx.compose.foundation.text.input.TextFieldState
 import com.mkulikov.taskb.feature.item.api.model.Event
 import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence.Companion.MAX_INTERVAL
+import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence.Companion.MAX_OCCURRENCE_COUNT
 import com.mkulikov.taskb.feature.item.api.model.ItemType
 import com.mkulikov.taskb.feature.item.api.model.eventEndDateTime
 import com.mkulikov.taskb.feature.item.api.recurrence.nextRecurrenceDates
@@ -11,6 +13,8 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
+
+internal const val DEFAULT_REPEAT_COUNT = 10
 
 internal sealed interface ScheduleDetails {
     val type: ItemType
@@ -88,7 +92,9 @@ internal data class ScheduleDraft(
     val repeatDay: TextFieldState = TextFieldState(
         initialText = (recurrence?.dayOfMonth ?: details.dueDate?.day ?: 1).toString(),
     ),
-    val repeatCount: TextFieldState = TextFieldState(initialText = (recurrence?.occurrenceCount ?: 10).toString()),
+    val repeatCount: TextFieldState = TextFieldState(
+        initialText = (recurrence?.occurrenceCount ?: DEFAULT_REPEAT_COUNT).toString(),
+    ),
 ) {
     val dueDate: LocalDate?
         get() = details.dueDate
@@ -104,21 +110,23 @@ internal data class ScheduleDraft(
             recurrence = rule,
             repeatInterval = repeatInterval.withTextIfChanged(text = (rule?.interval ?: 1).toString()),
             repeatDay = repeatDay.withTextIfChanged(text = (rule?.dayOfMonth ?: dueDate?.day ?: 1).toString()),
-            repeatCount = repeatCount.withTextIfChanged(text = (rule?.occurrenceCount ?: 10).toString()),
+            repeatCount = repeatCount.withTextIfChanged(
+                text = (rule?.occurrenceCount ?: DEFAULT_REPEAT_COUNT).toString(),
+            ),
         )
     }
 
     val recurrenceError: String?
         get() = recurrence?.let { rule ->
             val start = dueDate
+            val interval = repeatInterval.text.toString().toIntOrNull()
+            val day = repeatDay.text.toString().toIntOrNull()
+            val count = repeatCount.text.toString().toIntOrNull()
             when {
-                repeatInterval.text.toString().toIntOrNull()?.let { value -> value in 1..9999 } != true ->
-                    "Enter an interval between 1 and 9999."
-                repeatDay.text.toString().toIntOrNull()?.let { value -> value in 1..31 } != true ->
-                    "Enter a day between 1 and 31."
-                rule.occurrenceCount != null &&
-                    repeatCount.text.toString().toIntOrNull()?.let { value -> value in 1..1_000_000 } != true ->
-                    "Enter between 1 and 1000000 occurrences."
+                interval == null || interval !in 1..MAX_INTERVAL -> "Enter an interval between 1 and $MAX_INTERVAL."
+                day == null || day !in 1..31 -> "Enter a day between 1 and 31."
+                rule.occurrenceCount != null && (count == null || count !in 1..MAX_OCCURRENCE_COUNT) ->
+                    "Enter between 1 and $MAX_OCCURRENCE_COUNT occurrences."
                 start == null -> "Choose a start date."
                 rule.endDate?.let { end -> end < start } == true -> "The end date must not be before the start date."
                 else -> null
@@ -130,7 +138,7 @@ internal data class ScheduleDraft(
             val rule = recurrence ?: return null
             return rule.copy(
                 interval = repeatInterval.text.toString().toIntOrNull()?.takeIf { interval ->
-                    interval in 1..9999
+                    interval in 1..MAX_INTERVAL
                 } ?: rule.interval,
                 dayOfMonth = repeatDay.text.toString().toIntOrNull()?.takeIf { day ->
                     day in 1..31
@@ -138,7 +146,7 @@ internal data class ScheduleDraft(
                 occurrenceCount = if (rule.occurrenceCount == null) {
                     null
                 } else {
-                    repeatCount.text.toString().toIntOrNull()?.takeIf { count -> count in 1..1_000_000 }
+                    repeatCount.text.toString().toIntOrNull()?.takeIf { count -> count in 1..MAX_OCCURRENCE_COUNT }
                         ?: rule.occurrenceCount
                 },
             )

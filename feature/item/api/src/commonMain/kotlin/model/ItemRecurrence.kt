@@ -14,14 +14,17 @@ data class ItemRecurrence(
     val occurrenceCount: Int? = null,
 ) {
     init {
-        require(value = interval in 1..9999)
+        require(value = interval in 1..MAX_INTERVAL)
         require(value = dayOfMonth in 1..31 && month in 1..12)
         require(value = frequency != RecurrenceFrequency.Weekly || weekdays.isNotEmpty())
-        require(value = occurrenceCount == null || occurrenceCount in 1..1_000_000)
+        require(value = occurrenceCount == null || occurrenceCount in 1..MAX_OCCURRENCE_COUNT)
         require(value = endDate == null || occurrenceCount == null)
     }
 
     companion object {
+        const val MAX_INTERVAL = 9999
+        const val MAX_OCCURRENCE_COUNT = 1_000_000
+
         fun monthly(date: LocalDate) = ItemRecurrence(dayOfMonth = date.day, month = date.month.ordinal + 1)
     }
 }

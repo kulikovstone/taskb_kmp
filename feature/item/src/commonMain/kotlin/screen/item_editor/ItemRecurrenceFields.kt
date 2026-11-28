@@ -312,7 +312,11 @@ internal fun ItemRepeatEnd(
                         onChange(
                             rule.copy(
                                 endDate = if (label == "On date") rule.endDate ?: date else null,
-                                occurrenceCount = if (label == "After") rule.occurrenceCount ?: 10 else null,
+                                occurrenceCount = if (label == "After") {
+                                    rule.occurrenceCount ?: DEFAULT_REPEAT_COUNT
+                                } else {
+                                    null
+                                },
                             )
                         )
                     },
