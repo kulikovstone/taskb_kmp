@@ -12,7 +12,6 @@ import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.feature.item.api.model.occursOn
 import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -65,7 +64,7 @@ internal data class CalendarState(
         get() = tasks
             .filter { task ->
                 val completedAt = task.completedAt
-                task.dueDate == null && (completedAt == null || completedAt > now - 24.hours)
+                task.dueDate == null && (completedAt == null || completedAt > now - Task.listVisibilityAfterCompletion)
             }
             .sortedWith(
                 comparator = compareBy<Task>(selector = Task::isCompleted)
@@ -78,7 +77,7 @@ internal data class CalendarState(
             .asSequence()
             .filter { task -> task.dueDate == null }
             .plus(elements = taskList.orEmpty())
-            .mapNotNull { task -> task.completedAt?.plus(duration = 24.hours) }
+            .mapNotNull { task -> task.completedAt?.plus(duration = Task.listVisibilityAfterCompletion) }
             .filter { instant -> instant > now }
             .minOrNull()
 

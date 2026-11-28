@@ -2,13 +2,12 @@ package com.mkulikov.taskb.feature.calendar.screen.calendar
 
 import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.feature.item.api.model.TaskFilter
-import kotlin.time.Duration.Companion.hours
 
 // Persisted group IDs are positive. Null means no group filter.
 internal const val noGroupFilterId = 0
 
 internal fun CalendarState.directoryTasks(): List<Task> {
-    val cutoff = now - 24.hours
+    val cutoff = now - Task.listVisibilityAfterCompletion
     return taskList.orEmpty().filter { task ->
         task.completedAt?.let { completedAt -> completedAt > cutoff } ?: true
     }

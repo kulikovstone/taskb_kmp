@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.feature.item.api.model
 
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 
@@ -25,4 +26,8 @@ data class Task(
 
     val canQuickDelete: Boolean
         get() = quickDelete && !isCompleted && recurrence != null && occurrenceId != null
+
+    companion object {
+        val listVisibilityAfterCompletion = 24.hours
+    }
 }

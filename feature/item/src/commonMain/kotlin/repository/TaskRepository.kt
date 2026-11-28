@@ -15,7 +15,6 @@ import com.mkulikov.taskb.feature.item.api.recurrence.recurrenceOrdinal
 import com.mkulikov.taskb.feature.item.api.repository.ITaskRepository
 import com.mkulikov.taskb.feature.settings.api.database.rememberCreatedItemGroup
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -51,7 +50,7 @@ internal class TaskRepository(
         return records.map { list ->
             list.flatMap { record -> record.taskList(
                 today = today,
-                completedSince = (clock.now() - 24.hours).toEpochMilliseconds(),
+                completedSince = (clock.now() - Task.listVisibilityAfterCompletion).toEpochMilliseconds(),
             ) }
         }
     }
