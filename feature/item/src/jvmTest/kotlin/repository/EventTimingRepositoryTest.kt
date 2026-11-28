@@ -50,7 +50,7 @@ class EventTimingRepositoryTest {
                 val repo = EventRepository(database = lazy { db }, clock = clock)
                 repo.save(
                     event = Event(
-                        name = "Default hour",
+                        name = "Default duration",
                         dueDate = day(day = 6),
                         startTime = LocalTime(hour = 12, minute = 0),
                         durationMinutes = null,
@@ -67,6 +67,12 @@ class EventTimingRepositoryTest {
                 assertTrue(actual = repo.save(event = saved.copy(startTime = null, durationMinutes = null)))
                 assertNull(actual = repo.getById(id = saved.id)?.durationMinutes)
                 assertNull(actual = db.eventDao().getById(id = saved.id)?.durationMinutes)
+                val timedAgain = saved.copy(startTime = LocalTime(hour = 15, minute = 0), durationMinutes = null)
+                assertTrue(actual = repo.save(event = timedAgain))
+                assertEquals(expected = 30, actual = repo.getById(id = saved.id)?.durationMinutes)
+                assertTrue(actual = repo.save(event = timedAgain.copy(durationMinutes = 45)))
+                assertTrue(actual = repo.save(event = timedAgain.copy(startTime = LocalTime(hour = 16, minute = 0))))
+                assertEquals(expected = 45, actual = repo.getById(id = saved.id)?.durationMinutes)
             } finally {
                 db.close()
             }

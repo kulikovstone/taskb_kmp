@@ -48,10 +48,7 @@ internal class EventRepository(
     override suspend fun getById(id: Int): Event? = dao.getRecord(id = id)?.event()
 
     override suspend fun getOccurrence(id: Int, occurrence: ItemOccurrenceId): Event? {
-        val record = dao.getRecord(id = id) ?: return null
-        return record.schedules
-            .find { schedule -> schedule.id == occurrence.scheduleId }
-            ?.let { schedule -> record.occurrence(schedule = schedule, date = occurrence.scheduledDate) }
+        return dao.getRecord(id = id)?.occurrence(id = occurrence)
     }
 
     override suspend fun save(event: Event): Boolean {
@@ -62,17 +59,26 @@ internal class EventRepository(
     }
 
     override suspend fun saveOccurrence(event: Event, scope: ItemChangeScope): Boolean {
-        return saveWithDuration(
-            event = event.copy(
-                durationMinutes = event.durationMinutes ?: event.startTime?.let { if (event.id == 0) 30 else 60 },
-                durationDays = if (event.startTime == null) event.durationDays else 1,
-            ),
-            scope = scope,
-        )
+        return saveWithDuration(draft = event, scope = scope)
     }
 
-    private suspend fun saveWithDuration(event: Event, scope: ItemChangeScope): Boolean {
+    private suspend fun saveWithDuration(draft: Event, scope: ItemChangeScope): Boolean {
         return database.value.withWriteTransaction {
+            val record = if (draft.id == 0) null else dao.getRecord(id = draft.id) ?: return@withWriteTransaction false
+            val occurrence = draft.occurrenceId
+            val original = record?.let { stored ->
+                if (occurrence == null) {
+                    stored.event()
+                } else {
+                    stored.occurrence(id = occurrence) ?: return@withWriteTransaction false
+                }
+            }
+            val event = draft.copy(
+                durationMinutes = draft.durationMinutes ?: draft.startTime?.let {
+                    original?.durationMinutes ?: Event.DEFAULT_DURATION_MINUTES
+                },
+                durationDays = if (draft.startTime == null) draft.durationDays else 1,
+            )
             val name = event.name.trim().also { trimmedName -> require(value = trimmedName.isNotEmpty()) }
             require(value = event.durationDays > 0) { "An event must occupy at least one day." }
             require(value = event.recurrence == null || event.dueDate != null)
@@ -93,7 +99,7 @@ internal class EventRepository(
                     date >= requireNotNull(value = event.dueDate)
                 } != false,
             )
-            if (event.id == 0) {
+            if (record == null) {
                 val id = dao.insert(
                         event = EventEntity(
                             name = name,
@@ -130,16 +136,7 @@ internal class EventRepository(
                 if (id > 0) database.value.settingsDao().rememberCreatedItemGroup(groupId = event.groupId)
                 return@withWriteTransaction id > 0
             }
-            val record = dao.getRecord(id = event.id) ?: return@withWriteTransaction false
-            val occurrence = event.occurrenceId
-            val original = if (occurrence == null) {
-                record.event()
-            } else {
-                val schedule = record.schedules.find { schedule -> schedule.id == occurrence.scheduleId }
-                    ?: return@withWriteTransaction false
-                record.occurrence(schedule = schedule, date = occurrence.scheduledDate)
-                    ?: return@withWriteTransaction false
-            }
+            checkNotNull(value = original)
             val changedTiming = original.startTime != event.startTime ||
                 original.durationMinutes != event.durationMinutes ||
                 original.durationDays != event.durationDays
@@ -153,7 +150,7 @@ internal class EventRepository(
                     groupId = event.groupId,
                     description = event.description,
                     startTimeMinutes = record.event.startTimeMinutes,
-                    durationMinutes = normalizedEventDuration(
+                    durationMinutes = storedEventDuration(
                         startTimeMinutes = record.event.startTimeMinutes,
                         durationMinutes = record.event.durationMinutes,
                     ),
@@ -188,7 +185,7 @@ internal class EventRepository(
                         groupId = event.groupId,
                         description = event.description,
                         startTimeMinutes = current.startTimeMinutes,
-                        durationMinutes = normalizedEventDuration(
+                        durationMinutes = storedEventDuration(
                             startTimeMinutes = current.startTimeMinutes,
                             durationMinutes = current.durationMinutes,
                         ),
@@ -409,7 +406,7 @@ internal class EventRepository(
                 overridesTiming = timing != null || previous.overridesTiming,
                 startTimeMinutes = if (timing == null) previous.startTimeMinutes else timing.startTime?.minuteOfDay(),
                 durationMinutes = if (timing == null) {
-                    normalizedEventDuration(
+                    storedEventDuration(
                         startTimeMinutes = previous.startTimeMinutes,
                         durationMinutes = previous.durationMinutes,
                     )

@@ -140,7 +140,7 @@ class CalendarEventTimeTest {
             ).text,
         )
         assertEquals(
-            expected = "18:00–19:00 (1 hour)",
+            expected = "18:00–18:30 (30 min)",
             actual = calendarEventTimeRange(task = trip.copy(durationMinutes = null)).text,
         )
         assertEquals(
@@ -200,7 +200,7 @@ class CalendarEventTimeTest {
             actual = meeting
                 .copy(durationMinutes = null)
                 .isPastCalendarEvent(
-                    now = Instant.parse(input = "2026-11-06T12:00:00Z"),
+                    now = Instant.parse(input = "2026-11-06T12:29:00Z"),
                     timeZone = TimeZone.UTC,
                 )
         )
@@ -208,7 +208,7 @@ class CalendarEventTimeTest {
             actual = meeting
                 .copy(durationMinutes = null)
                 .isPastCalendarEvent(
-                    now = Instant.parse(input = "2026-11-06T13:00:00Z"),
+                    now = Instant.parse(input = "2026-11-06T12:30:00Z"),
                     timeZone = TimeZone.UTC,
                 )
         )

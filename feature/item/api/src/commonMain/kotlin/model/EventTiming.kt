@@ -8,11 +8,12 @@ import kotlinx.datetime.LocalTime
 val Event.startDateTime: LocalDateTime?
     get() = dueDate?.let { date -> startTime?.let { time -> LocalDateTime(date = date, time = time) } }
 
-/** The exclusive end of an event. Legacy timed records without a duration use one hour. */
+/** The exclusive end of a timed event. */
 val Event.endDateTime: LocalDateTime?
     get() {
         val start = startDateTime ?: return null
-        val duration = (durationMinutes ?: 60).takeIf { minutes -> minutes > 0 } ?: return null
+        val duration = durationMinutes ?: Event.DEFAULT_DURATION_MINUTES
+        if (duration <= 0) return null
         return eventEndDateTime(date = start.date, time = start.time, durationMinutes = duration)
     }
 

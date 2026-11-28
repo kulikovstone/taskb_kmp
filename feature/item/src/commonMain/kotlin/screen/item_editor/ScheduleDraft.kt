@@ -1,6 +1,7 @@
 package com.mkulikov.taskb.feature.item.screen.item_editor
 
 import androidx.compose.foundation.text.input.TextFieldState
+import com.mkulikov.taskb.feature.item.api.model.Event
 import com.mkulikov.taskb.feature.item.api.model.ItemRecurrence
 import com.mkulikov.taskb.feature.item.api.model.ItemType
 import com.mkulikov.taskb.feature.item.api.model.eventEndDateTime
@@ -59,7 +60,11 @@ internal data class EventSchedule(
 
     fun startingAt(time: LocalTime?): EventSchedule {
         if (time == null) return copy(startTime = null, endTime = null)
-        val end = eventEndDateTime(date = dueDate, time = time, durationMinutes = editedDurationMinutes ?: 30)
+        val end = eventEndDateTime(
+            date = dueDate,
+            time = time,
+            durationMinutes = editedDurationMinutes ?: Event.DEFAULT_DURATION_MINUTES,
+        )
         return copy(
             startTime = time,
             endTime = end.time,

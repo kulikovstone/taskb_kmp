@@ -235,7 +235,7 @@ class EventEditorTimingTest {
                     ),
                     Event(
                         id = 7,
-                        name = "Legacy hour",
+                        name = "Missing duration",
                         dueDate = date,
                         startTime = LocalTime(hour = 15, minute = 0),
                         durationMinutes = null,
@@ -256,7 +256,7 @@ class EventEditorTimingTest {
                         assertFalse(actual = store.state.value.canSave, message = original.name)
                         assertEquals(expected = original.endDate, actual = store.eventSchedule.endDate)
                         assertEquals(
-                            expected = if (original.startTime == null) null else original.durationMinutes ?: 60,
+                            expected = if (original.startTime == null) null else original.durationMinutes ?: 30,
                             actual = store.eventSchedule.editedDurationMinutes,
                         )
                     }

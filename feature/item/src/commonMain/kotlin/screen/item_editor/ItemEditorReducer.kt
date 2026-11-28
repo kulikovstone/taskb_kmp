@@ -77,7 +77,7 @@ internal fun reduceItemEditor(state: ItemEditorState, message: ItemEditorMessage
 private fun ItemEditorState.loaded(item: Item?): ItemEditorState {
     if (item == null) return copy(isLoading = false, loadError = "This ${type.name.lowercase()} no longer exists.")
     val original = if (item is Event && item.startTime != null && (item.durationMinutes ?: 0) <= 0) {
-        item.copy(durationMinutes = 60)
+        item.copy(durationMinutes = Event.DEFAULT_DURATION_MINUTES)
     } else {
         item
     }

@@ -106,7 +106,8 @@ internal fun calendarEventTimeRange(
         if (showDates) appendDate(date = end.date)
         withStyle(style = clockStyle) { append(text = end.time.calendarTimeLabel()) }
     }
-    append(text = " (${calendarEventDuration(minutes = task.durationMinutes ?: 60)})")
+    val duration = task.durationMinutes ?: Event.DEFAULT_DURATION_MINUTES
+    append(text = " (${calendarEventDuration(minutes = duration)})")
 }
 
 internal fun calendarEventDuration(minutes: Int): String {

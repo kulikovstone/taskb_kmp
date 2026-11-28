@@ -68,7 +68,7 @@ class EventTimingTest {
     }
 
     @Test
-    fun `a start time defaults to thirty minutes including legacy missing duration across midnight`() {
+    fun `a timed event defaults to thirty minutes even when the duration is explicitly omitted`() {
         val date = LocalDate(year = 2026, month = 11, day = 6)
         val event = Event(name = "Call", dueDate = date, startTime = LocalTime(hour = 12, minute = 0))
         assertEquals(expected = 30, actual = event.durationMinutes)
@@ -76,14 +76,14 @@ class EventTimingTest {
             expected = LocalDateTime(year = 2026, month = 11, day = 6, hour = 12, minute = 30),
             actual = event.endDateTime,
         )
-        val legacy = event.copy(startTime = LocalTime(hour = 23, minute = 30), durationMinutes = null)
+        val late = event.copy(startTime = LocalTime(hour = 23, minute = 45), durationMinutes = null)
         assertEquals(
-            expected = LocalDateTime(year = 2026, month = 11, day = 7, hour = 0, minute = 30),
-            actual = legacy.endDateTime,
+            expected = LocalDateTime(year = 2026, month = 11, day = 7, hour = 0, minute = 15),
+            actual = late.endDateTime,
         )
-        assertTrue(actual = legacy.occursOn(date = date))
-        assertTrue(actual = legacy.occursOn(date = LocalDate(year = 2026, month = 11, day = 7)))
-        assertFalse(actual = legacy.occursOn(date = LocalDate(year = 2026, month = 11, day = 8)))
+        assertTrue(actual = late.occursOn(date = date))
+        assertTrue(actual = late.occursOn(date = LocalDate(year = 2026, month = 11, day = 7)))
+        assertFalse(actual = late.occursOn(date = LocalDate(year = 2026, month = 11, day = 8)))
     }
 
     @Test

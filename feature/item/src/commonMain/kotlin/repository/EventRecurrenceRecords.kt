@@ -30,7 +30,8 @@ internal fun LocalTime.minuteOfDay() = hour * 60 + minute
 
 internal fun Int.localTime() = LocalTime(hour = this / 60, minute = this % 60)
 
-internal fun normalizedEventDuration(startTimeMinutes: Int?, durationMinutes: Int?): Int? {
+internal fun storedEventDuration(startTimeMinutes: Int?, durationMinutes: Int?): Int? {
+    // A missing duration in a stored timed event represents one hour in older versions of TaskB.
     return if (startTimeMinutes == null) null else durationMinutes ?: 60
 }
 
@@ -52,10 +53,7 @@ internal fun ItemRecurrence.entity(
         endDate = endDate?.toEpochDays(),
         occurrenceCount = occurrenceCount,
         startTimeMinutes = startTime?.minuteOfDay(),
-        durationMinutes = normalizedEventDuration(
-            startTimeMinutes = startTime?.minuteOfDay(),
-            durationMinutes = durationMinutes,
-        ),
+        durationMinutes = durationMinutes,
         durationDays = durationDays,
     )
 }
@@ -77,13 +75,18 @@ internal fun EventRecord.event(): Event {
         recurrence = displaySchedule?.rule(),
         description = event.description,
         startTime = time?.localTime(),
-        durationMinutes = normalizedEventDuration(startTimeMinutes = time, durationMinutes = duration),
+        durationMinutes = storedEventDuration(startTimeMinutes = time, durationMinutes = duration),
         durationDays = if (event.recurring) displaySchedule?.durationDays ?: 1 else event.durationDays,
     )
 }
 
 private fun EventRecord.exceptionIndex(): Map<Pair<Long, Long>, EventOccurrenceEntity> {
     return occurrences.associateBy { occurrence -> occurrence.scheduleId to occurrence.scheduledDate }
+}
+
+internal fun EventRecord.occurrence(id: ItemOccurrenceId): Event? {
+    val schedule = schedules.find { schedule -> schedule.id == id.scheduleId } ?: return null
+    return occurrence(schedule = schedule, date = id.scheduledDate)
 }
 
 internal fun EventRecord.occurrence(
@@ -112,7 +115,7 @@ internal fun EventRecord.occurrence(
             recurrence = schedule.rule(),
             occurrenceId = ItemOccurrenceId(scheduleId = schedule.id, scheduledDate = date),
             startTime = time?.localTime(),
-            durationMinutes = normalizedEventDuration(startTimeMinutes = time, durationMinutes = duration),
+            durationMinutes = storedEventDuration(startTimeMinutes = time, durationMinutes = duration),
             durationDays = if (exception?.overridesTiming == true) exception.durationDays else schedule.durationDays,
         )
 }
@@ -121,19 +124,19 @@ internal fun EventRecord.calendar(from: LocalDate, through: LocalDate): List<Eve
     return buildList {
         val exceptions = exceptionIndex()
         val longestDuration = (schedules.mapNotNull { schedule ->
-                normalizedEventDuration(
+                storedEventDuration(
                     startTimeMinutes = schedule.startTimeMinutes,
                     durationMinutes = schedule.durationMinutes,
                 )
             } +
                 occurrences.mapNotNull { occurrence ->
-                    normalizedEventDuration(
+                    storedEventDuration(
                         startTimeMinutes = occurrence.startTimeMinutes,
                         durationMinutes = occurrence.durationMinutes,
                     )
                 } +
                 listOfNotNull(
-                    element = normalizedEventDuration(
+                    element = storedEventDuration(
                         startTimeMinutes = event.startTimeMinutes,
                         durationMinutes = event.durationMinutes,
                     )

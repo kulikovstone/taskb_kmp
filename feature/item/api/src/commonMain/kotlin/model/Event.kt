@@ -18,7 +18,7 @@ data class Event(
     override val occurrenceId: ItemOccurrenceId? = null,
     override val description: String = "",
     val startTime: LocalTime? = null,
-    val durationMinutes: Int? = if (startTime != null) 30 else null,
+    val durationMinutes: Int? = if (startTime != null) DEFAULT_DURATION_MINUTES else null,
     /** Inclusive number of dates occupied by an event without time. */
     val durationDays: Int = 1,
 ) : Item {
@@ -36,4 +36,8 @@ data class Event(
 
     val isTimed: Boolean
         get() = dueDate != null && startTime != null
+
+    companion object {
+        const val DEFAULT_DURATION_MINUTES = 60
+    }
 }
