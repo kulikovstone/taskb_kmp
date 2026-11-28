@@ -6,12 +6,18 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.LocalRippleConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.screen.calendar.CalendarIntent
 import com.mkulikov.taskb.feature.item.api.model.Task
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
+
+private val quickDeleteButtonSize = 24.dp
 
 internal fun Task.quickDeleteIntent(): CalendarIntent.PrepareQuickDelete? {
     val occurrence = occurrenceId?.takeIf { canQuickDelete } ?: return null
@@ -25,11 +31,20 @@ internal fun CalendarQuickDeleteButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    CompositionLocalProvider(value = LocalRippleConfiguration provides null) {
+    val viewConfiguration = LocalViewConfiguration.current
+    val buttonConfiguration = remember(key1 = viewConfiguration) {
+        object : ViewConfiguration by viewConfiguration {
+            override val minimumTouchTargetSize = DpSize(width = quickDeleteButtonSize, height = quickDeleteButtonSize)
+        }
+    }
+    CompositionLocalProvider(
+        LocalViewConfiguration provides buttonConfiguration,
+        LocalRippleConfiguration provides null,
+    ) {
         IconButton(
             onClick = onClick,
             enabled = enabled,
-            modifier = modifier.size(width = 44.dp, height = 30.dp),
+            modifier = modifier.size(size = quickDeleteButtonSize),
         ) {
             Icon(
                 imageVector = TaskBIcons.Delete,

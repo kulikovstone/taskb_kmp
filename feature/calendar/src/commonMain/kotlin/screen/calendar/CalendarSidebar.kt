@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayContext
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayEntry
 import com.mkulikov.taskb.feature.calendar.component.CalendarDayList
-import com.mkulikov.taskb.feature.calendar.component.CalendarQuickDeleteButton
 import com.mkulikov.taskb.feature.calendar.component.calendarItemCount
 import com.mkulikov.taskb.feature.calendar.component.quickDeleteIntent
 import com.mkulikov.taskb.feature.group.api.model.Group
@@ -289,7 +288,7 @@ private fun CalendarTaskRow(
                 onIntent(item.moveTo(date = target))
             }
             .clickable(enabled = enabled, role = Role.Button, onClick = onOpen)
-            .padding(start = 12.dp, top = 8.dp, end = 24.dp, bottom = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
     ) {
@@ -324,31 +323,23 @@ private fun CalendarTaskRow(
             modifier = Modifier.weight(weight = 1f),
             verticalArrangement = Arrangement.spacedBy(space = 2.dp),
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.weight(weight = 1f),
-                    verticalArrangement = Arrangement.spacedBy(space = 2.dp),
-                ) {
-                    CalendarTaskTitle(
-                        text = task.name,
-                        isCompleted = task.isCompleted,
-                        style = TaskBTheme.typography.body,
-                    )
-                    if (task.description.isNotBlank()) {
-                        Text(
-                            text = task.description,
-                            color = colors.muted,
-                            style = TaskBTheme.typography.small,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                if (quickDelete != null) {
-                    CalendarQuickDeleteButton(
-                        taskName = task.name,
-                        enabled = enabled,
-                        onClick = { onIntent(quickDelete) },
+            CalendarTaskHeader(
+                taskName = task.name,
+                enabled = enabled,
+                onQuickDelete = quickDelete?.let { intent -> { onIntent(intent) } },
+            ) {
+                CalendarTaskTitle(
+                    text = task.name,
+                    isCompleted = task.isCompleted,
+                    style = TaskBTheme.typography.body,
+                )
+                if (task.description.isNotBlank()) {
+                    Text(
+                        text = task.description,
+                        color = colors.muted,
+                        style = TaskBTheme.typography.small,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

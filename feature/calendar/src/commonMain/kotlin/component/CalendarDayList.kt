@@ -33,7 +33,13 @@ import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
-internal val calendarSidebarTaskPadding = PaddingValues(horizontal = 24.dp)
+private val calendarSidebarContentPadding = PaddingValues(horizontal = 24.dp)
+private val calendarSidebarTaskPadding = PaddingValues(start = 24.dp, end = 12.dp)
+
+internal fun calendarSidebarItemPadding(item: CalendarItem): PaddingValues = when (item) {
+    is CalendarItem.TaskItem -> calendarSidebarTaskPadding
+    else -> calendarSidebarContentPadding
+}
 
 internal fun calendarItemCount(taskCount: Int, eventCount: Int, holidayCount: Int = 0): String = buildList {
     if (taskCount > 0 || eventCount == 0 && holidayCount == 0)
@@ -109,7 +115,7 @@ internal fun CalendarDayList(
         if (tasks.isEmpty())
             Text(
                 text = "No tasks or events for this day.",
-                modifier = Modifier.padding(paddingValues = calendarSidebarTaskPadding),
+                modifier = Modifier.padding(paddingValues = calendarSidebarContentPadding),
                 color = colors.muted,
                 style = TaskBTheme.typography.body,
             )
@@ -128,7 +134,7 @@ internal fun CalendarDayList(
                     item(key = "day-completed") {
                         CalendarDayCompleted(
                             modifier = Modifier
-                                .padding(paddingValues = calendarSidebarTaskPadding)
+                                .padding(paddingValues = calendarSidebarContentPadding)
                                 .padding(bottom = 24.dp)
                         )
                     }
@@ -139,7 +145,7 @@ internal fun CalendarDayList(
                             expanded = recurringExpanded,
                             onToggle = { recurringExpanded = !recurringExpanded },
                             modifier = Modifier
-                                .padding(paddingValues = calendarSidebarTaskPadding)
+                                .padding(paddingValues = calendarSidebarContentPadding)
                                 .testTag(tag = "calendar-sidebar-recurring-heading"),
                         )
                         if (recurringExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
@@ -154,7 +160,7 @@ internal fun CalendarDayList(
                             expanded = eventsExpanded,
                             onToggle = { eventsExpanded = !eventsExpanded },
                             modifier = Modifier
-                                .padding(paddingValues = calendarSidebarTaskPadding)
+                                .padding(paddingValues = calendarSidebarContentPadding)
                                 .testTag(tag = "calendar-sidebar-events-heading"),
                         )
                         if (eventsExpanded) Spacer(modifier = Modifier.height(height = 4.dp))
@@ -174,7 +180,7 @@ internal fun CalendarDayList(
                             expanded = tasksExpanded,
                             onToggle = { tasksExpanded = !tasksExpanded },
                             modifier = Modifier
-                                .padding(paddingValues = calendarSidebarTaskPadding)
+                                .padding(paddingValues = calendarSidebarContentPadding)
                                 .testTag(tag = "calendar-sidebar-tasks-heading"),
                         )
                         if (tasksExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
@@ -196,7 +202,7 @@ internal fun CalendarDayList(
                             expanded = completedExpanded,
                             onToggle = { completedExpanded = !completedExpanded },
                             modifier = Modifier
-                                .padding(paddingValues = calendarSidebarTaskPadding)
+                                .padding(paddingValues = calendarSidebarContentPadding)
                                 .testTag(tag = "calendar-sidebar-completed-heading"),
                         )
                         if (completedExpanded) Spacer(modifier = Modifier.height(height = 8.dp))
@@ -257,7 +263,7 @@ internal fun CalendarDayEntry(
         date = date,
         now = state.now,
         today = state.today,
-        contentPadding = calendarSidebarTaskPadding,
+        contentPadding = calendarSidebarItemPadding(item = item),
         onQuickDelete = quickDelete?.let { intent -> { onIntent(intent) } },
     )
 }

@@ -147,10 +147,9 @@ internal fun CalendarWorkspace(
                 val sourceHorizontalPadding = if (dense) {
                     0.dp
                 } else {
-                    calendarSidebarTaskPadding.calculateLeftPadding(layoutDirection = LayoutDirection.Ltr) +
-                        calendarSidebarTaskPadding.calculateRightPadding(
-                            layoutDirection = LayoutDirection.Ltr
-                        )
+                    val padding = calendarSidebarItemPadding(item = task)
+                    padding.calculateLeftPadding(layoutDirection = LayoutDirection.Ltr) +
+                        padding.calculateRightPadding(layoutDirection = LayoutDirection.Ltr)
                 }
                 Surface(
                     modifier = Modifier

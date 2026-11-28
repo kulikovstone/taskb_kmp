@@ -77,6 +77,23 @@ internal fun CalendarTaskTitle(text: String, isCompleted: Boolean, style: TextSt
 }
 
 @Composable
+internal fun CalendarTaskHeader(
+    taskName: String,
+    enabled: Boolean,
+    onQuickDelete: (() -> Unit)?,
+    content: @Composable () -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(weight = 1f), verticalArrangement = Arrangement.spacedBy(space = 2.dp)) {
+            content()
+        }
+        if (onQuickDelete != null) {
+            CalendarQuickDeleteButton(taskName = taskName, enabled = enabled, onClick = onQuickDelete)
+        }
+    }
+}
+
+@Composable
 internal fun CalendarTaskRow(
     task: CalendarItem,
     group: Group?,
@@ -208,11 +225,8 @@ internal fun CalendarTaskRow(
                     },
                 ),
             ) {
-                CalendarTaskTitle(
-                    text = task.name,
-                    isCompleted = task.isCompleted,
-                    style = titleStyle,
-                    modifier = Modifier
+                CalendarTaskHeader(taskName = task.name, enabled = enabled, onQuickDelete = onQuickDelete) {
+                    val openTaskModifier = Modifier
                         .fillMaxWidth()
                         .clickable(
                             interactionSource = interactionSource,
@@ -221,26 +235,24 @@ internal fun CalendarTaskRow(
                             role = Role.Button,
                         ) {
                             onOpenTask(task.id)
-                        },
-                )
-                if (!dense && task.description.isNotBlank())
-                    Text(
-                        text = task.description,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null,
-                                enabled = enabled,
-                                role = Role.Button,
-                            ) {
-                                onOpenTask(task.id)
-                            },
-                        color = colors.muted,
-                        style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        }
+                    CalendarTaskTitle(
+                        text = task.name,
+                        isCompleted = task.isCompleted,
+                        style = titleStyle,
+                        modifier = openTaskModifier,
                     )
+                    if (!dense && task.description.isNotBlank()) {
+                        Text(
+                            text = task.description,
+                            modifier = openTaskModifier,
+                            color = colors.muted,
+                            style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
                 if (!dense && group != null) {
                     CalendarGroupLabel(
                         group = group,
@@ -249,14 +261,6 @@ internal fun CalendarTaskRow(
                         style = TaskBTheme.typography.small.copy(lineHeightStyle = lineHeightStyle),
                     )
                 }
-            }
-            if (onQuickDelete != null) {
-                CalendarQuickDeleteButton(
-                    taskName = task.name,
-                    enabled = enabled,
-                    onClick = onQuickDelete,
-                    modifier = Modifier.align(alignment = Alignment.Top),
-                )
             }
         }
     }
