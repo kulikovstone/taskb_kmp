@@ -2,6 +2,7 @@ package com.mkulikov.taskb.feature.weather.network
 
 import com.mkulikov.taskb.feature.weather.api.model.DailyWeather
 import com.mkulikov.taskb.feature.weather.api.model.WeatherCondition
+import com.mkulikov.taskb.feature.weather.api.model.WeatherForecast
 import com.mkulikov.taskb.feature.weather.api.model.WeatherLocation
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -16,7 +17,7 @@ internal class OpenMeteoApi(private val client: HttpClient?) {
             parameter(key = "latitude", value = location.latitude)
             parameter(key = "longitude", value = location.longitude)
             parameter(key = "timezone", value = location.timeZone)
-            parameter(key = "forecast_days", value = 10)
+            parameter(key = "forecast_days", value = WeatherForecast.HORIZON_DAYS)
             parameter(key = "temperature_unit", value = "celsius")
             parameter(key = "daily", value = "weather_code,temperature_2m_min,temperature_2m_max")
         }
@@ -52,7 +53,7 @@ internal class OpenMeteoApi(private val client: HttpClient?) {
             }
             .distinctBy(selector = DailyWeather::date)
             .sortedBy(selector = DailyWeather::date)
-            .take(n = 10)
+            .take(n = WeatherForecast.HORIZON_DAYS)
     }
 
     private fun requireClient() = checkNotNull(value = client) { "Weather is not available on this platform yet." }

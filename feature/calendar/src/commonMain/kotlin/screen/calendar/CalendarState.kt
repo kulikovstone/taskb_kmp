@@ -56,7 +56,7 @@ internal data class CalendarState(
         get() = weather.location
             ?.let { location ->
                 val first = now.toLocalDateTime(timeZone = TimeZone.of(zoneId = location.timeZone)).date
-                val end = first.plus(value = 10, unit = DateTimeUnit.DAY)
+                val end = first.plus(value = WeatherForecast.HORIZON_DAYS, unit = DateTimeUnit.DAY)
                 weather.days.filter { weather -> weather.date in first..<end }.associateBy { weather -> weather.date }
             }
             .orEmpty()

@@ -8,4 +8,8 @@ data class WeatherForecast(
     val days: List<DailyWeather> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-)
+) {
+    companion object {
+        const val HORIZON_DAYS = 10
+    }
+}

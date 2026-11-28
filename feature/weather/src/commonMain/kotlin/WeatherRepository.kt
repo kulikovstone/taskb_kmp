@@ -18,6 +18,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.*
 
+private val forecastCacheLifetime = 1.hours
+private val forecastRefreshCheckInterval = 15.minutes
+
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class WeatherRepository(
     private val api: OpenMeteoApi,
@@ -45,7 +48,7 @@ internal class WeatherRepository(
                                 if (
                                     saved != null &&
                                         now >= saved.fetchedAt &&
-                                        now - saved.fetchedAt < 1.hours &&
+                                        now - saved.fetchedAt < forecastCacheLifetime &&
                                         saved.day == currentDay(location = location)
                                 ) {
                                     saved.days
@@ -78,7 +81,7 @@ internal class WeatherRepository(
                             )
                         }
                         emit(value = result)
-                        delay(duration = 15.minutes)
+                        delay(duration = forecastRefreshCheckInterval)
                     }
                 }
             }
@@ -100,7 +103,7 @@ internal class WeatherRepository(
 
     private fun upcoming(days: List<DailyWeather>, location: WeatherLocation): List<DailyWeather> {
         val today = currentDay(location = location)
-        val end = today.plus(value = 10, unit = DateTimeUnit.DAY)
+        val end = today.plus(value = WeatherForecast.HORIZON_DAYS, unit = DateTimeUnit.DAY)
         return days.filter { weather -> weather.date >= today && weather.date < end }
     }
 
