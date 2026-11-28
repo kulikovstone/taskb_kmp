@@ -11,6 +11,9 @@ import java.awt.Rectangle
 import java.awt.Toolkit
 import java.awt.geom.Area
 
+internal const val DEFAULT_WINDOW_WIDTH = 1640
+internal const val DEFAULT_WINDOW_HEIGHT = 1120
+
 internal data class SavedWindowState(val screenId: String, val floatingBounds: Rectangle, val maximized: Boolean) {
     val composeBounds: DpRect
         get() = DpRect(
@@ -71,8 +74,8 @@ internal fun restoreWindowState(
         if (outside.isEmpty) return saved
     }
 
-    val desiredWidth = bounds?.width ?: 1900
-    val desiredHeight = bounds?.height ?: 1180
+    val desiredWidth = bounds?.width ?: DEFAULT_WINDOW_WIDTH
+    val desiredHeight = bounds?.height ?: DEFAULT_WINDOW_HEIGHT
     // Some window managers classify a new window covering the whole monitor as fullscreen.
     val margin = if (desiredWidth >= target.width && desiredHeight >= target.height) {
         minOf(a = 16, b = (target.width - 1) / 2, c = (target.height - 1) / 2)

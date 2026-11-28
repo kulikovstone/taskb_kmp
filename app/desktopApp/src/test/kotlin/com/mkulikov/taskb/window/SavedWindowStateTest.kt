@@ -61,6 +61,17 @@ class SavedWindowStateTest {
     }
 
     @Test
+    fun firstLaunchCentersDefaultWindowInAvailableWorkArea() {
+        val workArea = Rectangle(0, 30, DEFAULT_WINDOW_WIDTH + 280, DEFAULT_WINDOW_HEIGHT + 50)
+        val restored = restoreWindowState(
+            saved = null,
+            screens = mapOf("primary" to workArea),
+            defaultScreenId = "primary",
+        )
+        assertEquals(Rectangle(140, 55, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT), restored.floatingBounds)
+    }
+
+    @Test
     fun firstLaunchOnSmallScreenLeavesRoomForWindowBorders() {
         val restored = restoreWindowState(saved = null, screens = both, defaultScreenId = "primary")
         val expected = SavedWindowState(
