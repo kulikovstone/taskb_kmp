@@ -8,9 +8,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.ui.layout.TaskBLayout
 import org.koin.compose.koinInject
 
 @Composable
@@ -24,7 +24,7 @@ internal fun GroupEditorScreen(groupId: Int? = null, onBack: () -> Unit) {
 
     Surface(modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            if (maxWidth >= 840.dp) {
+            if (maxWidth >= TaskBLayout.wideMinWidth) {
                 GroupEditorWideScreen(state = state, onIntent = store::accept, onBack = onBack)
             } else {
                 GroupEditorCompactScreen(state = state, onIntent = store::accept, onBack = onBack)

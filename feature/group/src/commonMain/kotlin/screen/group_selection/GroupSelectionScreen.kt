@@ -30,6 +30,7 @@ import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
 import com.mkulikov.taskb.ui.component.TaskBVerticalScrollbar
 import com.mkulikov.taskb.ui.icon.TaskBIcons
+import com.mkulikov.taskb.ui.layout.TaskBLayout
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import org.koin.compose.koinInject
 
@@ -69,7 +70,7 @@ internal fun GroupSelectionContent(
     onCreateGroup: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val wide = maxWidth >= 840.dp
+        val wide = maxWidth >= TaskBLayout.wideMinWidth
         Column(modifier = Modifier.fillMaxSize()) {
             if (wide) {
                 TaskBEditorTopAppBar(title = "Choose group", onBack = onBack, backEnabled = true) {

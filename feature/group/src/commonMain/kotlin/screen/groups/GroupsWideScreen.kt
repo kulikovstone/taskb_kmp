@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.ui.component.TaskBEditorButton
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.icon.TaskBIcons
+import com.mkulikov.taskb.ui.layout.TaskBLayout
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
@@ -39,7 +40,7 @@ internal fun GroupsWideScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(height = 70.dp)
+                .height(height = TaskBLayout.topBarHeight)
                 .padding(start = 16.dp, end = 32.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -61,7 +62,7 @@ internal fun GroupsWideScreen(
         Column(
             modifier = Modifier
                 .weight(weight = 1f)
-                .widthIn(max = 724.dp)
+                .widthIn(max = TaskBLayout.contentMaxWidth)
                 .fillMaxWidth(),
         ) {
             Row(

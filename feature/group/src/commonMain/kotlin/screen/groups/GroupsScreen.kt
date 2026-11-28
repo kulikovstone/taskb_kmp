@@ -9,9 +9,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.mkulikov.taskb.core.navigation.rememberNavEntryResource
 import com.mkulikov.taskb.feature.group.api.repository.IGroupRepository
+import com.mkulikov.taskb.ui.layout.TaskBLayout
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import org.koin.compose.koinInject
 
@@ -22,7 +22,7 @@ internal fun GroupsScreen(onBack: () -> Unit, onCreateGroup: () -> Unit, onEditG
     val state by store.state.collectAsState()
     Surface(modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            if (maxWidth >= 840.dp) {
+            if (maxWidth >= TaskBLayout.wideMinWidth) {
                 GroupsWideScreen(
                     state = state,
                     onIntent = store::accept,

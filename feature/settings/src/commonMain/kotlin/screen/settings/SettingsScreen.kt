@@ -22,6 +22,7 @@ import com.mkulikov.taskb.ui.button.TaskBSelectionButton
 import com.mkulikov.taskb.ui.component.TaskBOptionSwitch
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.component.TaskBTopAppBar
+import com.mkulikov.taskb.ui.layout.TaskBLayout
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 
 @Composable
@@ -39,7 +40,7 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
     }
     Surface(modifier = Modifier.fillMaxSize(), color = colors.surface) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val wide = maxWidth >= 840.dp
+            val wide = maxWidth >= TaskBLayout.wideMinWidth
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -49,7 +50,7 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
                     TaskBTopAppBar(
                         title = "Settings",
                         onBack = onBack,
-                        modifier = Modifier.height(height = 70.dp),
+                        modifier = Modifier.height(height = TaskBLayout.topBarHeight),
                         titleSpacing = 8.dp,
                         contentPadding = PaddingValues(start = 16.dp, end = 32.dp),
                     )
@@ -58,7 +59,7 @@ internal fun SettingsScreen(state: SettingsState, onIntent: (SettingsIntent) -> 
                 }
                 Column(
                     modifier = Modifier
-                        .widthIn(max = if (wide) 724.dp else 640.dp)
+                        .widthIn(max = if (wide) TaskBLayout.contentMaxWidth else 640.dp)
                         .fillMaxWidth()
                         .verticalScroll(state = rememberScrollState())
                         .padding(all = if (wide) 0.dp else 24.dp),

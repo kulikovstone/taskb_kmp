@@ -23,6 +23,7 @@ import com.mkulikov.taskb.feature.item.api.model.TaskFilter
 import com.mkulikov.taskb.ui.component.TaskBLoadError
 import com.mkulikov.taskb.ui.dialog.TaskBConfirmationDialog
 import com.mkulikov.taskb.ui.icon.TaskBIcons
+import com.mkulikov.taskb.ui.layout.TaskBLayout
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
@@ -160,7 +161,7 @@ private fun CalendarLayout(
     month: @Composable () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().testTag(tag = "calendar-screen")) {
-        val wide = maxWidth >= 840.dp
+        val wide = maxWidth >= TaskBLayout.wideMinWidth
         Column(modifier = Modifier.fillMaxSize()) {
             if (!wide) topBar(false)
             Row(modifier = Modifier.fillMaxSize()) {
@@ -183,7 +184,7 @@ private fun CalendarTopBar(
     besideSidebar: Boolean,
 ) {
     val colors = TaskBTheme.colors
-    Box(modifier = Modifier.fillMaxWidth().height(height = 70.dp)) {
+    Box(modifier = Modifier.fillMaxWidth().height(height = TaskBLayout.topBarHeight)) {
         if (besideSidebar) {
             Spacer(modifier = Modifier.fillMaxHeight().width(width = 1.dp).background(color = colors.border))
         }

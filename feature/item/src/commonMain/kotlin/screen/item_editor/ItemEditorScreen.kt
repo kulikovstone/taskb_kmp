@@ -31,6 +31,7 @@ import com.mkulikov.taskb.ui.component.TaskBLoading
 import com.mkulikov.taskb.ui.component.TaskBTextArea
 import com.mkulikov.taskb.ui.component.TaskBTextField
 import com.mkulikov.taskb.ui.icon.TaskBIcons
+import com.mkulikov.taskb.ui.layout.TaskBLayout
 import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.coroutines.flow.Flow
 import org.koin.compose.koinInject
@@ -91,7 +92,7 @@ private fun ItemEditorContent(
                 title = if (editing) "Edit item" else "New item",
                 onBack = onBack,
                 backEnabled = !state.isSaving,
-                height = 70.dp,
+                height = TaskBLayout.topBarHeight,
             ) {
                 if (editing) {
                     TaskBEditorButton(
@@ -136,7 +137,7 @@ private fun ItemEditorContent(
                 )
                 else -> Column(
                     modifier = Modifier
-                        .widthIn(max = 724.dp)
+                        .widthIn(max = TaskBLayout.contentMaxWidth)
                         .fillMaxWidth()
                         .verticalScroll(state = rememberScrollState())
                         .padding(vertical = 32.dp),
