@@ -27,6 +27,8 @@ import com.mkulikov.taskb.ui.theme.TaskBTheme
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 
+private const val CALENDAR_SIDEBAR_WIDTH_DP = 340
+
 @Composable
 internal fun CalendarScreen(
     state: CalendarState,
@@ -99,7 +101,7 @@ internal fun CalendarScreen(
                         onClearGroup = { groupId = null },
                         onCreateItem = createItem,
                         modifier = Modifier
-                            .width(width = 380.dp)
+                            .width(width = CALENDAR_SIDEBAR_WIDTH_DP.dp)
                             .fillMaxHeight(),
                     )
                 },
